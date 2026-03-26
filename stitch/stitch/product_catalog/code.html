@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary-container": "#d4b478",
+            "secondary": "#e3c285",
+            "outline-variant": "#414752",
+            "on-primary": "#00315d",
+            "on-tertiary-fixed": "#191b21",
+            "tertiary": "#c5c6ce",
+            "inverse-surface": "#e4e1e9",
+            "on-surface-variant": "#c0c7d4",
+            "inverse-on-surface": "#303036",
+            "error": "#ffb4ab",
+            "on-error": "#690005",
+            "on-primary-fixed": "#001c39",
+            "surface": "#131318",
+            "surface-variant": "#35343a",
+            "secondary-container": "#5c4614",
+            "tertiary-fixed": "#e2e2ea",
+            "on-error-container": "#ffdad6",
+            "on-tertiary": "#2e3036",
+            "primary": "#a4c9ff",
+            "secondary-fixed-dim": "#e3c285",
+            "secondary-fixed": "#ffdea3",
+            "on-secondary-fixed": "#261900",
+            "primary-fixed": "#d4e3ff",
+            "tertiary-container": "#9a9ba3",
+            "on-background": "#e4e1e9",
+            "outline": "#8a919e",
+            "on-primary-fixed-variant": "#004884",
+            "on-tertiary-fixed-variant": "#45474d",
+            "on-primary-container": "#003463",
+            "surface-container-highest": "#35343a",
+            "surface-dim": "#131318",
+            "inverse-primary": "#005fad",
+            "surface-container-low": "#1b1b20",
+            "tertiary-fixed-dim": "#c5c6ce",
+            "on-surface": "#e4e1e9",
+            "surface-tint": "#a4c9ff",
+            "background": "#131318",
+            "on-secondary-fixed-variant": "#594312",
+            "error-container": "#93000a",
+            "surface-container-high": "#2a292f",
+            "surface-container": "#1f1f25",
+            "primary-fixed-dim": "#a4c9ff",
+            "surface-container-lowest": "#0e0e13",
+            "primary-container": "#4a9eff",
+            "on-tertiary-container": "#313339",
+            "on-secondary": "#402d00",
+            "surface-bright": "#39383e"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+      background: rgba(53, 52, 58, 0.4);
+      backdrop-filter: blur(20px);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-neutral-900/40 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="text-[#a4c9ff] hover:opacity-80 transition-opacity scale-95 duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-[#e4e1e9]">APEX</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant/20 overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="close-up portrait of a professional man in a tech environment with soft blue rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBB9GZVsWsZyLltgqt9IaIMRv1Gzl54kd_xHiRXTnu7Vfvs8OruVIBL32o7Rpd8nZCdiVpd6u0qbyGViR315HVTKGdI6X1QbU_xZRYpG-lF0UB-UyG7f7pVgIulLoKgksXyPGPxjtVSdF-e3y5AuTOG6RHZA2oiTi4Z9hMX1CyBXsXKtcLkQLwf3Q_w1bikXxP3YMVTkmU5zZFhrZNtQ6bAxeJrzHMhITa0iyXpaxVS3OBhY1L_bFmKnBq1a53-qHx72312-VVz8v0"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-5xl mx-auto">
+<!-- Search and Header -->
+<section class="mb-8">
+<div class="flex justify-between items-end mb-6">
+<div>
+<span class="font-label text-secondary text-xs uppercase tracking-[0.2em] mb-1 block">Inventory</span>
+<h1 class="font-headline text-5xl font-bold tracking-tight text-on-surface">Catalog</h1>
+</div>
+<button class="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-primary border border-outline-variant/10 hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-low border-none border-b-2 border-transparent focus:border-primary focus:ring-0 rounded-xl py-4 pl-12 pr-4 font-body text-on-surface placeholder:text-outline/50 transition-all" placeholder="Search high-performance vehicles..." type="text"/>
+</div>
+</section>
+<!-- Filter Chips -->
+<nav class="flex gap-3 overflow-x-auto no-scrollbar mb-10 pb-2">
+<button class="px-6 py-2.5 rounded-full bg-gradient-to-r from-secondary-container to-secondary text-on-secondary-fixed font-medium text-sm whitespace-nowrap shadow-[0_0_15px_rgba(227,194,133,0.3)]">All Models</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">Sedans</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">SUVs</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">Electric</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">Performance</button>
+</nav>
+<!-- Product Grid -->
+<div class="grid grid-cols-1 gap-8">
+<!-- Honda Elevate Card -->
+<article class="relative group overflow-hidden rounded-[20pt] bg-surface-container h-[28rem] border border-outline-variant/5 shadow-2xl">
+<div class="absolute inset-0 z-0">
+<img alt="Honda Elevate" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="front three-quarter view of a modern white SUV parked in a minimalist concrete architectural space with dramatic shadows and sharp lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/20"></div>
+</div>
+<!-- Badges -->
+<div class="absolute top-6 left-6 flex gap-2 z-10">
+<span class="px-3 py-1 rounded-full bg-primary/20 backdrop-blur-md text-primary font-headline text-[10px] font-bold tracking-widest uppercase border border-primary/30">NEW</span>
+<span class="px-3 py-1 rounded-full bg-secondary/20 backdrop-blur-md text-secondary font-headline text-[10px] font-bold tracking-widest uppercase border border-secondary/30">EV-HYBRID</span>
+</div>
+<!-- Heart Icon -->
+<button class="absolute top-6 right-6 z-10 w-10 h-10 rounded-full glass-card flex items-center justify-center text-on-surface hover:text-error transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<!-- Content Overlay -->
+<div class="absolute bottom-0 left-0 right-0 p-8 z-10">
+<div class="flex justify-between items-end">
+<div class="space-y-1">
+<h2 class="font-headline text-4xl font-bold tracking-tight text-white">Honda Elevate</h2>
+<div class="flex items-center gap-3">
+<span class="font-headline text-2xl text-secondary font-medium">₹12.5 - 16.8 L</span>
+<span class="flex items-center gap-1 text-on-surface-variant text-sm bg-surface-container-highest/50 px-2 py-0.5 rounded-md backdrop-blur-sm">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span> 4.8
+                </span>
+</div>
+</div>
+<button class="bg-primary text-on-primary-fixed px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:shadow-[0_0_20px_rgba(164,201,255,0.4)] transition-all transform active:scale-95">
+              VIEW DETAILS
+            </button>
+</div>
+<!-- Quick Specs -->
+<div class="mt-6 flex gap-6 border-t border-white/10 pt-6">
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Range</span>
+<span class="font-headline font-semibold text-white">450 KM</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Power</span>
+<span class="font-headline font-semibold text-white">142 BHP</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Transmission</span>
+<span class="font-headline font-semibold text-white">CVT/MT</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Second Car Preview -->
+<article class="relative group overflow-hidden rounded-[20pt] bg-surface-container h-[28rem] border border-outline-variant/5 shadow-2xl">
+<div class="absolute inset-0 z-0">
+<img alt="Apex GT" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="sleek dark grey performance sedan speeding on a coastal highway at twilight with motion blur and glowing tail lights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/20"></div>
+</div>
+<div class="absolute top-6 left-6 z-10">
+<span class="px-3 py-1 rounded-full bg-surface-variant/40 backdrop-blur-md text-on-surface font-headline text-[10px] font-bold tracking-widest uppercase border border-outline-variant/30">LIMITED</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-8 z-10">
+<div class="flex justify-between items-end">
+<div class="space-y-1">
+<h2 class="font-headline text-4xl font-bold tracking-tight text-white">Apex GT-Carbon</h2>
+<div class="flex items-center gap-3">
+<span class="font-headline text-2xl text-secondary font-medium">₹24.8 - 28.5 L</span>
+<span class="flex items-center gap-1 text-on-surface-variant text-sm bg-surface-container-highest/50 px-2 py-0.5 rounded-md backdrop-blur-sm">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span> 4.9
+                </span>
+</div>
+</div>
+<button class="bg-surface-bright/20 backdrop-blur-xl text-secondary border border-secondary/20 px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:bg-secondary/10 transition-all">
+              VIEW DETAILS
+            </button>
+</div>
+</div>
+</article>
+</div>
+</main>
+<!-- Floating AI Button -->
+<button class="fixed bottom-28 right-8 w-16 h-16 rounded-2xl bg-primary text-on-primary-fixed shadow-[0_10px_30px_rgba(164,201,255,0.4)] flex items-center justify-center z-40 transform hover:scale-110 active:scale-90 transition-all">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-4 right-4 flex justify-around items-center px-2 bg-[#1f1f25]/40 backdrop-blur-2xl rounded-[36pt] z-50 h-16 shadow-[0_20px_40px_rgba(0,0,0,0.4)] bg-gradient-to-b from-white/10 to-transparent">
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="flex items-center justify-center bg-[#e3c285] text-[#131318] rounded-full w-12 h-12 shadow-[0_0_15px_rgba(227,194,133,0.4)] scale-90 active:scale-110 duration-300">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300">
+<span class="material-symbols-outlined">view_in_ar</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300">
+<span class="material-symbols-outlined">chat_bubble</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300">
+<span class="material-symbols-outlined">person</span>
+</div>
+</nav>
+</body></html>

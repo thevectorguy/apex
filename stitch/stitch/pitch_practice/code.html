@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary-container": "#d4b478",
+            "secondary": "#e3c285",
+            "outline-variant": "#414752",
+            "on-primary": "#00315d",
+            "on-tertiary-fixed": "#191b21",
+            "tertiary": "#c5c6ce",
+            "inverse-surface": "#e4e1e9",
+            "on-surface-variant": "#c0c7d4",
+            "inverse-on-surface": "#303036",
+            "error": "#ffb4ab",
+            "on-error": "#690005",
+            "on-primary-fixed": "#001c39",
+            "surface": "#131318",
+            "surface-variant": "#35343a",
+            "secondary-container": "#5c4614",
+            "tertiary-fixed": "#e2e2ea",
+            "on-error-container": "#ffdad6",
+            "on-tertiary": "#2e3036",
+            "primary": "#a4c9ff",
+            "secondary-fixed-dim": "#e3c285",
+            "secondary-fixed": "#ffdea3",
+            "on-secondary-fixed": "#261900",
+            "primary-fixed": "#d4e3ff",
+            "tertiary-container": "#9a9ba3",
+            "on-background": "#e4e1e9",
+            "outline": "#8a919e",
+            "on-primary-fixed-variant": "#004884",
+            "on-tertiary-fixed-variant": "#45474d",
+            "on-primary-container": "#003463",
+            "surface-container-highest": "#35343a",
+            "surface-dim": "#131318",
+            "inverse-primary": "#005fad",
+            "surface-container-low": "#1b1b20",
+            "tertiary-fixed-dim": "#c5c6ce",
+            "on-surface": "#e4e1e9",
+            "surface-tint": "#a4c9ff",
+            "background": "#131318",
+            "on-secondary-fixed-variant": "#594312",
+            "error-container": "#93000a",
+            "surface-container-high": "#2a292f",
+            "surface-container": "#1f1f25",
+            "primary-fixed-dim": "#a4c9ff",
+            "surface-container-lowest": "#0e0e13",
+            "primary-container": "#4a9eff",
+            "on-tertiary-container": "#313339",
+            "on-secondary": "#402d00",
+            "surface-bright": "#39383e"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .carbon-texture {
+      background-image: radial-gradient(#ffffff05 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+    .glass-panel {
+      backdrop-filter: blur(20px);
+      background: rgba(53, 52, 58, 0.4);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30 min-h-screen pb-32 overflow-x-hidden">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 w-full z-50 bg-neutral-900/40 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#a4c9ff] cursor-pointer" data-icon="menu">menu</span>
+<h1 class="font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-[#e4e1e9]">APEX</h1>
+</div>
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant/20">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Close up portrait of a professional man in a modern office setting with soft cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZ83jxz8QGdfmsSfz04OQWzERGaMI2N_oDZyqBJSGEnz4nM5zk_D4Op493Z04wW_Pd0QjAIrOaaR5XBqPKyT0R2nY8lTWkZ3YM7B8TxrGDSn0SYvORSqL-VhUgmYmbUdIXjs1GyRUebu3ZLweoNeP3rnqJdCzLcBvj6oEbljfQVSMyOxlKwWFG-t_eWW9SW_naVsIEhoJNjWY6ZeI8VQ-3aQys0neQ5KBakiv_emvoHQjJsC8eJIeLbjDP1_rUBqNq_vSi80P3SdY"/>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto carbon-texture">
+<!-- Header Section -->
+<section class="mb-10">
+<div class="flex flex-col gap-1">
+<h2 class="font-headline text-5xl font-bold tracking-tight text-on-surface">Pitch Practice</h2>
+<p class="font-headline text-secondary tracking-[0.2em] uppercase text-sm font-medium">Build your edge.</p>
+</div>
+</section>
+<!-- Performance Stat Cards (Bento Style) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+<!-- Stat 1 -->
+<div class="bg-surface-container rounded-xl p-6 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 group-hover:bg-primary/10 transition-colors"></div>
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-4">Sessions this week</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-headline font-bold text-primary">12</span>
+<span class="text-primary/60 text-sm mb-1 font-medium">+20%</span>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface-container rounded-xl p-6 relative overflow-hidden group border-b-2 border-primary/20">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-4">Best score</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-headline font-bold text-on-surface">94</span>
+<span class="text-on-surface-variant text-sm mb-1 font-medium">/100</span>
+</div>
+<div class="mt-4 h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[94%]"></div>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface-container rounded-xl p-6 relative overflow-hidden group">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-4">Objections handled</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-headline font-bold text-secondary">48</span>
+<span class="material-symbols-outlined text-secondary text-xl mb-1" data-icon="verified_user">verified_user</span>
+</div>
+</div>
+</section>
+<!-- Scenario Grid -->
+<section class="mb-12">
+<h3 class="font-headline text-xl font-semibold mb-6 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+        Active Scenarios
+      </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Scenario 1 -->
+<div class="bg-surface-container-high rounded-xl p-6 flex items-center gap-6 group hover:bg-surface-bright transition-all cursor-pointer">
+<div class="w-20 h-20 rounded-xl bg-surface-container-lowest flex items-center justify-center border border-outline-variant/10 overflow-hidden relative">
+<span class="material-symbols-outlined text-on-surface-variant text-5xl absolute bottom-0 translate-y-2 opacity-50" data-icon="person">person</span>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-headline text-lg font-bold">Rahul Sharma</h4>
+<span class="bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Beginner</span>
+</div>
+<p class="text-on-surface-variant text-sm mb-3">Skeptical IT Procurement Lead</p>
+<div class="flex gap-4">
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="timer">timer</span> 5m
+              </div>
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="psychology">psychology</span> Medium Focus
+              </div>
+</div>
+</div>
+</div>
+<!-- Scenario 2 -->
+<div class="bg-surface-container-high rounded-xl p-6 flex items-center gap-6 group hover:bg-surface-bright transition-all cursor-pointer">
+<div class="w-20 h-20 rounded-xl bg-surface-container-lowest flex items-center justify-center border border-outline-variant/10 overflow-hidden relative">
+<span class="material-symbols-outlined text-on-surface-variant text-5xl absolute bottom-0 translate-y-2 opacity-50" data-icon="person">person</span>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-headline text-lg font-bold">Priya Mehra</h4>
+<span class="bg-secondary/10 text-secondary text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Intermediate</span>
+</div>
+<p class="text-on-surface-variant text-sm mb-3">Fast-talking Marketing Director</p>
+<div class="flex gap-4">
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="timer">timer</span> 10m
+              </div>
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="bolt">bolt</span> High Energy
+              </div>
+</div>
+</div>
+</div>
+<!-- Scenario 3 -->
+<div class="bg-surface-container-high rounded-xl p-6 flex items-center gap-6 group hover:bg-surface-bright transition-all cursor-pointer">
+<div class="w-20 h-20 rounded-xl bg-surface-container-lowest flex items-center justify-center border border-outline-variant/10 overflow-hidden relative">
+<span class="material-symbols-outlined text-on-surface-variant text-5xl absolute bottom-0 translate-y-2 opacity-50" data-icon="person">person</span>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-headline text-lg font-bold">Mr. Kapoor</h4>
+<span class="bg-error/10 text-error text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Advanced</span>
+</div>
+<p class="text-on-surface-variant text-sm mb-3">Hard-bargaining CEO</p>
+<div class="flex gap-4">
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="timer">timer</span> 15m
+              </div>
+<div class="flex items-center gap-1 text-[10px] font-label text-secondary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-xs" data-icon="gavel">gavel</span> Strict
+              </div>
+</div>
+</div>
+</div>
+<!-- Create Custom Card -->
+<div class="border-2 border-dashed border-secondary/30 rounded-xl p-6 flex flex-col items-center justify-center gap-2 group hover:border-secondary/60 transition-all cursor-pointer bg-secondary/5">
+<div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary mb-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<h4 class="font-headline text-lg font-bold text-secondary">Create Custom</h4>
+<p class="text-secondary/60 text-xs font-label uppercase tracking-widest">Define your rival</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating AI Button -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary rounded-2xl shadow-[0_0_20px_rgba(164,201,255,0.4)] flex items-center justify-center text-on-primary-fixed hover:scale-105 active:scale-95 transition-all z-40 group">
+<span class="material-symbols-outlined text-3xl font-bold" data-icon="auto_awesome">auto_awesome</span>
+<span class="absolute right-full mr-4 bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">AI Feedback</span>
+</button>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-6 left-4 right-4 z-50 h-16 bg-[#1f1f25]/40 backdrop-blur-2xl rounded-[36pt] shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex justify-around items-center px-2 bg-gradient-to-b from-white/10 to-transparent">
+<a class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+</a>
+<a class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+</a>
+<a class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="view_in_ar">view_in_ar</span>
+</a>
+<a class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors scale-90 active:scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+</a>
+<a class="flex items-center justify-center bg-[#e3c285] text-[#131318] rounded-full w-12 h-12 shadow-[0_0_15px_rgba(227,194,133,0.4)] scale-90 active:scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+</a>
+</nav>
+</body></html>

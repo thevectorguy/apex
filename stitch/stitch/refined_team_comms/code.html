@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-container": "#d4b478",
+              "secondary": "#e3c285",
+              "outline-variant": "#414752",
+              "on-primary": "#00315d",
+              "on-tertiary-fixed": "#191b21",
+              "tertiary": "#c5c6ce",
+              "inverse-surface": "#e4e1e9",
+              "on-surface-variant": "#c0c7d4",
+              "inverse-on-surface": "#303036",
+              "error": "#ffb4ab",
+              "on-error": "#690005",
+              "on-primary-fixed": "#001c39",
+              "surface": "#000000",
+              "surface-variant": "#1c1c1e",
+              "secondary-container": "#5c4614",
+              "tertiary-fixed": "#e2e2ea",
+              "on-error-container": "#ffdad6",
+              "on-tertiary": "#2e3036",
+              "primary": "#007AFF",
+              "secondary-fixed-dim": "#e3c285",
+              "secondary-fixed": "#ffdea3",
+              "on-secondary-fixed": "#261900",
+              "primary-fixed": "#d4e3ff",
+              "tertiary-container": "#9a9ba3",
+              "on-background": "#ffffff",
+              "outline": "#3a3a3c",
+              "on-primary-fixed-variant": "#004884",
+              "on-tertiary-fixed-variant": "#45474d",
+              "on-primary-container": "#003463",
+              "surface-container-highest": "#2c2c2e",
+              "surface-dim": "#000000",
+              "inverse-primary": "#005fad",
+              "surface-container-low": "#1c1c1e",
+              "tertiary-fixed-dim": "#c5c6ce",
+              "on-surface": "#ffffff",
+              "surface-tint": "#007AFF",
+              "background": "#000000",
+              "on-secondary-fixed-variant": "#594312",
+              "error-container": "#93000a",
+              "surface-container-high": "#2c2c2e",
+              "surface-container": "#121212",
+              "primary-fixed-dim": "#a4c9ff",
+              "surface-container-lowest": "#000000",
+              "primary-container": "#007AFF",
+              "on-tertiary-container": "#313339",
+              "on-secondary": "#000000",
+              "surface-bright": "#333333"
+            },
+            fontFamily: {
+              "headline": ["Inter", "system-ui", "sans-serif"],
+              "body": ["Inter", "system-ui", "sans-serif"],
+              "label": ["Inter", "system-ui", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .apple-glass {
+        background: rgba(28, 28, 30, 0.65);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .apple-glass-bright {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .gradient-mesh {
+        background-color: #000000;
+        background-image: 
+          radial-gradient(at 0% 0%, hsla(210,100%,15%,0.15) 0px, transparent 50%),
+          radial-gradient(at 100% 0%, hsla(280,100%,15%,0.1) 0px, transparent 50%);
+      }
+      body {
+        min-height: 100dvh;
+        letter-spacing: -0.011em;
+      }
+      .refined-scroll::-webkit-scrollbar {
+        width: 4px;
+      }
+      .refined-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+      }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30 min-h-screen pb-32 gradient-mesh">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 apple-glass border-b border-white/5 flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="text-on-surface/80 hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline text-lg font-bold tracking-tight text-white">APEX</h1>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-8">
+<span class="font-label text-[13px] font-medium text-on-surface/60 cursor-pointer hover:text-white transition-colors">Home</span>
+<span class="font-label text-[13px] font-medium text-on-surface/60 cursor-pointer hover:text-white transition-colors">Fleet</span>
+<span class="font-label text-[13px] font-medium text-on-surface/60 cursor-pointer hover:text-white transition-colors">Experience</span>
+<span class="font-label text-[13px] font-medium text-primary cursor-pointer transition-colors">Communications</span>
+</nav>
+<div class="w-8 h-8 rounded-full border border-white/10 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a man with a confident expression in low key lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEiyEHhgYgxtGzH8vEq-HFzHRT42-cF-CgRLNNSB_wYt0xpFwIrJs8Da5jy4JrYHEWKJwDKUXe5S2FPykLXEjNi9Jdtz_S8JucbcmxPBKTtxGk1-lc_Hyu5DrWJEGSMgaD708uIS_maS1wRK4Tbryw3kxd28JAI13-r7rnu-QhOOQ2L2he7zVlUe5w8gnbF-qY1YkRUt7nLq2IAABocktJARA4_UJWkjWGBY8GV9SXrRTsZ5cFs10eCxiIy1vUwoUckS9cSpe4r3I"/>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-7xl mx-auto">
+<!-- Pinned Announcements -->
+<section class="mb-12">
+<div class="flex items-end justify-between mb-8">
+<div>
+<span class="text-[11px] font-bold tracking-[0.2em] text-secondary uppercase mb-1 block">Head Office Priority</span>
+<h2 class="font-headline text-3xl font-bold tracking-tight text-white">Announcements</h2>
+</div>
+<button class="text-primary text-sm font-medium hover:underline">View archive</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Apple Style Glass Card 1 -->
+<div class="apple-glass rounded-2xl p-7 relative group transition-all duration-500 hover:border-primary/30">
+<div class="flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<span class="bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">Price Update</span>
+<span class="text-on-surface/40 text-[11px] font-medium">2h ago</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 text-white leading-tight">Q4 Performance Incentive Revision</h3>
+<p class="text-on-surface/60 text-[14px] leading-relaxed mb-8 flex-grow">Adjustments to the regional margin thresholds for luxury fleet units will take effect from the 1st of next month.</p>
+<button class="flex items-center gap-2 text-primary font-semibold text-[13px] hover:translate-x-1 transition-transform w-fit">
+                        Review Full Policy <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Apple Style Glass Card 2 -->
+<div class="apple-glass rounded-2xl p-7 relative group transition-all duration-500 hover:border-secondary/30">
+<div class="flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<span class="bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">Policy</span>
+<span class="text-on-surface/40 text-[11px] font-medium">5h ago</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 text-white leading-tight">Client Privacy Protocol v2.4</h3>
+<p class="text-on-surface/60 text-[14px] leading-relaxed mb-8 flex-grow">Mandatory update to the digital non-disclosure agreement process for all off-site vehicle demonstrations.</p>
+<button class="flex items-center gap-2 text-secondary font-semibold text-[13px] hover:translate-x-1 transition-transform w-fit">
+                        Acknowledge Receipt <span class="material-symbols-outlined text-[18px]">task_alt</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Command Center: Team Comms (Left Column) -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="flex items-end justify-between mb-2">
+<div>
+<span class="text-[11px] font-bold tracking-[0.2em] text-on-surface/40 uppercase mb-1 block">Regional HQ South</span>
+<h2 class="font-headline text-2xl font-bold tracking-tight text-white">Team Operations</h2>
+</div>
+</div>
+<div class="apple-glass rounded-2xl overflow-hidden flex flex-col h-[600px] border border-white/5">
+<div class="px-6 py-4 border-b border-white/5 flex items-center justify-between apple-glass-bright">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+</div>
+<div>
+<div class="font-bold text-sm text-white">Fleet Logistics Alpha</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+<span class="text-[11px] text-green-500 font-medium">4 Active Now</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 rounded-xl hover:bg-white/5 text-on-surface/60"><span class="material-symbols-outlined text-[20px]">search</span></button>
+<span class="bg-error/20 text-error px-2.5 py-1 rounded-lg text-[10px] font-black border border-error/20">12 UNREAD</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-8 space-y-8 refined-scroll">
+<!-- Message Received -->
+<div class="flex items-start gap-4">
+<div class="relative">
+<img class="w-9 h-9 rounded-full object-cover border border-white/10" data-alt="close up headshot of a professional man with short hair and a neutral expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgTOuE96uaoYPx3VP4quaY2Av8kBXujz0Vtyxl-3P6yC-GYu_iL-y8gptcnLg6ma5pWbcpYOXeBkbD_mtms9g5XxtCiqUCYXX8wGP8bjfeDxDaC0YCI24qh5Juh-eQm5deLdATn7A_TQIKyMedLHujQYKsEDM9XaNLNMoaPvhZOw7NQ5hGXSEO5n2YJjG-9dwXhI1z68CQcOLB8dcI6JlMj7SHBcLjCt7Xw8hMCHCvB2PH8KeCZGeBCg2pTdkHVIWS9DD38vZBwrg"/>
+</div>
+<div class="max-w-[75%]">
+<div class="text-[11px] font-bold text-on-surface/30 mb-1.5 uppercase tracking-wide">Marcus Thorne</div>
+<div class="apple-glass-bright rounded-2xl rounded-tl-none p-4 text-[14px] leading-relaxed text-on-surface/90">
+                                Has the SF-90 delivery window been confirmed for the Mayfair event yet? Client is asking for a specific ETA.
+                            </div>
+<div class="text-[10px] mt-2 text-on-surface/20 font-medium">09:42 AM</div>
+</div>
+</div>
+<!-- Message Sent -->
+<div class="flex items-start gap-4 justify-end">
+<div class="max-w-[75%] flex flex-col items-end">
+<div class="text-[11px] font-bold text-primary/50 mb-1.5 uppercase tracking-wide">Command (You)</div>
+<div class="bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-none p-4 text-[14px] leading-relaxed text-white">
+                                Still waiting on logistics hub. I'll escalate to the floor manager now. Expecting a response within 10 minutes.
+                            </div>
+<div class="text-[10px] mt-2 text-on-surface/20 font-medium flex items-center gap-1">09:45 AM <span class="material-symbols-outlined text-[12px] text-primary">done_all</span></div>
+</div>
+</div>
+<!-- System Context -->
+<div class="flex justify-center">
+<div class="flex items-center gap-3 px-6 py-2 rounded-full border border-white/5 bg-white/5">
+<span class="material-symbols-outlined text-[14px] text-on-surface/40">attach_file</span>
+<span class="text-[10px] text-on-surface/40 font-bold uppercase tracking-[0.15em]">System: Shared Manifest &amp; Schedule</span>
+</div>
+</div>
+<!-- Message Received -->
+<div class="flex items-start gap-4">
+<img class="w-9 h-9 rounded-full object-cover border border-white/10" data-alt="modern portrait of a woman with long dark hair and professional attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0FBgckS5bhs4aT0FoOL57HoC44O1dfZ3nK7HvfRb-lycycBFRaBNIQJNf6ii16jzcPIdLEdNuoIzk_z6Vk-Lk327X7dwsUpSXkNQjLFN1O2R8-VMoJkDC6xBROk2mmktiFBq-nXSp86NZ8kRatHt3dVx_GtwZAZdLjk1do_SQzUsVCIUO4vNj9j0M_CSUVgq155u4oWPfqskRBxzZJ6v-P7i4NKBgSwZMX2zJVUzOdgnKQvwI4Lf3zhdDNpRcX5NW1eJFMZCBhZA"/>
+<div class="max-w-[75%]">
+<div class="text-[11px] font-bold text-on-surface/30 mb-1.5 uppercase tracking-wide">Sarah Chen</div>
+<div class="apple-glass-bright rounded-2xl rounded-tl-none p-4 text-[14px] leading-relaxed text-on-surface/90">
+                                Just got word - transit cleared the final checkpoint. Arriving in 45 mins. ⚡️
+                            </div>
+<div class="text-[10px] mt-2 text-on-surface/20 font-medium">10:12 AM</div>
+</div>
+</div>
+</div>
+<div class="p-6 bg-white/5 border-t border-white/5">
+<div class="relative flex items-center gap-3">
+<button class="p-2 text-on-surface/40 hover:text-white transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<input class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-[14px] focus:ring-1 focus:ring-primary/50 focus:border-primary/50 placeholder:text-on-surface/20 text-white outline-none transition-all" placeholder="Enter command or message..." type="text"/>
+<button class="bg-primary hover:bg-primary/90 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: People & Alerts -->
+<div class="flex flex-col gap-8">
+<div>
+<div class="flex items-end justify-between mb-6">
+<div>
+<span class="text-[11px] font-bold tracking-[0.2em] text-on-surface/40 uppercase mb-1 block">Quick Access</span>
+<h2 class="font-headline text-2xl font-bold tracking-tight text-white">Direct</h2>
+</div>
+<button class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-[20px] text-primary">person_add</span>
+</button>
+</div>
+<div class="space-y-3">
+<!-- DM Item 1 -->
+<div class="apple-glass p-4 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img class="w-11 h-11 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-300" data-alt="professional portrait of a man with glasses and a friendly look" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvCS7XjCyOgGoqpn4UNJusMzmJZCs614ZkEhUCWYdNrAU4e3ADWME418Xzt1TEdu4z132lVmk2DbxizGoj97KGWJmpr35Y8UQYlw-s01UepoZguD_1b9IyjHpVUyavHYB8QwDHQWK3bWxOLWNubQiK7jR6SSfxZqwOdiE-S1HIPL6iFCNgc1IqaxkqUwg_JajEO_EUVZScVzh-N8hQkr6PyoNHOZCajBtJ9wnhDbUM7LOMhY7V0KACjN3uG68-4PAW6j01T1a9AOg"/>
+<div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-surface"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-0.5">
+<span class="font-bold text-[14px] text-white">David Miller</span>
+<span class="text-[10px] font-medium text-on-surface/30">14m</span>
+</div>
+<p class="text-[12px] text-on-surface/50 truncate">The contract is ready for digital sign-off...</p>
+</div>
+</div>
+</div>
+<!-- DM Item 2 -->
+<div class="apple-glass p-4 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img class="w-11 h-11 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-300" data-alt="artistic close up of a woman with short hair in natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzBdPksZsAfeoaBQBA1iQBQL6nMOtLEjJlTueSYsOh0JAf0STJH6Pwoz1Rx8kJo6lPhByTvCXFda29i9PCD7vIOAHij4xSZmSVG7f_JDq2BzejjVQj_WmG7-M_f4p5ZICuK7dVkuW9-5Fs4cIS9_cd4m9wx8cZcXby1bN2ReUhx7ZoWGcad1vCbh3j6qEkNTtl-qKaOQJYS1uS2oR1mdx_DccK3OBp_-PQJCGkdU93Pd9knFANxiqr9Ysml1ETkgcu-8UMf1zWXjQ"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-0.5">
+<span class="font-bold text-[14px] text-white">Elena Vance</span>
+<span class="text-[10px] font-medium text-on-surface/30">2h</span>
+</div>
+<p class="text-[12px] font-semibold text-primary">Sent a photo 📸</p>
+</div>
+</div>
+</div>
+<!-- DM Item 3 -->
+<div class="apple-glass p-4 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center text-on-surface/40 border border-white/10">
+<span class="material-symbols-outlined text-[20px]">shield_with_heart</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-0.5">
+<span class="font-bold text-[14px] text-white">Fleet Operations</span>
+<span class="text-[10px] font-medium text-on-surface/30">Yesterday</span>
+</div>
+<p class="text-[12px] text-on-surface/50 truncate">Your vehicle assignment for Monday updated.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Escalate Button -->
+<button class="apple-glass hover:bg-error/10 group transition-all p-8 rounded-2xl flex flex-col items-center gap-4 border border-error/10">
+<div class="w-14 h-14 rounded-2xl bg-error/10 flex items-center justify-center text-error group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">report</span>
+</div>
+<div class="text-center">
+<span class="block font-headline font-bold uppercase tracking-[0.25em] text-[12px] text-white mb-1">Emergency Protocol</span>
+<span class="text-[11px] text-on-surface/40">Escalate critical incident to HQ</span>
+</div>
+</button>
+</div>
+</div>
+</main>
+<!-- Floating AI Assistant -->
+<button class="fixed bottom-28 right-8 w-16 h-16 bg-white text-black rounded-full shadow-[0_10px_40px_rgba(255,255,255,0.15)] flex items-center justify-center group z-50 transition-all hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined text-3xl transition-transform group-hover:rotate-12" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 flex justify-around items-center px-6 apple-glass rounded-full z-50 h-16 w-[92%] max-w-lg border border-white/10 shadow-2xl">
+<a class="flex items-center justify-center text-white/40 w-12 h-12 hover:text-white transition-all scale-90 active:scale-110" href="#">
+<span class="material-symbols-outlined">home</span>
+</a>
+<a class="flex items-center justify-center text-white/40 w-12 h-12 hover:text-white transition-all scale-90 active:scale-110" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+</a>
+<a class="flex items-center justify-center text-white/40 w-12 h-12 hover:text-white transition-all scale-90 active:scale-110" href="#">
+<span class="material-symbols-outlined">view_in_ar</span>
+</a>
+<a class="flex items-center justify-center text-primary w-14 h-14 bg-primary/10 rounded-full scale-100 shadow-[0_0_20px_rgba(0,122,255,0.2)]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</a>
+<a class="flex items-center justify-center text-white/40 w-12 h-12 hover:text-white transition-all scale-90 active:scale-110" href="#">
+<span class="material-symbols-outlined">person</span>
+</a>
+</nav>
+</body></html>

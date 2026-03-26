@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>APEX 3D Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary-container": "#d4b478",
+            "secondary": "#e3c285",
+            "outline-variant": "#414752",
+            "on-primary": "#00315d",
+            "on-tertiary-fixed": "#191b21",
+            "tertiary": "#c5c6ce",
+            "inverse-surface": "#e4e1e9",
+            "on-surface-variant": "#c0c7d4",
+            "inverse-on-surface": "#303036",
+            "error": "#ffb4ab",
+            "on-error": "#690005",
+            "on-primary-fixed": "#001c39",
+            "surface": "#131318",
+            "surface-variant": "#35343a",
+            "secondary-container": "#5c4614",
+            "tertiary-fixed": "#e2e2ea",
+            "on-error-container": "#ffdad6",
+            "on-tertiary": "#2e3036",
+            "primary": "#a4c9ff",
+            "secondary-fixed-dim": "#e3c285",
+            "secondary-fixed": "#ffdea3",
+            "on-secondary-fixed": "#261900",
+            "primary-fixed": "#d4e3ff",
+            "tertiary-container": "#9a9ba3",
+            "on-background": "#e4e1e9",
+            "outline": "#8a919e",
+            "on-primary-fixed-variant": "#004884",
+            "on-tertiary-fixed-variant": "#45474d",
+            "on-primary-container": "#003463",
+            "surface-container-highest": "#35343a",
+            "surface-dim": "#131318",
+            "inverse-primary": "#005fad",
+            "surface-container-low": "#1b1b20",
+            "tertiary-fixed-dim": "#c5c6ce",
+            "on-surface": "#e4e1e9",
+            "surface-tint": "#a4c9ff",
+            "background": "#131318",
+            "on-secondary-fixed-variant": "#594312",
+            "error-container": "#93000a",
+            "surface-container-high": "#2a292f",
+            "surface-container": "#1f1f25",
+            "primary-fixed-dim": "#a4c9ff",
+            "surface-container-lowest": "#0e0e13",
+            "primary-container": "#4a9eff",
+            "on-tertiary-container": "#313339",
+            "on-secondary": "#402d00",
+            "surface-bright": "#39383e"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .glass-pill {
+      background: rgba(31, 31, 37, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .carbon-texture {
+      background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0);
+      background-size: 8px 8px;
+    }
+    .mirror-floor {
+      background: linear-gradient(to bottom, #131318 0%, #0e0e13 100%);
+    }
+    @keyframes pulse-gold {
+      0% { box-shadow: 0 0 0 0 rgba(227, 194, 133, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(227, 194, 133, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(227, 194, 133, 0); }
+    }
+    .animate-pulse-gold {
+      animation: pulse-gold 2s infinite;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-dim text-on-surface font-body selection:bg-primary/30 overflow-hidden">
+<!-- Immersive 3D Canvas Shell -->
+<main class="relative h-screen w-screen flex items-center justify-center mirror-floor carbon-texture">
+<!-- Cinematic Lighting Effects -->
+<div class="absolute inset-0 pointer-events-none">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[40%] bg-gradient-to-b from-primary/5 to-transparent blur-3xl opacity-30"></div>
+<div class="absolute bottom-0 inset-x-0 h-1/4 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+</div>
+<!-- Exit Button -->
+<button class="fixed top-8 left-8 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-surface-container/60 backdrop-blur-xl border border-outline-variant/10 text-on-surface hover:bg-surface-container-highest transition-all duration-300">
+<span class="material-symbols-outlined">close</span>
+</button>
+<!-- Main 3D Asset Placeholder -->
+<div class="relative w-full max-w-7xl px-6 flex flex-col items-center">
+<div class="relative group cursor-grab active:cursor-grabbing">
+<img class="w-full h-auto object-contain drop-shadow-[0_0_80px_rgba(164,201,255,0.15)] transform transition-transform duration-700 hover:scale-[1.02]" data-alt="Sleek modern electric supercar in a dark studio setting with soft top-down lighting and sharp metallic reflections on a black floor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb2jhB64u2NJ6dIJqGuMuZveOvC954vH72UIry0hMaxN7q-qTrFEuZmfskGnzvcmP7TIUfTaL10PMu-1Jxbt9E5jSEsMtMn22IWh_JGm-K165ESNpP5J1kUo5e8Ua_zW3holWUcqEpZ2u7nLaezRP-5JtoFBr1tdPK7y6qs-iF06u5g_9rFmBQt-Qv2_2B2j5Iq0km1UoUG5UuqjZsKxnmyh4LogSkh-V8H-POjSXCMmO__vtL0MTJ4sPolweQVBg7xdbpxRwnFRo"/>
+<!-- Subtle Mirror Reflection Shadow -->
+<div class="absolute -bottom-12 inset-x-0 h-24 bg-gradient-to-t from-surface-dim to-transparent opacity-60 blur-xl"></div>
+</div>
+<!-- Feature Hotspots -->
+<!-- Wheel Hotspot -->
+<div class="absolute left-[28%] top-[72%] group">
+<div class="w-4 h-4 rounded-full bg-secondary animate-pulse-gold cursor-pointer relative z-10"></div>
+<div class="absolute left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+<div class="bg-surface-container-highest px-4 py-2 rounded-xl backdrop-blur-md border border-outline-variant/20 whitespace-nowrap shadow-xl">
+<span class="text-secondary font-headline text-xs tracking-widest uppercase font-bold">Carbon Ceramic Brakes</span>
+</div>
+</div>
+</div>
+<!-- Sunroof Hotspot -->
+<div class="absolute left-[52%] top-[38%] group">
+<div class="w-4 h-4 rounded-full bg-secondary animate-pulse-gold cursor-pointer relative z-10"></div>
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+<div class="bg-surface-container-highest px-4 py-2 rounded-xl backdrop-blur-md border border-outline-variant/20 whitespace-nowrap shadow-xl">
+<span class="text-secondary font-headline text-xs tracking-widest uppercase font-bold">Panoramic Smart Glass</span>
+</div>
+</div>
+</div>
+<!-- Engine/Rear Hotspot -->
+<div class="absolute right-[22%] top-[55%] group">
+<div class="w-4 h-4 rounded-full bg-secondary animate-pulse-gold cursor-pointer relative z-10"></div>
+<div class="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+<div class="bg-surface-container-highest px-4 py-2 rounded-xl backdrop-blur-md border border-outline-variant/20 whitespace-nowrap shadow-xl text-right">
+<span class="text-secondary font-headline text-xs tracking-widest uppercase font-bold">Active Aerodynamics</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Overlay HUD Elements -->
+<div class="fixed top-8 right-8 flex flex-col items-end gap-2 text-right">
+<h1 class="font-headline text-4xl md:text-6xl font-extrabold tracking-tighter text-on-surface">APEX<span class="text-primary">.V3</span></h1>
+<p class="font-headline text-secondary text-sm tracking-[0.3em] uppercase opacity-80">Studio Configuration</p>
+</div>
+<div class="fixed left-8 bottom-32 flex flex-col gap-6">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-[0.2em] text-outline mb-1">Peak Power</span>
+<span class="font-headline text-2xl font-bold text-on-surface">1,020 HP</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-[0.2em] text-outline mb-1">0-100 KM/H</span>
+<span class="font-headline text-2xl font-bold text-on-surface">1.92 S</span>
+</div>
+</div>
+<!-- Studio Controls Bar (Bottom-center pill) -->
+<div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
+<nav class="glass-pill px-6 h-18 flex items-center gap-2 rounded-full border border-outline-variant/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+<button class="p-3 text-on-surface/60 hover:text-primary hover:bg-white/5 rounded-full transition-all duration-300 flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-[28px]">palette</span>
+<span class="text-[8px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">Paint</span>
+</button>
+<div class="w-px h-8 bg-outline-variant/20 mx-1"></div>
+<button class="p-3 text-on-surface/60 hover:text-primary hover:bg-white/5 rounded-full transition-all duration-300 flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-[28px]">lightbulb</span>
+<span class="text-[8px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">Light</span>
+</button>
+<!-- Primary Center Action -->
+<button class="mx-2 w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_0_20px_rgba(164,201,255,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">circle</span>
+</button>
+<button class="p-3 text-on-surface/60 hover:text-primary hover:bg-white/5 rounded-full transition-all duration-300 flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-[28px]">view_in_ar</span>
+<span class="text-[8px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">AR View</span>
+</button>
+<div class="w-px h-8 bg-outline-variant/20 mx-1"></div>
+<button class="p-3 text-on-surface/60 hover:text-primary hover:bg-white/5 rounded-full transition-all duration-300 flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-[28px]">info</span>
+<span class="text-[8px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">Specs</span>
+</button>
+</nav>
+</div>
+<!-- UI Interaction Tips -->
+<div class="fixed bottom-10 right-10 flex items-center gap-4">
+<div class="flex items-center gap-2 bg-surface-container-high/40 px-4 py-2 rounded-full border border-outline-variant/10">
+<span class="material-symbols-outlined text-sm text-secondary">swipe</span>
+<span class="font-headline text-[10px] tracking-widest uppercase text-on-surface/80">Rotate View</span>
+</div>
+</div>
+</main>
+<!-- Content Suppression: BottomNavBar & TopAppBar are hidden for this immersive view as per "The Destination Rule" and user prompt requirement. -->
+</body></html>

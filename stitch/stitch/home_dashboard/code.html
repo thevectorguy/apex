@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary-container": "#d4b478",
+            "secondary": "#e3c285",
+            "outline-variant": "#414752",
+            "on-primary": "#00315d",
+            "on-tertiary-fixed": "#191b21",
+            "tertiary": "#c5c6ce",
+            "inverse-surface": "#e4e1e9",
+            "on-surface-variant": "#c0c7d4",
+            "inverse-on-surface": "#303036",
+            "error": "#ffb4ab",
+            "on-error": "#690005",
+            "on-primary-fixed": "#001c39",
+            "surface": "#131318",
+            "surface-variant": "#35343a",
+            "secondary-container": "#5c4614",
+            "tertiary-fixed": "#e2e2ea",
+            "on-error-container": "#ffdad6",
+            "on-tertiary": "#2e3036",
+            "primary": "#a4c9ff",
+            "secondary-fixed-dim": "#e3c285",
+            "secondary-fixed": "#ffdea3",
+            "on-secondary-fixed": "#261900",
+            "primary-fixed": "#d4e3ff",
+            "tertiary-container": "#9a9ba3",
+            "on-background": "#e4e1e9",
+            "outline": "#8a919e",
+            "on-primary-fixed-variant": "#004884",
+            "on-tertiary-fixed-variant": "#45474d",
+            "on-primary-container": "#003463",
+            "surface-container-highest": "#35343a",
+            "surface-dim": "#131318",
+            "inverse-primary": "#005fad",
+            "surface-container-low": "#1b1b20",
+            "tertiary-fixed-dim": "#c5c6ce",
+            "on-surface": "#e4e1e9",
+            "surface-tint": "#a4c9ff",
+            "background": "#131318",
+            "on-secondary-fixed-variant": "#594312",
+            "error-container": "#93000a",
+            "surface-container-high": "#2a292f",
+            "surface-container": "#1f1f25",
+            "primary-fixed-dim": "#a4c9ff",
+            "surface-container-lowest": "#0e0e13",
+            "primary-container": "#4a9eff",
+            "on-tertiary-container": "#313339",
+            "on-secondary": "#402d00",
+            "surface-bright": "#39383e"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    body { background-color: #0A0A0F; color: #e4e1e9; font-family: 'Inter', sans-serif; }
+    .carbon-texture {
+      background-image: linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%, transparent);
+      background-size: 4px 4px;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-neutral-900/40 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#a4c9ff]" data-icon="menu">menu</span>
+<span class="font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-[#e4e1e9]">APEX</span>
+</div>
+<div class="h-10 w-10 rounded-full border-2 border-[#a4c9ff]/30 overflow-hidden">
+<img alt="User profile" class="h-full w-full object-cover" data-alt="close-up portrait of a professional man in a sharp suit with a confident expression, modern office lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPQTULceKr6j45xJCD4GWbBSq6jE0-mkdsKq3N4HqppI0uBMrLl1eK9ki6aNStOEbdrhGsdp5GwybQPHrj-LkM1-GoNYuqKDrNsyugsSmSNv1VTNCYlHPczEVB7T4WueeIUdbS-PLYNYqQv-qnWZL9sthU8iVlrBdqek3OU_dRGDxl0AuCqIseFjIVzmthxH3zWZaJIcgjec3uh1x36IqHDN6H8G9i6sJckCJpmx1MuYuPeabGW_vRchqBRO_QwqRRTLEt_FxQok4"/>
+</div>
+</header>
+<main class="pt-24 px-6 space-y-8">
+<!-- Hero Greeting -->
+<section>
+<h1 class="font-headline text-4xl font-bold tracking-tight text-on-surface">Good morning, Arjun.</h1>
+<p class="font-label text-secondary text-sm tracking-widest uppercase mt-1">OCTOBER 24 • ACTIVE SHIFT: 08:30 - 17:00</p>
+</section>
+<!-- Today's Target Card -->
+<section class="relative overflow-hidden rounded-[20pt] bg-gradient-to-br from-secondary via-secondary-container to-surface-container shadow-2xl p-6 flex items-center justify-between border border-white/5">
+<div class="absolute inset-0 carbon-texture opacity-10"></div>
+<div class="relative z-10">
+<span class="font-label text-xs font-bold uppercase tracking-[0.2em] text-on-secondary-fixed">Sales Performance</span>
+<div class="mt-2">
+<span class="font-headline text-5xl font-extrabold text-on-secondary-fixed">3 Units</span>
+<p class="text-on-secondary-fixed/70 text-sm font-medium mt-1">2 remaining for daily goal</p>
+</div>
+</div>
+<div class="relative z-10 flex items-center justify-center">
+<!-- Circular Progress Ring -->
+<svg class="w-24 h-24 transform -rotate-90">
+<circle class="text-on-secondary-fixed/10" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-on-secondary-fixed" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="100.48" stroke-width="8"></circle>
+</svg>
+<span class="absolute font-headline font-bold text-on-secondary-fixed">60%</span>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container/40 backdrop-blur-md rounded-[20pt] p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/10 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="menu_book">menu_book</span>
+<span class="font-label text-xs font-semibold tracking-wide uppercase">Open Catalog</span>
+</div>
+<div class="bg-surface-container/40 backdrop-blur-md rounded-[20pt] p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/10 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="exercise">exercise</span>
+<span class="font-label text-xs font-semibold tracking-wide uppercase">Start Practice</span>
+</div>
+<div class="bg-surface-container/40 backdrop-blur-md rounded-[20pt] p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/10 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="folder_special">folder_special</span>
+<span class="font-label text-xs font-semibold tracking-wide uppercase">View Brochures</span>
+</div>
+<div class="bg-surface-container/40 backdrop-blur-md rounded-[20pt] p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/10 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="hub">hub</span>
+<span class="font-label text-xs font-semibold tracking-wide uppercase">Team Comms</span>
+</div>
+</section>
+<!-- Live Announcements -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="font-headline text-lg font-bold tracking-tight text-on-surface">Announcements</h2>
+<span class="text-primary text-xs font-bold uppercase tracking-wider">View All</span>
+</div>
+<div class="flex overflow-x-auto hide-scrollbar gap-4 -mx-6 px-6">
+<div class="flex-none w-72 h-44 relative rounded-[20pt] overflow-hidden">
+<img alt="Announcements" class="absolute inset-0 w-full h-full object-cover" data-alt="sleek modern supercar in a high-tech showroom with neon lighting and reflective floor, dramatic dark atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOhnHrbg8iTmDnj4rvhacGPjZ2iPEIm5TKoCgdKtjvQamsK3WrLItoUULBZQADFBX_558VLM-4Lla0MJzC3CkA6jHeNnxFpa2gzJjtIhsfM9zFa-HiG5axVU2y77vTAWHv1qfiyeY9YvWt3QvjLmYXnbWn0u_rnA5On2hAvi_RJ43OCwTiUJxf9KXu20Uvx_nZ5PhhB9TRza8Ae9jWeouooBzfxLBSGAsV-wp8OvlUk2YdcIYdA1PgWtBkBYesk0kM5hklheUIurM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+<span class="absolute top-4 left-4 bg-error text-on-error px-2 py-1 rounded text-[10px] font-bold">NEW</span>
+<div class="absolute bottom-4 left-4 right-4">
+<h3 class="font-headline font-bold text-white leading-tight">Q4 Inventory Update: Limited Editions Arriving</h3>
+</div>
+</div>
+<div class="flex-none w-72 h-44 relative rounded-[20pt] overflow-hidden">
+<img alt="Announcements" class="absolute inset-0 w-full h-full object-cover" data-alt="front profile of a luxury electric vehicle parked under architectural lighting at dusk, silver and metallic tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB79Kt4uw0PXlZwcALJOFc9IpZJA10cif5ohmTZKlrpoXzvWGS_5--gT1x0DXbgXwvjijdJsEO7HJGd8zs0sKUUMLPxC_CWtiCxveVZqzFenTWvk5XRhb0_rGfXHZp_IEtRyo6QDov1R0L9_was8gVOvAg_99wpjOJjSbn-jcdPoJcMAV734fhCPSWO_PYFd7SxPRI_yDRofCX8Qcl-H2jZQp7b2b6Ir5YtB1RrMFBl3VUjvr4rIHDRX4GhmT4Wfi3-4_aXO7bLcK4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4">
+<h3 class="font-headline font-bold text-white leading-tight">EV Performance Training Module Now Live</h3>
+</div>
+</div>
+</div>
+</section>
+<!-- My Cars -->
+<section class="space-y-4">
+<h2 class="font-headline text-lg font-bold tracking-tight text-on-surface">Assigned Inventory</h2>
+<div class="flex overflow-x-auto hide-scrollbar gap-4 -mx-6 px-6">
+<div class="flex-none w-64 bg-surface-container rounded-[20pt] p-4 space-y-3">
+<div class="h-32 rounded-xl overflow-hidden">
+<img alt="Car" class="w-full h-full object-cover" data-alt="side view of a high-end luxury sports coupe in midnight blue metallic finish, studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQuubsx10_Tc8Dsha7IAyxkOLkan5kCzi8lOroMtoKW5xYfo_r4AuNlrK6zB_BdNRxVwki8wr1Zk7-_tDY5A_CkXzWtNSml-C8Td_rZlVZ7iojCIE5YmaC90ZQuHhF78nhUiQNZAZpXUB7CK1pcXaudx32lpQWD-faqMQlTGDHVKUE7KD66jGNnx3AUuHj3CyGQS1CTt-4oV-1p6rAdCfGpTVu2qZMpNNBHArcv2xeKIYHJExDfHKUzWAXsNqHylVWBAfM_TqDcS0"/>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface">GT Speedster X</h4>
+<div class="flex gap-2 mt-1">
+<span class="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">V12 Hybrid</span>
+<span class="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">In Stock</span>
+</div>
+</div>
+</div>
+<div class="flex-none w-64 bg-surface-container rounded-[20pt] p-4 space-y-3">
+<div class="h-32 rounded-xl overflow-hidden">
+<img alt="Car" class="w-full h-full object-cover" data-alt="dynamic low angle shot of a vibrant red sports car on a racetrack, motion blur background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMfKypZNoBEJ5ofBH6RuPdTRqXNlSq2bPwr_Dbw5YyFOPtaZ-rXaPsuDVgJ-gwJ56-h1ZhIsB8bs6sTo1al1JCr_Jq32rS63lzKd6BNgvZ9IxVnLDT5l479RhK8DESJOB7GTgpovGVKruWXmKOTLcTZ9Hi_BXdWBcu7KzkS-M6D50XfLDsHhoSaXF-jRHuslCaZOpnSgM3-X_iA-hc7SH65xQt23qI9ILZTHNwZrbSJBpAnoEF0mgjaZETfH-HtcAPBzCHSW4wkcU"/>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface">Vulcan Core</h4>
+<div class="flex gap-2 mt-1">
+<span class="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">All-Electric</span>
+<span class="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">Reserved</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Today's Leads -->
+<section class="space-y-4">
+<h2 class="font-headline text-lg font-bold tracking-tight text-on-surface">Priority Leads</h2>
+<div class="space-y-3">
+<div class="bg-surface-container-low rounded-[20pt] p-4 flex items-center justify-between border border-outline-variant/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">SM</div>
+<div>
+<p class="font-bold text-on-surface">Sarah Mitchell</p>
+<p class="text-xs text-on-surface-variant">Vulcan Core Inquiry</p>
+</div>
+</div>
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">Hot</span>
+</div>
+<div class="bg-surface-container-low rounded-[20pt] p-4 flex items-center justify-between border border-outline-variant/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold">DL</div>
+<div>
+<p class="font-bold text-on-surface">David Lee</p>
+<p class="text-xs text-on-surface-variant">Scheduled Walkaround</p>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">New</span>
+</div>
+<div class="bg-surface-container-low rounded-[20pt] p-4 flex items-center justify-between border border-outline-variant/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary font-bold">KB</div>
+<div>
+<p class="font-bold text-on-surface">Kiran Baxi</p>
+<p class="text-xs text-on-surface-variant">Finance Approval Pending</p>
+</div>
+</div>
+<span class="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">Follow-up</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating AI Button -->
+<button class="fixed bottom-28 right-6 w-14 h-14 bg-secondary text-surface-container-lowest rounded-full shadow-[0_0_20px_rgba(227,194,133,0.5)] flex items-center justify-center z-40 active:scale-90 transition-transform">
+<span class="material-symbols-outlined font-variation-settings-fill" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-4 right-4 flex justify-around items-center px-2 bg-[#1f1f25]/40 backdrop-blur-2xl rounded-[36pt] z-50 h-16 shadow-[0_20px_40px_rgba(0,0,0,0.4)] border-t border-white/5">
+<div class="flex items-center justify-center bg-[#e3c285] text-[#131318] rounded-full w-12 h-12 shadow-[0_0_15px_rgba(227,194,133,0.4)] transition-all scale-110">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors">
+<span class="material-symbols-outlined" data-icon="view_in_ar">view_in_ar</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+</div>
+<div class="flex items-center justify-center text-[#e4e1e9]/50 w-12 h-12 hover:text-[#e3c285] transition-colors">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+</nav>
+</body></html>
