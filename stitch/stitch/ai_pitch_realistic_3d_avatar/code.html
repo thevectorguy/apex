@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#a4c9ff",
+              "on-secondary-container": "#d4b478",
+              "primary-container": "#4a9eff",
+              "surface-bright": "#39383e",
+              "surface-container-high": "#2a292f",
+              "surface-container-low": "#1b1b20",
+              "on-primary-container": "#003463",
+              "on-background": "#e4e1e9",
+              "inverse-on-surface": "#303036",
+              "surface-tint": "#a4c9ff",
+              "secondary": "#e3c285",
+              "on-secondary-fixed-variant": "#594312",
+              "tertiary-container": "#9a9ba3",
+              "on-tertiary": "#2e3036",
+              "on-error": "#690005",
+              "on-primary-fixed-variant": "#004884",
+              "error": "#ffb4ab",
+              "surface-variant": "#35343a",
+              "on-tertiary-container": "#313339",
+              "secondary-fixed": "#ffdea3",
+              "surface-container-lowest": "#0e0e13",
+              "on-primary": "#00315d",
+              "error-container": "#93000a",
+              "tertiary-fixed-dim": "#c5c6ce",
+              "secondary-fixed-dim": "#e3c285",
+              "surface-dim": "#131318",
+              "on-secondary": "#402d00",
+              "surface-container-highest": "#35343a",
+              "on-surface-variant": "#c0c7d4",
+              "background": "#131318",
+              "primary-fixed": "#d4e3ff",
+              "tertiary-fixed": "#e2e2ea",
+              "surface-container": "#1f1f25",
+              "on-tertiary-fixed": "#191b21",
+              "on-surface": "#e4e1e9",
+              "inverse-primary": "#005fad",
+              "on-error-container": "#ffdad6",
+              "surface": "#131318",
+              "tertiary": "#c5c6ce",
+              "secondary-container": "#5c4614",
+              "primary-fixed-dim": "#a4c9ff",
+              "on-tertiary-fixed-variant": "#45474d",
+              "outline-variant": "#414752",
+              "on-primary-fixed": "#001c39",
+              "inverse-surface": "#e4e1e9",
+              "outline": "#8a919e",
+              "on-secondary-fixed": "#261900"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-panel {
+        background: rgba(53, 52, 58, 0.4);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .avatar-glow {
+        box-shadow: 0 0 60px -15px rgba(164, 201, 255, 0.3);
+      }
+      .mic-glow {
+        box-shadow: 0 0 30px rgba(227, 194, 133, 0.4);
+      }
+      .waveform-bar {
+        transition: height 0.3s ease;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-dim text-on-surface font-body selection:bg-primary/30 min-h-screen flex flex-col overflow-hidden">
+<!-- Top AppBar Strategy -->
+<header class="fixed top-0 w-full z-50 bg-neutral-900/40 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#a4c9ff]">menu</span>
+<span class="font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-[#e4e1e9]">APEX</span>
+</div>
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional male executive headshot with neutral background for user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBt_BHdYiqhvRaAZa5umXp_rgu93fdoXcYQ7z3ioLXP0PTuzng2vankROF5AKuvJKf_q2JvjwW2eYL21LuCRsgahxDsPFo9BEKjcFI2YCaHr3357lTGtVaO4uQwn-fs822CAjuILTFz_JlGw5e5PsG7NL7UD8aK7uWoc4L3uaRoPFx8TbXG3sobDbDLwaq-0fvRZMlhjf0OMob1D_3JxJelPzzYhRgP0i0a8QEmYFUp2skzx7xobpcxXePzRfKq0KuTq7mdIdteyfY"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col items-center justify-center relative pt-16 pb-32 px-6">
+<!-- Ambient Background Depth -->
+<div class="absolute inset-0 z-0 pointer-events-none">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-secondary/5 rounded-full blur-[100px]"></div>
+</div>
+<!-- Live Scenario Badge -->
+<div class="z-10 mb-8">
+<div class="glass-panel px-4 py-1.5 rounded-full border border-outline-variant/10 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="font-headline text-[10px] tracking-[0.2em] uppercase font-bold text-on-surface-variant">Live Scenario</span>
+</div>
+</div>
+<!-- Avatar Central Module -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="relative group">
+<!-- Circular Frame with Cinematic Glow -->
+<div class="w-64 h-64 md:w-80 md:h-80 rounded-full p-1 bg-gradient-to-tr from-primary/30 via-outline-variant/20 to-secondary/30 avatar-glow">
+<div class="w-full h-full rounded-full overflow-hidden bg-surface-container-lowest relative">
+<img class="w-full h-full object-cover grayscale-[0.2] brightness-90" data-alt="ultra realistic 3D portrait of an Indian male named Rahul Sharma wearing a sharp charcoal professional suit, dramatic cinematic lighting, deep shadows, 8k resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFmEQPdJaSLjIkLcB8BVIeRJ9-cH06hlLX94KoheaWg_bpM_h21J7lKrNWXYyctVKlU4DHIfTcZO2NcZC48WfusSjbstRzMXRLFGgxZJPDi_wOSx_lxZlyv__0Ifulc090ltN1UTY14C3FAY10UDxnPnwM3WEkhnC0mCzhruH-3clTEmn4KdmHfd3WXN0NlV3ZSffPRf8UIH6rCBU7vxCvtD5ZB3joDs7aW2szQLijk5fTJSmzPW35l_zxqGxvvi-OnuOVbVXYuuA"/>
+<!-- Subtle Overlays -->
+<div class="absolute inset-0 bg-gradient-to-t from-surface-dim/80 via-transparent to-transparent"></div>
+</div>
+</div>
+<!-- Identification Tag -->
+<div class="absolute -bottom-4 left-1/2 -translate-x-1/2 glass-panel border border-outline-variant/20 px-6 py-2 rounded-xl text-center min-w-[180px]">
+<h1 class="font-headline text-lg font-bold tracking-tight text-on-surface">Rahul Sharma</h1>
+<p class="font-headline text-[10px] tracking-widest uppercase text-secondary font-medium">Global Strategy AI</p>
+</div>
+</div>
+<!-- Voice Activity / Waveform -->
+<div class="mt-16 h-12 flex items-center justify-center gap-1.5">
+<div class="waveform-bar w-1 bg-primary/40 rounded-full h-4"></div>
+<div class="waveform-bar w-1 bg-primary/60 rounded-full h-8"></div>
+<div class="waveform-bar w-1 bg-primary rounded-full h-12"></div>
+<div class="waveform-bar w-1 bg-primary/80 rounded-full h-6"></div>
+<div class="waveform-bar w-1 bg-primary/50 rounded-full h-10"></div>
+<div class="waveform-bar w-1 bg-primary/30 rounded-full h-5"></div>
+<div class="waveform-bar w-1 bg-primary/60 rounded-full h-9"></div>
+<div class="waveform-bar w-1 bg-primary rounded-full h-4"></div>
+</div>
+</div>
+<!-- Transactional Action Area (FAB & Secondary Actions) -->
+<div class="fixed bottom-10 left-0 right-0 z-20 px-8">
+<div class="max-w-md mx-auto flex items-center justify-between">
+<!-- Secondary: Close -->
+<button class="w-14 h-14 rounded-2xl glass-panel border border-outline-variant/10 flex items-center justify-center text-on-surface-variant hover:text-error transition-colors group">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 duration-200">close</span>
+</button>
+<!-- Primary: Microphone FAB -->
+<button class="w-20 h-20 rounded-full bg-gradient-to-br from-secondary to-on-secondary-container mic-glow flex items-center justify-center text-on-secondary shadow-2xl hover:scale-105 active:scale-95 transition-transform duration-300">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<!-- Secondary: Menu -->
+<button class="w-14 h-14 rounded-2xl glass-panel border border-outline-variant/10 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors group">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 duration-200">more_vert</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Suppressed per Transactional/Focus Rule, but structure kept for Reference if needed) -->
+<!-- Not rendered as this is a focused 'Pitch Session' (Transactional Task) -->
+</body></html>
