@@ -102,3 +102,25 @@ body {
 .animate-pulse-gold {
   animation: pulse-gold 2s infinite;
 }
+
+@keyframes sheen {
+  0% { transform: translateX(-140%); }
+  55%, 100% { transform: translateX(140%); }
+}
+.animate-sheen {
+  animation: sheen 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.announcements-headline {
+  font-family: "General Sans", sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.announcements-copy {
+  font-family: "Satoshi", sans-serif;
+}
+
+.announcements-label {
+  font-family: "Satoshi", sans-serif;
+  letter-spacing: 0.16em;
+}

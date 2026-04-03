@@ -1,0 +1,148 @@
+export type AnnouncementSegment = 'priority' | 'training' | 'policy';
+
+export type Announcement = {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  image: string;
+  publishedAt: string;
+  audience: string;
+  segments: AnnouncementSegment[];
+  searchTerms: string[];
+  badgeLabel?: string;
+  badgeClassName?: string;
+};
+
+export const announcements: Announcement[] = [
+  {
+    id: 'q4-inventory',
+    title: 'Q4 Inventory Update: Limited Editions Arriving',
+    category: 'Inventory Bulletin',
+    summary: 'Limited-run trims for Apex GT and Vulcan Core land this week. Floor staff should prioritize high-intent buyers and lock walkarounds before the weekend rush.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCOhnHrbg8iTmDnj4rvhacGPjZ2iPEIm5TKoCgdKtjvQamsK3WrLItoUULBZQADFBX_558VLM-4Lla0MJzC3CkA6jHeNnxFpa2gzJjtIhsfM9zFa-HiG5axVU2y77vTAWHv1qfiyeY9YvWt3QvjLmYXnbWn0u_rnA5On2hAvi_RJ43OCwTiUJxf9KXu20Uvx_nZ5PhhB9TRza8Ae9jWeouooBzfxLBSGAsV-wp8OvlUk2YdcIYdA1PgWtBkBYesk0kM5hklheUIurM',
+    publishedAt: '10 min ago',
+    audience: 'All showrooms',
+    segments: ['priority'],
+    searchTerms: ['inventory', 'limited edition', 'stock', 'walkaround'],
+    badgeLabel: 'New',
+    badgeClassName: 'bg-error text-on-error',
+  },
+  {
+    id: 'ev-training',
+    title: 'EV Performance Training Module Now Live',
+    category: 'Training',
+    summary: 'The updated EV objection-handling module is ready in Practice. Teams should complete the advanced battery-safety and charging-conversion walkthrough by end of day.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB79Kt4uw0PXlZwcALJOFc9IpZJA10cif5ohmTZKlrpoXzvWGS_5--gT1x0DXbgXwvjijdJsEO7HJGd8zs0sKUUMLPxC_CWtiCxveVZqzFenTWvk5XRhb0_rGfXHZp_IEtRyo6QDov1R0L9_was8gVOvAg_99wpjOJjSbn-jcdPoJcMAV734fhCPSWO_PYFd7SxPRI_yDRofCX8Qcl-H2jZQp7b2b6Ir5YtB1RrMFBl3VUjvr4rIHDRX4GhmT4Wfi3-4_aXO7bLcK4',
+    publishedAt: 'Today, 8:15 AM',
+    audience: 'Sales and training',
+    segments: ['training'],
+    searchTerms: ['training', 'ev', 'battery', 'charging', 'practice'],
+    badgeLabel: 'Live',
+    badgeClassName: 'bg-secondary/85 text-on-secondary-fixed',
+  },
+  {
+    id: 'pricing-update',
+    title: 'Pricing Matrix Updated for Premium SUV Finance Plans',
+    category: 'Pricing',
+    summary: 'Finance sheets now reflect the revised bank partnerships for premium SUV bookings. Use the refreshed matrix before quoting EMI options on the floor.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY',
+    publishedAt: 'Yesterday',
+    audience: 'Finance-enabled stores',
+    segments: ['policy'],
+    searchTerms: ['pricing', 'finance', 'emi', 'matrix', 'rates'],
+    badgeLabel: 'Updated',
+    badgeClassName: 'bg-white/85 text-surface',
+  },
+  {
+    id: 'showroom-ops',
+    title: 'Weekend Showroom Ops: Demo Fleet Rotation and Display Standards',
+    category: 'Operations',
+    summary: 'Rotate demo vehicles before Saturday opening and refresh the premium display spec cards. HO will audit merchandising compliance remotely across all flagship locations.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAQuubsx10_Tc8Dsha7IAyxkOLkan5kCzi8lOroMtoKW5xYfo_r4AuNlrK6zB_BdNRxVwki8wr1Zk7-_tDY5A_CkXzWtNSml-C8Td_rZlVZ7iojCIE5YmaC90ZQuHhF78nhUiQNZAZpXUB7CK1pcXaudx32lpQWD-faqMQlTGDHVKUE7KD66jGNnx3AUuHj3CyGQS1CTt-4oV-1p6rAdCfGpTVu2qZMpNNBHArcv2xeKIYHJExDfHKUzWAXsNqHylVWBAfM_TqDcS0',
+    publishedAt: 'Yesterday',
+    audience: 'Flagship stores',
+    segments: ['priority'],
+    searchTerms: ['operations', 'showroom', 'display', 'audit', 'fleet'],
+    badgeLabel: 'Priority',
+    badgeClassName: 'bg-[#c8a96e] text-[#1a1712]',
+  },
+  {
+    id: 'accessory-push',
+    title: 'Accessory Bundle Push for Touring Deliveries Begins Friday',
+    category: 'Retail Campaign',
+    summary: 'Cross-sell the touring pack, premium mats, and connected dash kit on all delivery-ready bookings. Updated pricing cards are available in Brochures.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCMfKypZNoBEJ5ofBH6RuPdTRqXNlSq2bPwr_Dbw5YyFOPtaZ-rXaPsuDVgJ-gwJ56-h1ZhIsB8bs6sTo1al1JCr_Jq32rS63lzKd6BNgvZ9IxVnLDT5l479RhK8DESJOB7GTgpovGVKruWXmKOTLcTZ9Hi_BXdWBcu7KzkS-M6D50XfLDsHhoSaXF-jRHuslCaZOpnSgM3-X_iA-hc7SH65xQt23qI9ILZTHNwZrbSJBpAnoEF0mgjaZETfH-HtcAPBzCHSW4wkcU',
+    publishedAt: '2 days ago',
+    audience: 'Delivery teams',
+    segments: [],
+    searchTerms: ['accessories', 'delivery', 'touring pack', 'cross-sell'],
+    badgeLabel: 'Campaign',
+    badgeClassName: 'bg-[#d28b63]/85 text-[#160f0b]',
+  },
+  {
+    id: 'compliance-audit',
+    title: 'Compliance Audit Window Open for Finance Desk Disclosures',
+    category: 'Policy',
+    summary: 'All stores must verify disclosure signage, finance terms, and premium add-on printouts before the monthly compliance review closes tonight.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc',
+    publishedAt: '2 days ago',
+    audience: 'Finance desks',
+    segments: ['policy', 'priority'],
+    searchTerms: ['policy', 'compliance', 'audit', 'finance', 'disclosure'],
+    badgeLabel: 'Action',
+    badgeClassName: 'bg-error-container text-on-error-container',
+  },
+  {
+    id: 'launch-event',
+    title: 'Regional Launch Event Assets Ready for Showroom Screens',
+    category: 'Marketing',
+    summary: 'Motion loops, product hero stills, and premium showroom screen assets are approved for the next regional launch cycle and ready for deployment.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB79Kt4uw0PXlZwcALJOFc9IpZJA10cif5ohmTZKlrpoXzvWGS_5--gT1x0DXbgXwvjijdJsEO7HJGd8zs0sKUUMLPxC_CWtiCxveVZqzFenTWvk5XRhb0_rGfXHZp_IEtRyo6QDov1R0L9_was8gVOvAg_99wpjOJjSbn-jcdPoJcMAV734fhCPSWO_PYFd7SxPRI_yDRofCX8Qcl-H2jZQp7b2b6Ir5YtB1RrMFBl3VUjvr4rIHDRX4GhmT4Wfi3-4_aXO7bLcK4',
+    publishedAt: 'This week',
+    audience: 'Marketing and retail',
+    segments: [],
+    searchTerms: ['launch', 'assets', 'screens', 'marketing'],
+    badgeLabel: 'Assets',
+    badgeClassName: 'bg-secondary-container text-on-secondary-container',
+  },
+  {
+    id: 'delivery-masterclass',
+    title: 'Delivery Storytelling Masterclass Opens for Premium Advisors',
+    category: 'Training',
+    summary: 'A new coaching session focused on premium handover moments, objection pivots, and confident delivery walkthroughs is now available inside Practice.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAQuubsx10_Tc8Dsha7IAyxkOLkan5kCzi8lOroMtoKW5xYfo_r4AuNlrK6zB_BdNRxVwki8wr1Zk7-_tDY5A_CkXzWtNSml-C8Td_rZlVZ7iojCIE5YmaC90ZQuHhF78nhUiQNZAZpXUB7CK1pcXaudx32lpQWD-faqMQlTGDHVKUE7KD66jGNnx3AUuHj3CyGQS1CTt-4oV-1p6rAdCfGpTVu2qZMpNNBHArcv2xeKIYHJExDfHKUzWAXsNqHylVWBAfM_TqDcS0',
+    publishedAt: 'This week',
+    audience: 'Premium advisors',
+    segments: ['training'],
+    searchTerms: ['training', 'delivery', 'coaching', 'masterclass', 'premium'],
+    badgeLabel: 'Training',
+    badgeClassName: 'bg-secondary/20 text-secondary',
+  },
+  {
+    id: 'test-drive-policy',
+    title: 'Test-Drive Consent Script Updated for Weekend Traffic',
+    category: 'Policy',
+    summary: 'Use the revised customer consent language before all premium test drives this weekend. The updated script and waiver checkpoints are mandatory from today.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY',
+    publishedAt: 'This week',
+    audience: 'Sales floor staff',
+    segments: ['policy'],
+    searchTerms: ['policy', 'test drive', 'consent', 'weekend', 'waiver'],
+    badgeLabel: 'Notice',
+    badgeClassName: 'bg-white/85 text-surface',
+  },
+  {
+    id: 'battery-signoff',
+    title: 'Urgent EV Display Sign-Off Required Before Opening',
+    category: 'Priority Notice',
+    summary: 'Head office needs every showroom to verify charging-bay signage, display state-of-charge panels, and battery-care cue cards before the first appointment.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCOhnHrbg8iTmDnj4rvhacGPjZ2iPEIm5TKoCgdKtjvQamsK3WrLItoUULBZQADFBX_558VLM-4Lla0MJzC3CkA6jHeNnxFpa2gzJjtIhsfM9zFa-HiG5axVU2y77vTAWHv1qfiyeY9YvWt3QvjLmYXnbWn0u_rnA5On2hAvi_RJ43OCwTiUJxf9KXu20Uvx_nZ5PhhB9TRza8Ae9jWeouooBzfxLBSGAsV-wp8OvlUk2YdcIYdA1PgWtBkBYesk0kM5hklheUIurM',
+    publishedAt: 'Today, 7:30 AM',
+    audience: 'EV-enabled stores',
+    segments: ['priority'],
+    searchTerms: ['priority', 'urgent', 'ev', 'display', 'sign-off'],
+    badgeLabel: 'Urgent',
+    badgeClassName: 'bg-error text-on-error',
+  },
+];
