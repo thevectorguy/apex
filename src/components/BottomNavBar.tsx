@@ -1,6 +1,6 @@
-type Screen = 'dashboard' | 'catalog' | 'communications' | 'pitch_practice' | 'live_scenario' | 'studio_config';
+import { Screen } from '../types';
 
-export function BottomNavBar({ currentScreen, onNavigate }: { currentScreen: Screen, onNavigate: (s: Screen) => void }) {
+export function BottomNavBar({ currentScreen, onNavigate }: { currentScreen: Screen; onNavigate: (s: Screen) => void }) {
   const navItems = [
     { id: 'dashboard', icon: 'home' },
     { id: 'catalog', icon: 'directions_car' },
@@ -12,14 +12,15 @@ export function BottomNavBar({ currentScreen, onNavigate }: { currentScreen: Scr
   return (
     <nav className="fixed bottom-6 left-4 right-4 flex justify-around items-center px-2 bg-surface-container/40 backdrop-blur-2xl rounded-[36pt] z-50 h-16 shadow-[0_20px_40px_rgba(0,0,0,0.4)] border-t border-white/5">
       {navItems.map((item) => {
-        const isActive = currentScreen === item.id;
+        const isActive = currentScreen === item.id || (currentScreen === 'brochures' && item.id === 'catalog');
+
         return (
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className={`flex items-center justify-center transition-all duration-300 ${
-              isActive 
-                ? 'bg-secondary text-surface rounded-full w-12 h-12 shadow-[0_0_15px_rgba(227,194,133,0.4)] scale-110' 
+              isActive
+                ? 'bg-secondary text-surface rounded-full w-12 h-12 shadow-[0_0_15px_rgba(227,194,133,0.4)] scale-110'
                 : 'text-on-surface/50 w-12 h-12 hover:text-secondary scale-90 active:scale-110'
             }`}
           >

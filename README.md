@@ -1,20 +1,15 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# APEX
 
-# Run and deploy your AI Studio app
+APEX is a Vite + React showroom experience prototype. This branch now includes `My Coach`, a sales-coaching workflow that records or uploads customer conversations, transcribes them through Groq, scores them against the uploaded training master copy, and saves coaching reports for repeat visits.
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/e8609cfa-509d-4f05-81fb-216c81476a8a
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
+## Local Setup
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Copy `.env.example` to `.env.local` and set `GROQ_API_KEY`.
+3. Start the API server:
+   `npm run server`
+4. In another terminal, start the frontend:
    `npm run dev`
+
+The Vite dev server proxies `/api/*` requests to the local My Coach API port.
