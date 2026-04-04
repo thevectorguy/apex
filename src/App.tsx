@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
 import { Screen } from './types';
 import { TopAppBar } from './components/TopAppBar';
@@ -20,6 +20,7 @@ import { MyCoachCustomersScreen } from './screens/MyCoachCustomersScreen';
 import { MyCoachStepsScreen } from './screens/MyCoachStepsScreen';
 import { MyCoachTranscriptScreen } from './screens/MyCoachTranscriptScreen';
 import { AIAssistantSheet } from './components/AIAssistantSheet';
+import { getScreenFromLocation, navigateToScreen } from './lib/appRouter';
 
 const pageVariants = {
   initial: { opacity: 0, x: 20, scale: 0.98 },
@@ -28,31 +29,49 @@ const pageVariants = {
 } satisfies Variants;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() =>
+    typeof window === 'undefined' ? 'dashboard' : getScreenFromLocation(window.location),
+  );
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-  if (typeof window !== 'undefined') {
-    (window as any).navigate = setCurrentScreen;
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const syncRoute = () => setCurrentScreen(getScreenFromLocation(window.location));
+    window.addEventListener('popstate', syncRoute);
+    window.addEventListener('app:navigation', syncRoute);
+
+    return () => {
+      window.removeEventListener('popstate', syncRoute);
+      window.removeEventListener('app:navigation', syncRoute);
+    };
+  }, []);
+
+  function handleNavigate(screen: Screen) {
+    const preserveSearch =
+      screen.startsWith('my_coach') || screen === 'studio_config' || screen === 'live_scenario';
+    navigateToScreen(screen, { preserveSearch });
+    setCurrentScreen(screen);
   }
 
   const renderScreen = () => {
     switch (currentScreen) {
-      case 'dashboard': return <DashboardScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach': return <MyCoachScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_recording': return <MyCoachRecordingScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_processing': return <MyCoachProcessingScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_reports': return <MyCoachReportsScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_report_detail': return <MyCoachReportDetailScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_customers': return <MyCoachCustomersScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_steps': return <MyCoachStepsScreen onNavigate={setCurrentScreen} />;
-      case 'my_coach_transcript': return <MyCoachTranscriptScreen onNavigate={setCurrentScreen} />;
-      case 'catalog': return <CatalogScreen onNavigate={setCurrentScreen} />;
-      case 'brochures': return <BrochuresScreen onNavigate={setCurrentScreen} />;
-      case 'communications': return <CommunicationsScreen onNavigate={setCurrentScreen} />;
-      case 'pitch_practice': return <PitchPracticeScreen onNavigate={setCurrentScreen} />;
-      case 'live_scenario': return <LiveScenarioScreen onNavigate={setCurrentScreen} />;
-      case 'studio_config': return <StudioConfigScreen onNavigate={setCurrentScreen} />;
-      default: return <DashboardScreen onNavigate={setCurrentScreen} />;
+      case 'dashboard': return <DashboardScreen onNavigate={handleNavigate} />;
+      case 'my_coach': return <MyCoachScreen onNavigate={handleNavigate} />;
+      case 'my_coach_recording': return <MyCoachRecordingScreen onNavigate={handleNavigate} />;
+      case 'my_coach_processing': return <MyCoachProcessingScreen onNavigate={handleNavigate} />;
+      case 'my_coach_reports': return <MyCoachReportsScreen onNavigate={handleNavigate} />;
+      case 'my_coach_report_detail': return <MyCoachReportDetailScreen onNavigate={handleNavigate} />;
+      case 'my_coach_customers': return <MyCoachCustomersScreen onNavigate={handleNavigate} />;
+      case 'my_coach_steps': return <MyCoachStepsScreen onNavigate={handleNavigate} />;
+      case 'my_coach_transcript': return <MyCoachTranscriptScreen onNavigate={handleNavigate} />;
+      case 'catalog': return <CatalogScreen onNavigate={handleNavigate} />;
+      case 'brochures': return <BrochuresScreen onNavigate={handleNavigate} />;
+      case 'communications': return <CommunicationsScreen onNavigate={handleNavigate} />;
+      case 'pitch_practice': return <PitchPracticeScreen onNavigate={handleNavigate} />;
+      case 'live_scenario': return <LiveScenarioScreen onNavigate={handleNavigate} />;
+      case 'studio_config': return <StudioConfigScreen onNavigate={handleNavigate} />;
+      default: return <DashboardScreen onNavigate={handleNavigate} />;
     }
   };
 
@@ -84,7 +103,7 @@ export default function App() {
       </AnimatePresence>
 
       {!isImmersive && <FloatingActionButton onClick={() => setIsAssistantOpen(true)} />}
-      {!isImmersive && <BottomNavBar currentScreen={currentScreen} onNavigate={setCurrentScreen} />}
+      {!isImmersive && <BottomNavBar currentScreen={currentScreen} onNavigate={handleNavigate} />}
 
       <AIAssistantSheet isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
     </div>

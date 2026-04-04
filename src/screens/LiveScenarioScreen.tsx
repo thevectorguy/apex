@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Screen } from '../types';
+import { readSearchParam } from '../lib/appRouter';
 
 type SessionState = 'idle' | 'listening' | 'processing' | 'speaking';
+
+const vehicleLabels: Record<string, string> = {
+  elevate: 'Honda Elevate',
+  'gt-carbon': 'DILOS GT-Carbon',
+};
+
+const personaLabels: Record<string, string> = {
+  skeptic: 'The Skeptic',
+  tech_enthusiast: 'The Tech Enthusiast',
+  budget_buyer: 'The Budget Buyer',
+};
 
 export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   const [session, setSession] = useState<SessionState>('idle');
   const [transcript, setTranscript] = useState('');
+  const vehicleLabel = vehicleLabels[readSearchParam('vehicle') || 'elevate'] || vehicleLabels.elevate;
+  const personaLabel = personaLabels[readSearchParam('persona') || 'skeptic'] || personaLabels.skeptic;
 
   // Fake interaction flow for the prototype
   useEffect(() => {
@@ -72,8 +86,8 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
             Live Session
           </div>
           <div className="text-right">
-            <h1 className="font-headline font-bold text-lg text-white drop-shadow-md">The Skeptic</h1>
-            <p className="font-label text-xs text-secondary tracking-widest uppercase mt-0.5">Honda Elevate</p>
+            <h1 className="font-headline font-bold text-lg text-white drop-shadow-md">{personaLabel}</h1>
+            <p className="font-label text-xs text-secondary tracking-widest uppercase mt-0.5">{vehicleLabel}</p>
           </div>
         </div>
       </header>

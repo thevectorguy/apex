@@ -1,6 +1,12 @@
 import { Screen } from '../types';
+import { writeSearchParam } from '../lib/appRouter';
 
 export function CatalogScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  function openVehicleStudio(vehicle: 'elevate' | 'gt-carbon') {
+    onNavigate('studio_config');
+    writeSearchParam('vehicle', vehicle);
+  }
+
   return (
     <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto">
       {/* Search and Header */}
@@ -66,7 +72,7 @@ export function CatalogScreen({ onNavigate }: { onNavigate: (s: Screen) => void 
                   </span>
                 </div>
               </div>
-              <button onClick={() => onNavigate('studio_config')} className="bg-primary text-on-primary-fixed px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:shadow-[0_0_20px_rgba(164,201,255,0.4)] transition-all transform active:scale-95">
+              <button onClick={() => openVehicleStudio('elevate')} className="bg-primary text-on-primary-fixed px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:shadow-[0_0_20px_rgba(164,201,255,0.4)] transition-all transform active:scale-95">
                 VIEW DETAILS
               </button>
             </div>
@@ -114,7 +120,7 @@ export function CatalogScreen({ onNavigate }: { onNavigate: (s: Screen) => void 
                   </span>
                 </div>
               </div>
-              <button onClick={() => onNavigate('studio_config')} className="bg-surface-bright/20 backdrop-blur-xl text-secondary border border-secondary/20 px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:bg-secondary/10 transition-all">
+              <button onClick={() => openVehicleStudio('gt-carbon')} className="bg-surface-bright/20 backdrop-blur-xl text-secondary border border-secondary/20 px-8 py-4 rounded-xl font-headline font-bold tracking-wide hover:bg-secondary/10 transition-all">
                 VIEW DETAILS
               </button>
             </div>

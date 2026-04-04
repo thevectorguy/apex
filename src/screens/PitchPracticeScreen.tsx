@@ -1,6 +1,17 @@
+import { useState } from 'react';
 import { Screen } from '../types';
+import { writeSearchParam } from '../lib/appRouter';
 
 export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const [selectedVehicle, setSelectedVehicle] = useState<'elevate' | 'gt-carbon'>('elevate');
+  const [selectedPersona, setSelectedPersona] = useState<'skeptic' | 'tech_enthusiast' | 'budget_buyer'>('skeptic');
+
+  function startSimulation() {
+    onNavigate('live_scenario');
+    writeSearchParam('vehicle', selectedVehicle);
+    writeSearchParam('persona', selectedPersona);
+  }
+
   return (
     <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto">
       {/* Header */}
@@ -20,7 +31,15 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
       <section className="mb-10">
         <h2 className="font-headline text-xl font-semibold text-on-surface mb-4">Select Vehicle</h2>
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4">
-          <button className="flex-shrink-0 w-48 p-4 rounded-2xl bg-surface-container-high border-2 border-primary text-left transition-all">
+          <button
+            type="button"
+            onClick={() => setSelectedVehicle('elevate')}
+            className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
+              selectedVehicle === 'elevate'
+                ? 'bg-surface-container-high border-2 border-primary'
+                : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
+            }`}
+          >
             <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
               <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY" alt="Elevate" className="w-full h-full object-cover" />
             </div>
@@ -28,7 +47,15 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             <p className="font-label text-xs text-secondary mt-1">Focus: EV Features</p>
           </button>
 
-          <button className="flex-shrink-0 w-48 p-4 rounded-2xl bg-surface-container border border-outline-variant/10 text-left hover:bg-surface-container-high transition-all opacity-70 hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => setSelectedVehicle('gt-carbon')}
+            className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
+              selectedVehicle === 'gt-carbon'
+                ? 'bg-surface-container-high border-2 border-primary'
+                : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
+            }`}
+          >
             <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
               <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc" alt="DILOS GT" className="w-full h-full object-cover" />
             </div>
@@ -42,8 +69,8 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
       <section className="mb-10">
         <h2 className="font-headline text-xl font-semibold text-on-surface mb-4">Customer Persona</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container-high border-2 border-primary cursor-pointer">
-            <input type="radio" name="persona" className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" defaultChecked />
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'skeptic' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+            <input type="radio" name="persona" checked={selectedPersona === 'skeptic'} onChange={() => setSelectedPersona('skeptic')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Skeptic</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -52,8 +79,8 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             </div>
           </label>
 
-          <label className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container border border-outline-variant/10 cursor-pointer hover:bg-surface-container-high transition-colors">
-            <input type="radio" name="persona" className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'tech_enthusiast' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+            <input type="radio" name="persona" checked={selectedPersona === 'tech_enthusiast'} onChange={() => setSelectedPersona('tech_enthusiast')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Tech Enthusiast</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -62,8 +89,8 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             </div>
           </label>
 
-          <label className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container border border-outline-variant/10 cursor-pointer hover:bg-surface-container-high transition-colors">
-            <input type="radio" name="persona" className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'budget_buyer' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+            <input type="radio" name="persona" checked={selectedPersona === 'budget_buyer'} onChange={() => setSelectedPersona('budget_buyer')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Budget Buyer</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -77,7 +104,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
       {/* Action */}
       <div className="flex justify-center mt-12">
         <button
-          onClick={() => onNavigate('live_scenario')}
+          onClick={startSimulation}
           className="relative overflow-hidden group bg-gradient-to-r from-primary to-secondary text-on-primary-fixed px-12 py-5 rounded-full font-headline font-bold text-xl tracking-wide shadow-[0_0_30px_rgba(164,201,255,0.3)] hover:shadow-[0_0_40px_rgba(164,201,255,0.5)] transition-all transform hover:-translate-y-1 active:scale-95 flex items-center gap-3"
         >
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
