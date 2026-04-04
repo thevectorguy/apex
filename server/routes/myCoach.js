@@ -49,7 +49,34 @@ export function registerMyCoachRoutes(app) {
   });
 
   app.get('/api/my-coach/customers', async (_req, res) => {
-    res.json({ ok: true, customers: await listCustomers() });
+    const [customers, sessions] = await Promise.all([listCustomers(), listSessions()]);
+    const sessionsByCustomerId = new Map();
+
+    for (const session of sessions) {
+      const customerSessions = sessionsByCustomerId.get(session.customerId) || [];
+      customerSessions.push(session);
+      sessionsByCustomerId.set(session.customerId, customerSessions);
+    }
+
+    res.json({
+      ok: true,
+      customers: customers.map((customer) => {
+        const customerSessions = sessionsByCustomerId.get(customer.id) || [];
+        const latestSession = customerSessions[0] || null;
+
+        return {
+          ...customer,
+          metadata: {
+            ...customer.metadata,
+            visitCount: customerSessions.length,
+            hasSubmittedSession: customerSessions.length > 0,
+            latestSessionId: latestSession?.id || null,
+            latestSessionStatus: latestSession?.status || null,
+            lastSessionAt: latestSession?.createdAt || null,
+          },
+        };
+      }),
+    });
   });
 
   app.post('/api/my-coach/customers', async (req, res) => {

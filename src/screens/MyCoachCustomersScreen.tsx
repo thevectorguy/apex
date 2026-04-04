@@ -45,7 +45,7 @@ export function MyCoachCustomersScreen({ onNavigate }: { onNavigate: (screen: Sc
     clearRememberedReportId();
     rememberSelectedThreadId(thread.id);
     clearDraftSessionTitle();
-    rememberDraftSessionTitle(`${thread.customerName} follow-up visit`);
+    rememberDraftSessionTitle(`${thread.customerName} ${thread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`);
     rememberFlowOrigin('live_session');
     rememberStepsFocus('capture');
     onNavigate('my_coach_recording');
@@ -107,7 +107,7 @@ export function MyCoachCustomersScreen({ onNavigate }: { onNavigate: (screen: Sc
                           {thread.lastVisitLabel}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-white/62">{thread.vehicleIntent}</p>
+                      <p className="mt-3 text-sm leading-6 text-white/62">{thread.customerContext}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {thread.unresolvedItems.slice(0, 2).map((item) => (
                           <span

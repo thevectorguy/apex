@@ -40,6 +40,10 @@ type BrowserSpeechWindow = Window & {
 
 const METER_BAR_COUNT = 24;
 const EMPTY_METER_VALUES = Array.from({ length: METER_BAR_COUNT }, () => 0.12);
+const PREVIEW_STACK_LIMIT = 8;
+const RECOGNITION_SETTLE_IDLE_MS = 500;
+const RECOGNITION_STOP_TIMEOUT_MS = 1200;
+const BROWSER_TRANSCRIPT_REQUIRED_ERROR = 'My Coach needs a browser transcript before analysis can start.';
 
 export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(readRememberedThreadId());
@@ -71,6 +75,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   const finalTranscriptLinesRef = useRef<PreviewTranscriptLine[]>([]);
   const previewStatusRef = useRef<PreviewStatus>('idle');
   const shouldClearPendingOnUnmountRef = useRef(true);
+  const activeSheetRef = useRef<ActiveSheet>(null);
+  const previewScrollerRef = useRef<HTMLDivElement | null>(null);
+  const lastRecognitionResultAtRef = useRef(0);
+  const recognitionStopWaitersRef = useRef<Array<() => void>>([]);
 
   const previewSupported = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -81,7 +89,15 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   const elapsedMs =
     capturedMs + (captureState === 'recording' && segmentStartedAtRef.current ? tick - segmentStartedAtRef.current : 0);
   const statusPill = captureState === 'recording' ? 'Recording' : captureState === 'paused' ? 'Paused' : 'Ready';
-  const primaryActionLabel = captureState === 'recording' ? 'Pause capture' : segments.length ? 'Resume capture' : 'Start capture';
+  const needsTranscriptRetry = error === BROWSER_TRANSCRIPT_REQUIRED_ERROR;
+  const primaryActionLabel =
+    captureState === 'recording'
+      ? 'Pause capture'
+      : needsTranscriptRetry
+        ? 'Retry capture'
+        : segments.length
+          ? 'Resume capture'
+          : 'Start capture';
   const reactiveLevel = Math.min(
     1,
     Math.max(0, meterValues.reduce((sum, value) => sum + value, 0) / Math.max(1, meterValues.length)),
@@ -100,8 +116,37 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   }, [previewStatus]);
 
   useEffect(() => {
+    activeSheetRef.current = activeSheet;
+
+    // Keep the preview modal feeling fresh without touching the finalized
+    // transcript that is needed later for upload.
+    setPreviewLines([]);
+    setInterimPreview('');
+
+    if (activeSheet === 'preview') {
+      if (
+        captureStateRef.current === 'recording' &&
+        previewStatusRef.current !== 'unsupported' &&
+        previewStatusRef.current !== 'blocked' &&
+        previewStatusRef.current !== 'error'
+      ) {
+        setPreviewStatus('listening');
+      } else if (previewStatusRef.current === 'live' || previewStatusRef.current === 'listening') {
+        setPreviewStatus('idle');
+      }
+    }
+  }, [activeSheet]);
+
+  useEffect(() => {
     finalTranscriptLinesRef.current = finalTranscriptLines;
   }, [finalTranscriptLines]);
+
+  useEffect(() => {
+    if (activeSheet !== 'preview') return;
+    const scroller = previewScrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+  }, [activeSheet, interimPreview, previewLines]);
 
   useEffect(() => {
     clearPendingLiveSessionSubmission();
@@ -222,6 +267,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
       setInterimPreview('');
     };
     recognition.onresult = (event) => {
+      lastRecognitionResultAtRef.current = Date.now();
       const finalized: string[] = [];
       let nextInterim = '';
 
@@ -234,14 +280,25 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
       }
 
       if (finalized.length) {
-        setPreviewLines((current) => [...current, ...finalized.map((text) => ({ id: makeId('preview'), text }))].slice(-8));
-        setFinalTranscriptLines((current) => [...current, ...finalized.map((text) => ({ id: makeId('transcript'), text }))]);
+        const finalizedPreviewLines = finalized.map((text) => ({ id: makeId('preview'), text }));
+        const finalizedTranscriptLines = finalized.map((text) => ({ id: makeId('transcript'), text }));
+
+        if (activeSheetRef.current === 'preview') {
+          setPreviewLines((current) => [...current, ...finalizedPreviewLines].slice(-PREVIEW_STACK_LIMIT));
+        }
+        setFinalTranscriptLines((current) => {
+          const nextLines = [...current, ...finalizedTranscriptLines];
+          finalTranscriptLinesRef.current = nextLines;
+          return nextLines;
+        });
       }
 
-      setInterimPreview(nextInterim);
+      setInterimPreview(activeSheetRef.current === 'preview' ? nextInterim : '');
       setPreviewStatus(finalized.length || nextInterim ? 'live' : 'listening');
     };
     recognition.onend = () => {
+      const waiters = recognitionStopWaitersRef.current.splice(0);
+      waiters.forEach((resolve) => resolve());
       if (
         shouldRestartRecognitionRef.current &&
         captureStateRef.current === 'recording' &&
@@ -272,14 +329,48 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
     }
   }
 
-  function stopSpeechRecognition() {
+  function waitForSpeechRecognitionToSettle() {
+    const idleForMs = Date.now() - lastRecognitionResultAtRef.current;
+    const idleTimeoutMs = Math.min(
+      RECOGNITION_STOP_TIMEOUT_MS,
+      Math.max(150, RECOGNITION_SETTLE_IDLE_MS - idleForMs),
+    );
+
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      let fallbackTimer = 0;
+      let hardStopTimer = 0;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(fallbackTimer);
+        window.clearTimeout(hardStopTimer);
+        const remainingWaiters = recognitionStopWaitersRef.current.filter((waiter) => waiter !== finish);
+        recognitionStopWaitersRef.current = remainingWaiters;
+        resolve();
+      };
+
+      recognitionStopWaitersRef.current.push(finish);
+      fallbackTimer = window.setTimeout(finish, idleTimeoutMs);
+      hardStopTimer = window.setTimeout(finish, RECOGNITION_STOP_TIMEOUT_MS);
+    });
+  }
+
+  async function stopSpeechRecognition() {
     shouldRestartRecognitionRef.current = false;
     setInterimPreview('');
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    const settlePromise = waitForSpeechRecognitionToSettle();
     try {
-      recognitionRef.current?.stop();
+      recognition.stop();
     } catch {
-      recognitionRef.current?.abort();
+      try {
+        recognition.abort();
+      } catch {}
     }
+    await settlePromise;
   }
 
   async function startRecordingSegment() {
@@ -353,10 +444,23 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 
     try {
       if (captureState === 'recording') {
-        stopSpeechRecognition();
+        await stopSpeechRecognition();
         await finalizeActiveSegment();
         setCaptureState('paused');
         return;
+      }
+
+      if (needsTranscriptRetry) {
+        setError(null);
+        setSegments([]);
+        segmentsRef.current = [];
+        setCapturedMs(0);
+        setTick(Date.now());
+        setPreviewLines([]);
+        setFinalTranscriptLines([]);
+        finalTranscriptLinesRef.current = [];
+        setInterimPreview('');
+        setPreviewStatus('idle');
       }
 
       await startRecordingSegment();
@@ -374,7 +478,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 
     try {
       if (captureState === 'recording') {
-        stopSpeechRecognition();
+        await stopSpeechRecognition();
         await finalizeActiveSegment();
       }
 
@@ -387,7 +491,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
       }
       if (!transcriptText) {
         setCaptureState('paused');
-        setError('My Coach needs a browser transcript before analysis can start.');
+        setError(BROWSER_TRANSCRIPT_REQUIRED_ERROR);
         return;
       }
 
@@ -425,7 +529,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   }
 
   async function teardownLiveCapture() {
-    stopSpeechRecognition();
+    await stopSpeechRecognition();
     if (animationFrameRef.current) {
       window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -502,7 +606,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                   <MetaPill label={formatDuration(elapsedMs)} tone="secondary" />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <DetailPill label="Intent" value={detail.vehicleIntent} />
+                  <DetailPill label="Context" value={detail.customerContext} />
                   <DetailPill label="Phone" value={detail.phone} />
                 </div>
               </div>
@@ -555,20 +659,20 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                     transition={{ duration: 0.18, ease: 'easeOut' }}
                     className="absolute inset-3 rounded-full border border-white/10 bg-black/24"
                   />
-                  <div className="relative z-10 text-center">
-                    <motion.span
-                      animate={{
-                        y: captureState === 'recording' ? -reactiveLevel * 2 : 0,
-                        scale: captureState === 'recording' ? 1 + reactiveLevel * 0.08 : 1,
+	                  <div className="relative z-10 text-center">
+	                    <motion.span
+	                      animate={{
+	                        y: captureState === 'recording' ? -reactiveLevel * 2 : 0,
+	                        scale: captureState === 'recording' ? 1 + reactiveLevel * 0.08 : 1,
                       }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                      className="material-symbols-outlined text-[44px] text-white"
-                    >
-                      {captureState === 'recording' ? 'pause' : 'mic'}
-                    </motion.span>
-                    <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/58">{primaryActionLabel}</p>
-                  </div>
-                </motion.button>
+	                      transition={{ duration: 0.18, ease: 'easeOut' }}
+	                      className="material-symbols-outlined text-[44px] text-white"
+	                    >
+	                      {captureState === 'recording' ? 'pause' : needsTranscriptRetry ? 'replay' : 'mic'}
+	                    </motion.span>
+	                    <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/58">{primaryActionLabel}</p>
+	                  </div>
+	                </motion.button>
 
                 <div className="mt-5 flex w-full max-w-[220px] items-end justify-center gap-1">
                   {meterValues.map((value, index) => (
@@ -674,7 +778,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                 {activeSheet === 'preview' ? (
                   <>
                     <p className="mt-3 text-sm leading-6 text-white/58">{renderPreviewSummary(previewStatus, captureState)}</p>
-                    <div className="mt-4 max-h-[44dvh] space-y-3 overflow-y-auto pr-1 hide-scrollbar">
+                    <div ref={previewScrollerRef} className="mt-4 max-h-[44dvh] space-y-3 overflow-y-auto pr-1 hide-scrollbar">
                       {previewLines.length ? (
                         previewLines.map((line) => (
                           <div key={line.id} className="rounded-[22px] border border-white/8 bg-white/4 px-4 py-3 text-sm leading-6 text-white/74">

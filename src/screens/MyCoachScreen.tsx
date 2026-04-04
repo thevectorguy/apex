@@ -4,40 +4,32 @@ import {
   clearRememberedReportId,
   clearRememberedSessionId,
   clearRememberedStepsFocus,
+  clearRememberedThreadId,
   createCustomerThread,
-  getCustomerThread,
   listCustomerThreads,
   rememberFlowOrigin,
+  rememberDraftSessionTitle,
   rememberSelectedThreadId,
   rememberStepsFocus,
   readRememberedThreadId,
-  type CustomerThreadDetail,
   type CustomerThreadSummary,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
 
-const emptyForm = { customerName: '', phone: '', vehicleIntent: '', notes: '' };
+const emptyForm = { customerName: '', phone: '', customerContext: '', notes: '' };
 
 export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(readRememberedThreadId());
-  const [detail, setDetail] = useState<CustomerThreadDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const activeThread = selectedThreadId ? threads.find((thread) => thread.id === selectedThreadId) ?? null : null;
 
   useEffect(() => {
     void loadThreads();
   }, []);
-
-  useEffect(() => {
-    if (!selectedThreadId) {
-      setDetail(null);
-      return;
-    }
-    void loadDetail(selectedThreadId);
-  }, [selectedThreadId]);
 
   useEffect(() => {
     if (selectedThreadId) {
@@ -51,20 +43,21 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     try {
       const data = await listCustomerThreads();
       setThreads(data);
-      setSelectedThreadId((current) => current ?? readRememberedThreadId() ?? data[0]?.id ?? null);
+      const rememberedThreadId = readRememberedThreadId();
+      const resolvedThreadId =
+        [selectedThreadId, rememberedThreadId].find((candidate) => candidate && data.some((thread) => thread.id === candidate)) ??
+        data[0]?.id ??
+        null;
+
+      if (!resolvedThreadId) {
+        clearRememberedThreadId();
+      }
+
+      setSelectedThreadId(resolvedThreadId);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not load My Coach.');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadDetail(threadId: string) {
-    try {
-      const nextDetail = await getCustomerThread(threadId);
-      setDetail(nextDetail);
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : 'Could not load the selected customer thread.');
     }
   }
 
@@ -92,19 +85,23 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   }
 
   function startLiveSession() {
-    if (detail?.id) {
-      rememberSelectedThreadId(detail.id);
+    // TODO: Detect unfinished local capture state and offer "Resume draft session"
+    // before starting a fresh visit for the remembered customer thread.
+    if (activeThread?.id) {
+      rememberSelectedThreadId(activeThread.id);
+      rememberDraftSessionTitle(
+        `${activeThread.customerName} ${activeThread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`,
+      );
     }
     clearRememberedSessionId();
     clearRememberedReportId();
-    clearDraftSessionTitle();
     rememberFlowOrigin('live_session');
     onNavigate('my_coach_recording');
   }
 
   function openStepsGuide() {
-    if (detail?.id) {
-      rememberSelectedThreadId(detail.id);
+    if (activeThread?.id) {
+      rememberSelectedThreadId(activeThread.id);
     }
     clearRememberedStepsFocus();
     rememberStepsFocus('capture');
@@ -113,16 +110,16 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   }
 
   function openTranscript() {
-    if (detail?.id) {
-      rememberSelectedThreadId(detail.id);
+    if (activeThread?.id) {
+      rememberSelectedThreadId(activeThread.id);
     }
     rememberFlowOrigin('tutorial');
     onNavigate('my_coach_transcript');
   }
 
   function openReports() {
-    if (detail?.id) {
-      rememberSelectedThreadId(detail.id);
+    if (activeThread?.id) {
+      rememberSelectedThreadId(activeThread.id);
     }
     onNavigate('my_coach_reports');
   }
@@ -147,14 +144,14 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
               and keep Show Steps only as a tutorial for onboarding or demos.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <ActionButton label="Start Session" icon="mic" onClick={startLiveSession} disabled={!detail} tone="primary" />
+              <ActionButton label="Start Session" icon="mic" onClick={startLiveSession} disabled={!activeThread} tone="primary" />
               <ActionButton label="Customer List" icon="groups" onClick={() => onNavigate('my_coach_customers')} />
-              <ActionButton label="Show Steps Tutorial" icon="list_alt" onClick={openStepsGuide} disabled={!detail} />
+              <ActionButton label="Show Steps Tutorial" icon="list_alt" onClick={openStepsGuide} disabled={!activeThread} />
               <ActionButton
                 label="Show Transcript"
                 icon="notes"
                 onClick={openTranscript}
-                disabled={!detail}
+                disabled={!activeThread?.hasSubmittedSession}
               />
               <ActionButton label="Reports" icon="description" onClick={openReports} />
             </div>
@@ -162,7 +159,7 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
 
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { label: 'Active customer', value: detail?.customerName ?? 'None' },
+              { label: 'Active customer', value: activeThread?.customerName ?? 'None' },
               { label: 'Saved customers', value: String(threads.length) },
             ].map((item) => (
               <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
@@ -201,9 +198,9 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
               className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
             />
             <input
-              value={form.vehicleIntent}
-              onChange={(event) => setForm((current) => ({ ...current, vehicleIntent: event.target.value }))}
-              placeholder="Need summary or customer context"
+              value={form.customerContext}
+              onChange={(event) => setForm((current) => ({ ...current, customerContext: event.target.value }))}
+              placeholder="Customer context"
               className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none lg:col-span-2"
             />
             <textarea
