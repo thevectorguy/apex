@@ -1,3 +1,5 @@
+import { readRouteQueryParam, writeRouteQueryParam } from './appRouter';
+
 export type CustomerThreadSummary = {
   id: string;
   customerName: string;
@@ -106,6 +108,7 @@ const SESSION_SELECTION_KEY = 'my-coach:selected-session-id';
 const DRAFT_SESSION_TITLE_KEY = 'my-coach:draft-session-title';
 const STEPS_FOCUS_KEY = 'my-coach:steps-focus';
 const FLOW_ORIGIN_KEY = 'my-coach:flow-origin';
+const PENDING_LIVE_SESSION_KEY = 'my-coach:pending-live-session';
 
 export type PendingLiveSessionSubmission = {
   customerId: string;
@@ -329,9 +332,12 @@ export function rememberSelectedReportId(reportId: string) {
   if (typeof window !== 'undefined') {
     window.sessionStorage.setItem(REPORT_SELECTION_KEY, reportId);
   }
+  writeRouteQueryParam('reportId', reportId);
 }
 
 export function readRememberedReportId() {
+  const routeValue = readRouteQueryParam('reportId');
+  if (routeValue) return routeValue;
   if (typeof window === 'undefined') return null;
   return window.sessionStorage.getItem(REPORT_SELECTION_KEY);
 }
@@ -340,15 +346,19 @@ export function clearRememberedReportId() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(REPORT_SELECTION_KEY);
   }
+  writeRouteQueryParam('reportId', null);
 }
 
 export function rememberSelectedThreadId(threadId: string) {
   if (typeof window !== 'undefined') {
     window.sessionStorage.setItem(THREAD_SELECTION_KEY, threadId);
   }
+  writeRouteQueryParam('threadId', threadId);
 }
 
 export function readRememberedThreadId() {
+  const routeValue = readRouteQueryParam('threadId');
+  if (routeValue) return routeValue;
   if (typeof window === 'undefined') return null;
   return window.sessionStorage.getItem(THREAD_SELECTION_KEY);
 }
@@ -357,15 +367,19 @@ export function clearRememberedThreadId() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(THREAD_SELECTION_KEY);
   }
+  writeRouteQueryParam('threadId', null);
 }
 
 export function rememberSelectedSessionId(sessionId: string) {
   if (typeof window !== 'undefined') {
     window.sessionStorage.setItem(SESSION_SELECTION_KEY, sessionId);
   }
+  writeRouteQueryParam('sessionId', sessionId);
 }
 
 export function readRememberedSessionId() {
+  const routeValue = readRouteQueryParam('sessionId');
+  if (routeValue) return routeValue;
   if (typeof window === 'undefined') return null;
   return window.sessionStorage.getItem(SESSION_SELECTION_KEY);
 }
@@ -374,6 +388,7 @@ export function clearRememberedSessionId() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(SESSION_SELECTION_KEY);
   }
+  writeRouteQueryParam('sessionId', null);
 }
 
 export function rememberDraftSessionTitle(title: string) {
@@ -397,11 +412,11 @@ export function rememberFlowOrigin(origin: MyCoachFlowOrigin) {
   if (typeof window !== 'undefined') {
     window.sessionStorage.setItem(FLOW_ORIGIN_KEY, origin);
   }
+  writeRouteQueryParam('flow', origin);
 }
 
 export function readFlowOrigin() {
-  if (typeof window === 'undefined') return null;
-  const remembered = window.sessionStorage.getItem(FLOW_ORIGIN_KEY);
+  const remembered = readRouteQueryParam('flow') ?? (typeof window !== 'undefined' ? window.sessionStorage.getItem(FLOW_ORIGIN_KEY) : null);
   return remembered === 'live_session' || remembered === 'report_library' || remembered === 'tutorial'
     ? remembered
     : null;
@@ -411,17 +426,19 @@ export function clearFlowOrigin() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(FLOW_ORIGIN_KEY);
   }
+  writeRouteQueryParam('flow', null);
 }
 
 export function rememberStepsFocus(step: MyCoachStepFocus) {
   if (typeof window !== 'undefined') {
     window.sessionStorage.setItem(STEPS_FOCUS_KEY, step);
   }
+  writeRouteQueryParam('stepFocus', step);
 }
 
 export function readRememberedStepsFocus() {
-  if (typeof window === 'undefined') return null;
-  const remembered = window.sessionStorage.getItem(STEPS_FOCUS_KEY);
+  const remembered =
+    readRouteQueryParam('stepFocus') ?? (typeof window !== 'undefined' ? window.sessionStorage.getItem(STEPS_FOCUS_KEY) : null);
   return remembered === 'capture' || remembered === 'history' ? remembered : null;
 }
 
@@ -429,18 +446,37 @@ export function clearRememberedStepsFocus() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(STEPS_FOCUS_KEY);
   }
+  writeRouteQueryParam('stepFocus', null);
 }
 
 export function stagePendingLiveSessionSubmission(submission: PendingLiveSessionSubmission) {
   pendingLiveSessionSubmission = submission;
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem(PENDING_LIVE_SESSION_KEY, JSON.stringify(submission));
+  }
 }
 
 export function readPendingLiveSessionSubmission() {
-  return pendingLiveSessionSubmission;
+  if (pendingLiveSessionSubmission) return pendingLiveSessionSubmission;
+  if (typeof window === 'undefined') return null;
+
+  const stored = window.sessionStorage.getItem(PENDING_LIVE_SESSION_KEY);
+  if (!stored) return null;
+
+  try {
+    pendingLiveSessionSubmission = JSON.parse(stored) as PendingLiveSessionSubmission;
+    return pendingLiveSessionSubmission;
+  } catch {
+    window.sessionStorage.removeItem(PENDING_LIVE_SESSION_KEY);
+    return null;
+  }
 }
 
 export function clearPendingLiveSessionSubmission() {
   pendingLiveSessionSubmission = null;
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.removeItem(PENDING_LIVE_SESSION_KEY);
+  }
 }
 
 export function hasUsableTranscript(turns: TranscriptTurn[] | null | undefined) {

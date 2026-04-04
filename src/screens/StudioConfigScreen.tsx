@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Screen } from '../types';
 import { CarModel } from '../components/CarModel';
+import { readSearchParam } from '../lib/appRouter';
 
 type WheelOption = {
   id: string;
@@ -57,6 +58,19 @@ const wheelOptions: WheelOption[] = [
   },
 ];
 
+const vehicleContent = {
+  elevate: {
+    modelName: 'Elevate',
+    editionLabel: 'Touring Edition',
+    brochureTitle: 'Elevate',
+  },
+  'gt-carbon': {
+    modelName: 'DILOS GT-Carbon',
+    editionLabel: 'Limited Edition',
+    brochureTitle: 'DILOS GT-Carbon',
+  },
+} as const;
+
 const SHEET_COLLAPSED_PEEK = 180;
 
 function sanitizePdfText(value: string) {
@@ -75,6 +89,7 @@ function createDemoBrochurePdf({
   paintName,
   wheelName,
   salesNote,
+  brochureTitle,
 }: {
   customerName: string;
   customerEmail: string;
@@ -82,9 +97,10 @@ function createDemoBrochurePdf({
   paintName: string;
   wheelName: string;
   salesNote: string;
+  brochureTitle: string;
 }) {
   const lines = [
-    'Elevate Touring Edition',
+    `${brochureTitle} brochure`,
     `Prepared for ${customerName || 'Walk-in guest'}`,
     `Email: ${customerEmail}`,
     phone ? `Phone: ${phone}` : 'Phone: showroom follow-up pending',
@@ -127,19 +143,19 @@ function createDemoBrochurePdf({
   return new Blob([pdf], { type: 'application/pdf' });
 }
 
-function writeBrochureHoldingPage(targetWindow: Window) {
+function writeBrochureHoldingPage(targetWindow: Window, brochureTitle: string) {
   try {
     targetWindow.document.open();
     targetWindow.document.write(`<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Preparing Elevate brochure</title>
+    <title>Preparing ${brochureTitle} brochure</title>
   </head>
   <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#070709;color:#f5f7fb;font-family:Inter,Arial,sans-serif;">
     <div style="max-width:420px;padding:40px 32px;border:1px solid rgba(255,255,255,0.08);border-radius:28px;background:linear-gradient(145deg,rgba(28,28,34,0.92),rgba(12,12,16,0.96));box-shadow:0 30px 80px rgba(0,0,0,0.45);">
       <p style="margin:0;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(245,247,251,0.48);">Studio Preview</p>
-      <h1 style="margin:18px 0 8px;font-size:32px;line-height:1.05;">Preparing the Elevate brochure</h1>
+      <h1 style="margin:18px 0 8px;font-size:32px;line-height:1.05;">Preparing the ${brochureTitle} brochure</h1>
       <p style="margin:0;color:rgba(245,247,251,0.68);line-height:1.6;">Return to the configurator to enter the lead's details. The sample PDF will load here automatically.</p>
     </div>
   </body>
@@ -151,6 +167,8 @@ function writeBrochureHoldingPage(targetWindow: Window) {
 }
 
 export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const vehicleKey = readSearchParam('vehicle') === 'gt-carbon' ? 'gt-carbon' : 'elevate';
+  const vehicle = vehicleContent[vehicleKey];
   const [paintColor, setPaintColor] = useState(colors[0].hex);
   const [selectedWheel, setSelectedWheel] = useState(wheelOptions[0].id);
   const [sheetState, setSheetState] = useState<'collapsed' | 'expanded'>('collapsed');
@@ -232,7 +250,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
 
       if (previewWindow) {
         brochureWindowRef.current = previewWindow;
-        writeBrochureHoldingPage(previewWindow);
+        writeBrochureHoldingPage(previewWindow, vehicle.brochureTitle);
         previewWindow.blur();
         window.focus();
       }
@@ -264,6 +282,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
       paintName: activeColor.name,
       wheelName: activeWheel.name,
       salesNote: brochureForm.note,
+      brochureTitle: vehicle.brochureTitle,
     });
 
     if (brochureUrlRef.current) {
@@ -358,8 +377,8 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
           transition={{ delay: 0.1, type: 'spring', stiffness: 220, damping: 24 }}
           className="pointer-events-none absolute left-0 right-0 top-28 z-20 flex flex-col items-center px-6 text-center"
         >
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-white drop-shadow-md">Elevate</h1>
-          <p className="mt-1 font-label text-xs uppercase tracking-[0.28em] text-white/55">Touring Edition</p>
+          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-white drop-shadow-md">{vehicle.modelName}</h1>
+          <p className="mt-1 font-label text-xs uppercase tracking-[0.28em] text-white/55">{vehicle.editionLabel}</p>
         </motion.div>
 
         <section
@@ -613,7 +632,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                 <div className="flex items-start justify-between gap-4 px-5 pb-0 pt-5 sm:px-6 sm:pt-6">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-[0.24em] text-white/42">Brochure Handoff</p>
-                    <h2 className="mt-2 font-headline text-xl font-bold leading-tight text-white sm:text-2xl">Send the Elevate brochure</h2>
+                    <h2 className="mt-2 font-headline text-xl font-bold leading-tight text-white sm:text-2xl">Send the {vehicle.brochureTitle} brochure</h2>
                     <p className="mt-2 text-sm leading-6 text-white/60">
                       Capture the customer details now. A sample PDF preview will open in a background tab for the showroom demo as soon as you confirm.
                     </p>
