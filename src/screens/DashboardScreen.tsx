@@ -162,7 +162,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                 </button>
               </div>
               <p className="text-[11px] uppercase tracking-[0.16em] text-white/46 lg:text-right">
-                Reports let you reopen old sessions and regenerate a summary if one comes out wrong.
+                Open past coaching reports and revisit customer conversations.
               </p>
             </div>
           </div>

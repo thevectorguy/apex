@@ -4,8 +4,11 @@ export type CustomerThreadSummary = {
   id: string;
   customerName: string;
   phone: string;
-  vehicleIntent: string;
+  customerContext: string;
   visitCount: number;
+  hasSubmittedSession: boolean;
+  latestSessionStatus: 'draft' | 'processing' | 'completed' | 'error' | null;
+  latestSessionId: string | null;
   lastVisitLabel: string;
   unresolvedItems: string[];
   stage: string;
@@ -86,7 +89,7 @@ export type CoachReportListItem = {
 export type CreateCustomerInput = {
   customerName: string;
   phone: string;
-  vehicleIntent: string;
+  customerContext: string;
   notes?: string;
 };
 
@@ -206,7 +209,8 @@ export async function createCustomerThread(input: CreateCustomerInput) {
       phone: input.phone,
       notes: input.notes ?? '',
       metadata: {
-        vehicleIntent: input.vehicleIntent,
+        customerContext: input.customerContext,
+        vehicleIntent: input.customerContext,
         stage: 'New thread',
         badge: 'New',
         notes: input.notes ? [input.notes] : [],
@@ -492,8 +496,11 @@ function mapThreadToSummary(thread: CustomerThreadDetail): CustomerThreadSummary
     id: thread.id,
     customerName: thread.customerName,
     phone: thread.phone,
-    vehicleIntent: thread.vehicleIntent,
+    customerContext: thread.customerContext,
     visitCount: thread.visitCount,
+    hasSubmittedSession: thread.hasSubmittedSession,
+    latestSessionStatus: thread.latestSessionStatus,
+    latestSessionId: thread.latestSessionId,
     lastVisitLabel: thread.lastVisitLabel,
     unresolvedItems: thread.unresolvedItems,
     stage: thread.stage,
@@ -504,13 +511,26 @@ function mapThreadToSummary(thread: CustomerThreadDetail): CustomerThreadSummary
 
 function mapCustomerSummary(customer: BackendCustomer): CustomerThreadSummary {
   const unresolvedItems = ensureStringArray(customer.metadata.unresolvedItems ?? customer.metadata.notes).slice(0, 3);
+  const visitCount = Number(customer.metadata.visitCount ?? 0) || 0;
+  const latestSessionAt =
+    typeof customer.metadata.lastSessionAt === 'string' && customer.metadata.lastSessionAt
+      ? customer.metadata.lastSessionAt
+      : null;
+
   return {
     id: customer.id,
     customerName: customer.name,
     phone: customer.phone || 'Not captured',
-    vehicleIntent: customer.metadata.vehicleIntent || customer.notes || 'Need summary not captured yet',
-    visitCount: Number(customer.metadata.visitCount ?? 0) || 1,
-    lastVisitLabel: relativeLabel(customer.updatedAt),
+    customerContext:
+      customer.metadata.customerContext ||
+      customer.metadata.vehicleIntent ||
+      customer.notes ||
+      'Need summary not captured yet',
+    visitCount,
+    hasSubmittedSession: Boolean(customer.metadata.hasSubmittedSession ?? visitCount > 0),
+    latestSessionStatus: normalizeSummaryStatus(customer.metadata.latestSessionStatus),
+    latestSessionId: typeof customer.metadata.latestSessionId === 'string' ? customer.metadata.latestSessionId : null,
+    lastVisitLabel: latestSessionAt ? relativeLabel(latestSessionAt) : 'No visits yet',
     unresolvedItems,
     stage: customer.metadata.stage || 'Discovery',
     updatedAt: customer.updatedAt,
@@ -614,6 +634,14 @@ function normalizeStatus(status: string) {
   if (status === 'failed') return 'error';
   if (status === 'completed' || status === 'processing' || status === 'draft') return status;
   return 'draft';
+}
+
+function normalizeSummaryStatus(status: unknown) {
+  if (status === 'draft' || status === 'processing' || status === 'completed' || status === 'error') {
+    return status;
+  }
+  if (status === 'failed') return 'error';
+  return null;
 }
 
 function ensureStringArray(value: unknown) {
