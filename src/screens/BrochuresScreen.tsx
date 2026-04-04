@@ -2,7 +2,7 @@ import { Screen } from '../types';
 
 const brochures = [
   {
-    name: 'Apex GT-Carbon',
+    name: 'DILOS GT-Carbon',
     type: 'Performance',
     format: 'PDF + walkaround notes',
     freshness: 'Updated 2h ago',

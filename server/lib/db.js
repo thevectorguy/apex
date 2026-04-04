@@ -38,9 +38,13 @@ function initSchema(db) {
       mode TEXT NOT NULL DEFAULT 'analysis',
       status TEXT NOT NULL DEFAULT 'draft',
       visit_number INTEGER NOT NULL DEFAULT 1,
+      transcript_text TEXT NOT NULL DEFAULT '',
       transcript_json TEXT NOT NULL DEFAULT '[]',
       analysis_json TEXT NOT NULL DEFAULT '{}',
       report_id TEXT,
+      processing_started_at TEXT,
+      processing_completed_at TEXT,
+      error_message TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE
@@ -67,6 +71,8 @@ function initSchema(db) {
       customer_id TEXT NOT NULL,
       overall_score INTEGER NOT NULL,
       grade TEXT NOT NULL,
+      master_copy_version TEXT,
+      master_copy_hash TEXT,
       report_json TEXT NOT NULL,
       report_path TEXT NOT NULL,
       created_at TEXT NOT NULL,
@@ -83,6 +89,13 @@ function initSchema(db) {
       created_at TEXT NOT NULL
     );
   `);
+
+  ensureColumn(db, 'coach_sessions', 'transcript_text', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'coach_sessions', 'processing_started_at', 'TEXT');
+  ensureColumn(db, 'coach_sessions', 'processing_completed_at', 'TEXT');
+  ensureColumn(db, 'coach_sessions', 'error_message', 'TEXT');
+  ensureColumn(db, 'reports', 'master_copy_version', 'TEXT');
+  ensureColumn(db, 'reports', 'master_copy_hash', 'TEXT');
 }
 
 function seedMasterCopy(db) {
@@ -130,9 +143,13 @@ export function mapSessionRow(row) {
     mode: row.mode,
     status: row.status,
     visitNumber: row.visit_number,
+    transcriptText: row.transcript_text || '',
     transcript: parseJson(row.transcript_json, []),
     analysis: parseJson(row.analysis_json, {}),
     reportId: row.report_id || null,
+    processingStartedAt: row.processing_started_at || null,
+    processingCompletedAt: row.processing_completed_at || null,
+    errorMessage: row.error_message || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -146,6 +163,8 @@ export function mapReportRow(row) {
     customerId: row.customer_id,
     overallScore: row.overall_score,
     grade: row.grade,
+    masterCopyVersion: row.master_copy_version || null,
+    masterCopyHash: row.master_copy_hash || null,
     report: parseJson(row.report_json, {}),
     reportPath: row.report_path,
     createdAt: row.created_at,
@@ -171,9 +190,16 @@ export function mapAudioRow(row) {
 
 function parseJson(value, fallback) {
   if (!value) return fallback;
+  if (typeof value === 'object') return value;
   try {
     return JSON.parse(value);
   } catch {
     return fallback;
   }
+}
+
+function ensureColumn(db, tableName, columnName, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (columns.some((column) => column.name === columnName)) return;
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
 }

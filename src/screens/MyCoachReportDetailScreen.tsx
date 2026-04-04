@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { type Screen } from '../types';
 import {
   clearFlowOrigin,
+  getTranscriptUnavailableMessage,
+  hasUsableTranscript,
   listCoachReports,
   readFlowOrigin,
   readRememberedReportId,
@@ -42,6 +44,7 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
     () => reports.find((report) => report.id === selectedReportId) ?? reports[0] ?? null,
     [reports, selectedReportId],
   );
+  const transcriptUnavailable = selectedReport ? !hasUsableTranscript(selectedReport.report.transcriptHighlights) : false;
   const isLiveEntry = flowOrigin === 'live_session';
   const backTarget: Screen = flowOrigin === 'report_library' ? 'my_coach_reports' : 'my_coach';
   const backLabel = flowOrigin === 'report_library' ? 'Back to Report Library' : 'Back to My Coach';
@@ -169,6 +172,15 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
                 <MetaChip label="Latest version" />
                 {isLiveEntry ? <MetaChip label="Live session" /> : null}
               </div>
+              {transcriptUnavailable ? (
+                <div className="mt-4 rounded-[22pt] border border-secondary/20 bg-secondary/10 px-4 py-4 text-sm leading-6 text-white/74">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">Transcript unavailable</p>
+                  <p className="mt-2">{getTranscriptUnavailableMessage()}</p>
+                  <p className="mt-2 text-white/54">
+                    The coaching report can still load, but quoted highlights and the full transcript are not available for this session.
+                  </p>
+                </div>
+              ) : null}
             </motion.section>
 
             <motion.section {...getLiveEntryMotion(0.14)} className="flex flex-wrap gap-2">
@@ -276,7 +288,9 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
                       ))
                     ) : (
                       <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
-                        Transcript highlights will appear here when this report includes them.
+                        {transcriptUnavailable
+                          ? 'No transcript highlights were returned for this session.'
+                          : 'Transcript highlights will appear here when this report includes them.'}
                       </div>
                     )}
                   </div>

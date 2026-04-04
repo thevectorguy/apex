@@ -127,10 +127,94 @@ export const trainingMasterCopy = {
   },
 };
 
+export const MASTER_COPY_VERSION = trainingMasterCopy.version;
+export const MASTER_COPY_HASH = crypto
+  .createHash('md5')
+  .update(JSON.stringify(trainingMasterCopy))
+  .digest('hex')
+  .slice(0, 8);
+
+export function buildMasterCopyPrompt() {
+  const speedSection = trainingMasterCopy.speedFramework
+    .map(
+      (stage) => `${stage.label.toUpperCase()} (Weight: ${stage.weight}%)
+Purpose: ${stage.purpose}
+Must do: ${stage.behaviors.join(' | ')}
+Red flags: ${stage.redFlags.join(' | ')}`,
+    )
+    .join('\n\n');
+
+  const questionsSection = trainingMasterCopy.fundamentalQuestions
+    .map((question) => `${question.id}. ${question.question} - ${question.why}`)
+    .join('\n');
+
+  const profilesSection = trainingMasterCopy.customerProfiles
+    .map(
+      (profile) =>
+        `${profile.label}: signals=[${profile.signals.join(', ')}] -> recommend=[${profile.idealRecommendation.join(', ')}] -> avoid=[${profile.avoid.join(', ')}]`,
+    )
+    .join('\n');
+
+  const catalogSection = trainingMasterCopy.productCatalog
+    .map(
+      (model) => `${model.model} | ${model.segment} | ${model.priceBand} | Seats:${model.seating} | Fuel:${model.fuel.join('/')}
+Best for: ${model.recommendationHints.join(', ')}
+Key features: ${model.keyFeatures.join(', ')}`,
+    )
+    .join('\n\n');
+
+  const objectionSection = trainingMasterCopy.objectionLibrary
+    .map((objection) => `"${objection.label}" -> Strategy: ${objection.strategy}`)
+    .join('\n');
+
+  const gradeBands = trainingMasterCopy.reportTemplate.gradeBands
+    .map((band) => `${band.grade} (${band.min}+): ${band.meaning}`)
+    .join(' | ');
+
+  return `
+You are My Coach, an expert Maruti Suzuki sales coach AI.
+Analyze the salesperson conversation transcript and return a single valid JSON coaching report.
+Do not output any text outside the JSON object.
+
+=== SPEED FRAMEWORK ===
+${speedSection}
+
+=== FUNDAMENTAL QUESTIONS ===
+Score each question as COVERED, PARTIALLY, or MISSED.
+${questionsSection}
+
+=== CUSTOMER PROFILES AND MATCHING ===
+${profilesSection}
+
+=== MARUTI MODEL CATALOG ===
+${catalogSection}
+
+=== OBJECTION HANDLING ===
+Use ACE: Acknowledge -> Clarify -> Evidence.
+${objectionSection}
+
+=== SCORING RULES ===
+Overall score: 0-100.
+Question coverage score = (COVERED + 0.5 x PARTIALLY) / total questions.
+Product verdict must be one of CORRECT, PARTIALLY_CORRECT, INCORRECT, NOT_MADE.
+Grade bands: ${gradeBands}
+
+=== OUTPUT RULES ===
+Return JSON only.
+Use transcript evidence wherever possible.
+Do not invent product facts outside this master copy.
+If the transcript is weak or incomplete, put the limitation in warnings.
+Always include masterCopyVersion as "${MASTER_COPY_VERSION}".
+Populate these sections meaningfully: overallScore, grade, summary, customerProfile, speed, questionCoverage, objections, productFit, strengths, improvements, nextVisitPreparation, researchTasks, reportHighlights, coachNotes, transcriptTurns, comparisonToPrevious, warnings.
+`.trim();
+}
+
+export const MASTER_COPY_PROMPT = buildMasterCopyPrompt();
+
 export function masterCopySnapshot() {
   return {
     id: crypto.randomUUID(),
-    version: trainingMasterCopy.version,
+    version: MASTER_COPY_VERSION,
     source: trainingMasterCopy.source,
     content: trainingMasterCopy,
     createdAt: new Date().toISOString(),

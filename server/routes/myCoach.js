@@ -1,207 +1,133 @@
-import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
-import { getDb, mapAudioRow, mapCustomerRow, mapReportRow, mapSessionRow, nowIso } from '../lib/db.js';
-import { audioRoot, reportRoot } from '../lib/paths.js';
-import { safeFileName, writeBufferFile, writeJsonFile } from '../lib/storage.js';
-import { buildReport } from '../lib/analysis.js';
-import { trainingMasterCopy } from '../lib/masterCopy.js';
-import { transcribeAudioFile } from '../lib/groq.js';
+import { buildPreviousVisitSummary } from '../lib/analysis.js';
+import { generateCoachingReport } from '../lib/groq.js';
+import {
+  createAudioAssets,
+  createCustomer,
+  createReport,
+  createSession,
+  deleteCustomer,
+  deleteReport,
+  deleteSession,
+  getCustomer,
+  getLatestCompletedReportForCustomer,
+  getReport,
+  getSession,
+  listCustomerAudioAssets,
+  listCustomerReports,
+  listCustomerSessions,
+  listCustomers,
+  listReports,
+  listSessionAudioAssets,
+  listSessions,
+  getPersistenceStatus,
+  updateCustomer,
+  updateReport,
+  updateSession,
+} from '../lib/persistence.js';
+import { MASTER_COPY_HASH, MASTER_COPY_VERSION, trainingMasterCopy } from '../lib/masterCopy.js';
 
 export function registerMyCoachRoutes(app) {
   app.get('/api/my-coach/health', (_req, res) => {
-    res.json({ ok: true, service: 'my-coach', version: trainingMasterCopy.version });
+    res.json({
+      ok: true,
+      service: 'my-coach',
+      version: MASTER_COPY_VERSION,
+      hash: MASTER_COPY_HASH,
+      persistence: getPersistenceStatus(),
+    });
   });
 
   app.get('/api/my-coach/master-copy', (_req, res) => {
-    res.json({ ok: true, masterCopy: trainingMasterCopy });
-  });
-
-  app.get('/api/my-coach/customers', (_req, res) => {
-    const db = getDb();
-    const customers = db.prepare('SELECT * FROM customers ORDER BY updated_at DESC').all().map(mapCustomerRow);
-    res.json({ ok: true, customers });
-  });
-
-  app.post('/api/my-coach/customers', (req, res) => {
-    const db = getDb();
-    const payload = normalizeCustomerPayload(req.body || {});
-    const now = nowIso();
-    const id = crypto.randomUUID();
-
-    db.prepare(`
-      INSERT INTO customers (id, name, phone, email, notes, status, metadata_json, created_at, updated_at)
-      VALUES (@id, @name, @phone, @email, @notes, @status, @metadataJson, @createdAt, @updatedAt)
-    `).run({
-      id,
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email,
-      notes: payload.notes,
-      status: payload.status,
-      metadataJson: JSON.stringify(payload.metadata),
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
-    res.status(201).json({ ok: true, customer: mapCustomerRow(customer) });
-  });
-
-  app.get('/api/my-coach/customers/:customerId', (req, res) => {
-    const db = getDb();
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.customerId);
-    if (!customer) return res.status(404).json({ ok: false, error: 'Customer not found' });
-
-    const sessions = db.prepare('SELECT * FROM coach_sessions WHERE customer_id = ? ORDER BY created_at DESC').all(req.params.customerId).map(mapSessionRow);
-    const audioAssets = db.prepare('SELECT * FROM audio_assets WHERE customer_id = ? ORDER BY created_at DESC').all(req.params.customerId).map(mapAudioRow);
-    const reports = db.prepare('SELECT * FROM reports WHERE customer_id = ? ORDER BY created_at DESC').all(req.params.customerId).map(mapReportRow);
-
     res.json({
       ok: true,
-      customer: mapCustomerRow(customer),
-      sessions,
-      audioAssets,
-      reports,
+      masterCopy: {
+        version: MASTER_COPY_VERSION,
+        hash: MASTER_COPY_HASH,
+        source: trainingMasterCopy.source,
+      },
     });
   });
 
-  app.patch('/api/my-coach/customers/:customerId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.customerId);
-    if (!existing) return res.status(404).json({ ok: false, error: 'Customer not found' });
-
-    const current = mapCustomerRow(existing);
-    const payload = normalizeCustomerPayload({ ...current, ...req.body });
-    const now = nowIso();
-
-    db.prepare(`
-      UPDATE customers
-      SET name = @name, phone = @phone, email = @email, notes = @notes, status = @status, metadata_json = @metadataJson, updated_at = @updatedAt
-      WHERE id = @id
-    `).run({
-      id: existing.id,
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email,
-      notes: payload.notes,
-      status: payload.status,
-      metadataJson: JSON.stringify(payload.metadata),
-      updatedAt: now,
-    });
-
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(existing.id);
-    res.json({ ok: true, customer: mapCustomerRow(customer) });
+  app.get('/api/my-coach/customers', async (_req, res) => {
+    res.json({ ok: true, customers: await listCustomers() });
   });
 
-  app.delete('/api/my-coach/customers/:customerId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.customerId);
+  app.post('/api/my-coach/customers', async (req, res) => {
+    const payload = normalizeCustomerPayload(req.body || {});
+    const customer = await createCustomer(payload);
+    res.status(201).json({ ok: true, customer });
+  });
+
+  app.get('/api/my-coach/customers/:customerId', async (req, res) => {
+    const customer = await getCustomer(req.params.customerId);
+    if (!customer) return res.status(404).json({ ok: false, error: 'Customer not found' });
+
+    const [sessions, audioAssets, reports] = await Promise.all([
+      listCustomerSessions(req.params.customerId),
+      listCustomerAudioAssets(req.params.customerId),
+      listCustomerReports(req.params.customerId),
+    ]);
+
+    res.json({ ok: true, customer, sessions, audioAssets, reports });
+  });
+
+  app.patch('/api/my-coach/customers/:customerId', async (req, res) => {
+    const existing = await getCustomer(req.params.customerId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Customer not found' });
-    db.prepare('DELETE FROM customers WHERE id = ?').run(existing.id);
+
+    const payload = normalizeCustomerPayload({ ...existing, ...req.body });
+    const customer = await updateCustomer(req.params.customerId, payload);
+    res.json({ ok: true, customer });
+  });
+
+  app.delete('/api/my-coach/customers/:customerId', async (req, res) => {
+    const existing = await getCustomer(req.params.customerId);
+    if (!existing) return res.status(404).json({ ok: false, error: 'Customer not found' });
+    await deleteCustomer(req.params.customerId);
     res.json({ ok: true });
   });
 
-  app.get('/api/my-coach/sessions', (_req, res) => {
-    const db = getDb();
-    const sessions = db.prepare('SELECT * FROM coach_sessions ORDER BY created_at DESC').all().map(mapSessionRow);
-    res.json({ ok: true, sessions });
+  app.get('/api/my-coach/sessions', async (_req, res) => {
+    res.json({ ok: true, sessions: await listSessions() });
   });
 
-  app.post('/api/my-coach/sessions', (req, res) => {
-    const db = getDb();
+  app.post('/api/my-coach/sessions', async (req, res) => {
     const payload = normalizeSessionPayload(req.body || {});
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(payload.customerId);
+    const customer = await getCustomer(payload.customerId);
     if (!customer) return res.status(400).json({ ok: false, error: 'Customer is required and must exist' });
-
-    const now = nowIso();
-    const id = crypto.randomUUID();
-    const visitNumberRow = db.prepare('SELECT COUNT(*) AS count FROM coach_sessions WHERE customer_id = ?').get(payload.customerId);
-    const visitNumber = (visitNumberRow?.count || 0) + 1;
-
-    db.prepare(`
-      INSERT INTO coach_sessions (id, customer_id, title, mode, status, visit_number, transcript_json, analysis_json, report_id, created_at, updated_at)
-      VALUES (@id, @customerId, @title, @mode, @status, @visitNumber, '[]', '{}', NULL, @createdAt, @updatedAt)
-    `).run({
-      id,
-      customerId: payload.customerId,
-      title: payload.title,
-      mode: payload.mode,
-      status: payload.status,
-      visitNumber,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const session = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(id);
-    res.status(201).json({ ok: true, session: mapSessionRow(session) });
+    const session = await createSession(payload);
+    res.status(201).json({ ok: true, session });
   });
 
-  app.get('/api/my-coach/sessions/:sessionId', (req, res) => {
-    const db = getDb();
-    const session = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(req.params.sessionId);
+  app.get('/api/my-coach/sessions/:sessionId', async (req, res) => {
+    const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
 
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(session.customer_id);
-    const audioAssets = db.prepare('SELECT * FROM audio_assets WHERE session_id = ? ORDER BY created_at ASC').all(session.id).map(mapAudioRow);
-    const report = session.report_id ? db.prepare('SELECT * FROM reports WHERE id = ?').get(session.report_id) : null;
+    const customer = await getCustomer(session.customerId);
+    const audioAssets = await listSessionAudioAssets(session.id);
+    const report = session.reportId ? await getReport(session.reportId) : null;
 
-    res.json({
-      ok: true,
-      customer: mapCustomerRow(customer),
-      session: mapSessionRow(session),
-      audioAssets,
-      report: mapReportRow(report),
-    });
+    res.json({ ok: true, customer, session, audioAssets, report });
   });
 
-  app.patch('/api/my-coach/sessions/:sessionId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(req.params.sessionId);
+  app.patch('/api/my-coach/sessions/:sessionId', async (req, res) => {
+    const existing = await getSession(req.params.sessionId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Session not found' });
 
-    const current = mapSessionRow(existing);
-    const payload = normalizeSessionPayload({ ...current, ...req.body });
-    const now = nowIso();
-
-    db.prepare(`
-      UPDATE coach_sessions
-      SET title = @title, mode = @mode, status = @status, updated_at = @updatedAt
-      WHERE id = @id
-    `).run({
-      id: existing.id,
-      title: payload.title,
-      mode: payload.mode,
-      status: payload.status,
-      updatedAt: now,
-    });
-
-    const session = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(existing.id);
-    res.json({ ok: true, session: mapSessionRow(session) });
+    const payload = normalizeSessionPayload({ ...existing, ...req.body });
+    const session = await updateSession(req.params.sessionId, payload);
+    res.json({ ok: true, session });
   });
 
-  app.delete('/api/my-coach/sessions/:sessionId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(req.params.sessionId);
+  app.delete('/api/my-coach/sessions/:sessionId', async (req, res) => {
+    const existing = await getSession(req.params.sessionId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Session not found' });
-
-    const audioAssets = db.prepare('SELECT * FROM audio_assets WHERE session_id = ?').all(existing.id).map(mapAudioRow);
-    const report = existing.report_id ? db.prepare('SELECT * FROM reports WHERE id = ?').get(existing.report_id) : null;
-
-    db.prepare('DELETE FROM coach_sessions WHERE id = ?').run(existing.id);
-    for (const asset of audioAssets) {
-      safeUnlink(asset.filePath);
-    }
-    if (report) {
-      safeUnlink(report.report_path);
-    }
-
+    await deleteSession(req.params.sessionId);
     res.json({ ok: true });
   });
 
   app.post('/api/my-coach/sessions/:sessionId/audio', async (req, res) => {
-    const db = getDb();
-    const session = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(req.params.sessionId);
+    const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
 
     const payload = req.body || {};
@@ -221,191 +147,159 @@ export function registerMyCoachRoutes(app) {
       return res.status(400).json({ ok: false, error: 'At least one clip with base64 audio is required' });
     }
 
-    const storedAssets = validClips.map((clip, index) => {
-      const buffer = Buffer.from(clip.audioBase64, 'base64');
-      const filename = `${safeFileName(clip.filename || `session-${session.id}-${Date.now()}-${index + 1}`, 'audio')}${mimeExtension(clip.mimeType)}`;
-      const audioId = crypto.randomUUID();
-      const filePath = writeBufferFile(path.join(audioRoot, session.id), filename, buffer);
-      const now = nowIso();
+    const transcriptLines = Array.isArray(payload.transcriptLines)
+      ? payload.transcriptLines.map((line, index) => ({
+          id: String(line.id || `line_${index + 1}`),
+          speaker: String(line.speaker || inferSpeaker(line.text || '', index)),
+          text: String(line.text || '').trim(),
+          start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,
+          end: Number.isFinite(Number(line.end)) ? Number(line.end) : null,
+        }))
+      : [];
+    const transcriptText =
+      String(payload.transcriptText || '').trim() || transcriptLines.map((line) => line.text).filter(Boolean).join(' ');
 
-      db.prepare(`
-        INSERT INTO audio_assets (id, session_id, customer_id, filename, mime_type, file_path, source, transcript_text, duration_ms, created_at)
-        VALUES (@id, @sessionId, @customerId, @filename, @mimeType, @filePath, @source, @transcriptText, @durationMs, @createdAt)
-      `).run({
-        id: audioId,
-        sessionId: session.id,
-        customerId: session.customer_id,
-        filename,
-        mimeType: clip.mimeType,
-        filePath,
-        source: clip.source,
-        transcriptText: String(clip.transcriptText || ''),
-        durationMs: Number.isFinite(Number(clip.durationMs)) ? Number(clip.durationMs) : null,
-        createdAt: now,
-      });
-
-      return mapAudioRow(db.prepare('SELECT * FROM audio_assets WHERE id = ?').get(audioId));
+    const audioAssets = await createAudioAssets(session, validClips);
+    await updateSession(session.id, {
+      transcriptText: transcriptText || session.transcriptText || '',
+      transcript: transcriptLines.length ? transcriptLines : buildTranscriptTurns(transcriptText, [], session.id),
+      errorMessage: null,
     });
 
-    res.status(201).json({ ok: true, audioAssets: storedAssets });
+    res.status(201).json({ ok: true, audioAssets });
   });
 
   app.post('/api/my-coach/sessions/:sessionId/analyze', async (req, res) => {
-    const db = getDb();
-    const session = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(req.params.sessionId);
+    const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
 
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(session.customer_id);
-    const audioAssets = db.prepare('SELECT * FROM audio_assets WHERE session_id = ? ORDER BY created_at ASC').all(session.id).map(mapAudioRow);
+    const customer = await getCustomer(session.customerId);
+    const audioAssets = await listSessionAudioAssets(session.id);
     if (!audioAssets.length) {
       return res.status(400).json({ ok: false, error: 'At least one audio asset is required before analysis' });
     }
 
-    const transcriptTurns = [];
-    for (const asset of audioAssets) {
-      let transcript = asset.transcriptText || '';
-      let segments = [];
-      if (!transcript.trim()) {
-        const result = await transcribeAudioFile({ filePath: asset.filePath, mimeType: asset.mimeType });
-        transcript = result.text;
-        segments = result.segments || [];
-        db.prepare('UPDATE audio_assets SET transcript_text = ? WHERE id = ?').run(transcript, asset.id);
-      }
-      transcriptTurns.push(...buildTranscriptTurns(transcript, segments, asset.id));
+    const transcriptText = String(session.transcriptText || '').trim();
+    if (!transcriptText) {
+      await updateSession(session.id, { status: 'error', errorMessage: 'Browser transcript is required before analysis.' });
+      return res.status(400).json({ ok: false, error: 'Browser transcript is required before analysis.' });
     }
 
-    const report = await buildReport({
-      customer: mapCustomerRow(customer),
-      session: mapSessionRow(session),
-      transcriptTurns,
-      audioAssets,
+    await updateSession(session.id, {
+      status: 'processing',
+      processingStartedAt: new Date().toISOString(),
+      processingCompletedAt: null,
+      errorMessage: null,
     });
 
-    const reportId = crypto.randomUUID();
-    const reportPath = writeJsonFile(reportRoot, `${session.id}-${reportId}.json`, report);
-    const now = nowIso();
+    try {
+      const previousReport = await getLatestCompletedReportForCustomer(session.customerId, session.id);
+      const previousVisitSummary = previousReport ? buildPreviousVisitSummary(previousReport.report) : null;
+      const transcriptTurns = Array.isArray(session.transcript) && session.transcript.length
+        ? session.transcript
+        : buildTranscriptTurns(transcriptText, [], session.id);
 
-    db.prepare(`
-      INSERT INTO reports (id, session_id, customer_id, overall_score, grade, report_json, report_path, created_at, updated_at)
-      VALUES (@id, @sessionId, @customerId, @overallScore, @grade, @reportJson, @reportPath, @createdAt, @updatedAt)
-    `).run({
-      id: reportId,
-      sessionId: session.id,
-      customerId: session.customer_id,
-      overallScore: report.overallScore,
-      grade: report.grade,
-      reportJson: JSON.stringify(report),
-      reportPath,
-      createdAt: now,
-      updatedAt: now,
-    });
+      const report = await generateCoachingReport({
+        transcriptText,
+        transcriptTurns,
+        customerName: customer?.name || '',
+        visitNumber: session.visitNumber,
+        sessionDate: session.createdAt,
+        previousVisitSummary,
+      });
 
-    db.prepare(`
-      UPDATE coach_sessions
-      SET status = 'completed', transcript_json = @transcriptJson, analysis_json = @analysisJson, report_id = @reportId, updated_at = @updatedAt
-      WHERE id = @id
-    `).run({
-      id: session.id,
-      transcriptJson: JSON.stringify(transcriptTurns),
-      analysisJson: JSON.stringify(report),
-      reportId,
-      updatedAt: now,
-    });
+      const hydratedReport = {
+        ...report,
+        id: report.id || `report_${session.id}`,
+        customerContext: {
+          sessionId: session.id,
+          customerId: session.customerId,
+        },
+        transcriptTurns: report.transcriptTurns?.length ? report.transcriptTurns : transcriptTurns,
+      };
 
-    const updatedSession = db.prepare('SELECT * FROM coach_sessions WHERE id = ?').get(session.id);
-    const updatedReport = db.prepare('SELECT * FROM reports WHERE id = ?').get(reportId);
-    res.json({
-      ok: true,
-      session: mapSessionRow(updatedSession),
-      report: mapReportRow(updatedReport),
-      reportData: report,
-    });
+      const createdReport = await createReport({
+        sessionId: session.id,
+        customerId: session.customerId,
+        overallScore: hydratedReport.overallScore,
+        grade: hydratedReport.grade,
+        masterCopyVersion: hydratedReport.masterCopyVersion || MASTER_COPY_VERSION,
+        masterCopyHash: hydratedReport.masterCopyHash || MASTER_COPY_HASH,
+        report: hydratedReport,
+      });
+
+      const updatedSession = await updateSession(session.id, {
+        status: 'completed',
+        transcript: hydratedReport.transcriptTurns,
+        analysis: hydratedReport,
+        reportId: createdReport.id,
+        processingCompletedAt: new Date().toISOString(),
+        errorMessage: null,
+      });
+
+      res.json({
+        ok: true,
+        session: updatedSession,
+        report: createdReport,
+        reportData: hydratedReport,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await updateSession(session.id, {
+        status: 'error',
+        errorMessage: message,
+        processingCompletedAt: new Date().toISOString(),
+      });
+      res.status(500).json({ ok: false, status: 'error', error: message });
+    }
   });
 
-  app.get('/api/my-coach/reports', (_req, res) => {
-    const db = getDb();
-    const reports = db.prepare(`
-      SELECT
-        r.*,
-        s.title AS session_title,
-        s.created_at AS session_created_at,
-        c.name AS customer_name
-      FROM reports r
-      LEFT JOIN coach_sessions s ON s.id = r.session_id
-      LEFT JOIN customers c ON c.id = r.customer_id
-      ORDER BY r.created_at DESC
-    `).all().map((row) => ({
-      ...mapReportRow(row),
-      sessionTitle: row.session_title || '',
-      sessionCreatedAt: row.session_created_at || null,
-      customerName: row.customer_name || '',
-    }));
-    res.json({ ok: true, reports });
+  app.get('/api/my-coach/reports', async (_req, res) => {
+    res.json({ ok: true, reports: await listReports() });
   });
 
-  app.get('/api/my-coach/reports/:reportId', (req, res) => {
-    const db = getDb();
-    const report = db.prepare(`
-      SELECT
-        r.*,
-        s.title AS session_title,
-        s.created_at AS session_created_at,
-        c.name AS customer_name
-      FROM reports r
-      LEFT JOIN coach_sessions s ON s.id = r.session_id
-      LEFT JOIN customers c ON c.id = r.customer_id
-      WHERE r.id = ?
-    `).get(req.params.reportId);
+  app.get('/api/my-coach/reports/:reportId', async (req, res) => {
+    const report = await getReport(req.params.reportId);
     if (!report) return res.status(404).json({ ok: false, error: 'Report not found' });
+
+    const customer = await getCustomer(report.customerId);
+    const session = await getSession(report.sessionId);
+
     res.json({
       ok: true,
       report: {
-        ...mapReportRow(report),
-        sessionTitle: report.session_title || '',
-        sessionCreatedAt: report.session_created_at || null,
-        customerName: report.customer_name || '',
+        ...report,
+        sessionTitle: session?.title || '',
+        sessionCreatedAt: session?.createdAt || null,
+        customerName: customer?.name || '',
       },
     });
   });
 
-  app.patch('/api/my-coach/reports/:reportId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.reportId);
+  app.patch('/api/my-coach/reports/:reportId', async (req, res) => {
+    const existing = await getReport(req.params.reportId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Report not found' });
 
-    const existingReport = mapReportRow(existing).report;
-    const report = { ...existingReport, ...(req.body?.report || {}) };
-    const now = nowIso();
-
-    db.prepare(`
-      UPDATE reports
-      SET report_json = @reportJson, overall_score = @overallScore, grade = @grade, updated_at = @updatedAt
-      WHERE id = @id
-    `).run({
-      id: existing.id,
-      reportJson: JSON.stringify(report),
-      overallScore: Number(req.body?.overallScore ?? existing.overall_score),
+    const report = { ...existing.report, ...(req.body?.report || {}) };
+    const updated = await updateReport(req.params.reportId, {
+      report,
+      overallScore: Number(req.body?.overallScore ?? existing.overallScore),
       grade: String(req.body?.grade ?? existing.grade),
-      updatedAt: now,
     });
-
-    const updated = db.prepare('SELECT * FROM reports WHERE id = ?').get(existing.id);
-    res.json({ ok: true, report: mapReportRow(updated) });
+    res.json({ ok: true, report: updated });
   });
 
-  app.delete('/api/my-coach/reports/:reportId', (req, res) => {
-    const db = getDb();
-    const existing = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.reportId);
+  app.delete('/api/my-coach/reports/:reportId', async (req, res) => {
+    const existing = await getReport(req.params.reportId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Report not found' });
-    safeUnlink(existing.report_path);
-    db.prepare('DELETE FROM reports WHERE id = ?').run(existing.id);
+    await deleteReport(req.params.reportId);
     res.json({ ok: true });
   });
 }
 
 function normalizeCustomerPayload(body) {
   return {
-    name: String(body.name || 'Untitled Customer').trim() || 'Untitled Customer',
+    name: String(body.name || body.customerName || 'Untitled Customer').trim() || 'Untitled Customer',
     phone: String(body.phone || '').trim(),
     email: String(body.email || '').trim(),
     notes: String(body.notes || '').trim(),
@@ -420,29 +314,34 @@ function normalizeSessionPayload(body) {
     title: String(body.title || '').trim(),
     mode: String(body.mode || 'analysis').trim() || 'analysis',
     status: String(body.status || 'draft').trim() || 'draft',
+    transcriptText: String(body.transcriptText || '').trim(),
+    transcript: Array.isArray(body.transcript) ? body.transcript : undefined,
+    analysis: body.analysis && typeof body.analysis === 'object' ? body.analysis : undefined,
+    reportId: body.reportId ?? undefined,
+    processingStartedAt: body.processingStartedAt ?? undefined,
+    processingCompletedAt: body.processingCompletedAt ?? undefined,
+    errorMessage: body.errorMessage ?? undefined,
   };
 }
 
-function buildTranscriptTurns(text, segments, audioAssetId) {
+function buildTranscriptTurns(text, segments, sourceId) {
   if (!text && !segments.length) return [];
   if (segments.length) {
     return segments.map((segment, index) => ({
-      id: `${audioAssetId}_${segment.id || index + 1}`,
-      speaker: index % 2 === 0 ? 'salesperson' : 'customer',
+      id: `${sourceId}_${segment.id || index + 1}`,
+      speaker: inferSpeaker(segment.text || '', index),
       text: segment.text || '',
       start: segment.start ?? null,
       end: segment.end ?? null,
-      sourceAudioAssetId: audioAssetId,
     }));
   }
 
   return splitIntoTurns(text).map((part, index) => ({
-    id: `${audioAssetId}_turn_${index + 1}`,
+    id: `${sourceId}_turn_${index + 1}`,
     speaker: inferSpeaker(part, index),
     text: part,
     start: null,
     end: null,
-    sourceAudioAssetId: audioAssetId,
   }));
 }
 
@@ -451,31 +350,12 @@ function splitIntoTurns(text) {
     .split(/\n{2,}|(?:\.\s+)/)
     .map((part) => part.trim())
     .filter(Boolean)
-    .slice(0, 50);
+    .slice(0, 80);
 }
 
 function inferSpeaker(text, index) {
-  const lower = text.toLowerCase();
+  const lower = String(text || '').toLowerCase();
   if (/(?:i recommend|let me show|shall we|would you like|based on|i suggest|my suggestion)/.test(lower)) return 'salesperson';
   if (/(?:i am|we need|i need|i want|my family|budget|what about|how much|not sure|concerned)/.test(lower)) return 'customer';
   return index % 2 === 0 ? 'salesperson' : 'customer';
-}
-
-function mimeExtension(mimeType) {
-  if (mimeType.includes('webm')) return '.webm';
-  if (mimeType.includes('mp4')) return '.mp4';
-  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return '.mp3';
-  if (mimeType.includes('wav')) return '.wav';
-  return '.bin';
-}
-
-function safeUnlink(filePath) {
-  if (!filePath) return;
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  } catch {
-    // Best-effort cleanup for local storage.
-  }
 }

@@ -30,6 +30,8 @@ export type CoachingReport = {
   sessionId: string;
   overallScore: number;
   grade: string;
+  masterCopyVersion?: string | null;
+  masterCopyHash?: string | null;
   headline: string;
   summary: string;
   sourceNote: string;
@@ -42,6 +44,8 @@ export type CoachingReport = {
   nextVisitPrep: string[];
   researchTasks: string[];
   transcriptHighlights: TranscriptTurn[];
+  comparisonToPrevious?: string | null;
+  warnings?: string[];
   generatedAt: string;
 };
 
@@ -55,6 +59,7 @@ export type CoachSessionSummary = {
   transcript: TranscriptTurn[];
   report?: CoachingReport;
   source: 'recorded' | 'uploaded' | 'mixed';
+  errorMessage?: string | null;
 };
 
 export type CustomerThreadDetail = CustomerThreadSummary & {
@@ -107,27 +112,20 @@ export type PendingLiveSessionSubmission = {
   title: string;
   source: 'recorded' | 'uploaded' | 'mixed';
   clips: AudioClipPayload[];
+  transcriptText: string;
+  transcriptLines?: TranscriptTurn[];
+};
+
+export type MasterCopyInfo = {
+  version: string;
+  hash: string;
+  source: string;
 };
 
 let pendingLiveSessionSubmission: PendingLiveSessionSubmission | null = null;
-
-const demoThreads: CustomerThreadDetail[] = [
-  {
-    id: 'thread-kiran',
-    customerName: 'Kiran Baxi',
-    phone: '+91 98xx xx 5012',
-    vehicleIntent: 'Premium family SUV with better mileage and a calm cabin for return visits',
-    visitCount: 2,
-    lastVisitLabel: 'Yesterday',
-    unresolvedItems: ['EMI comfort band', 'Third-row trade-off'],
-    stage: 'Follow-up close',
-    updatedAt: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-    badge: 'Hot lead',
-    summary: 'A repeat visitor comparing premium SUV options. The next visit should resolve EMI comfort and seating priorities.',
-    notes: ['Bring the hybrid calculator', 'Confirm whether the spouse will join the next visit'],
-    sessions: [],
-  },
-];
+let activeMasterCopyInfo: MasterCopyInfo | null = null;
+const TRANSCRIPT_UNAVAILABLE_MESSAGE =
+  'Audio was captured, but My Coach could not build a reliable transcript for this session. This can happen when the conversation was in another language, too quiet, or mostly silence.';
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -139,109 +137,81 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    let message = `Request failed with status ${response.status}`;
+    const payloadText = await response.text();
+
+    if (payloadText) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const payload = JSON.parse(payloadText) as { message?: string; error?: string; detail?: string };
+          message = payload.message || payload.error || payload.detail || message;
+        } catch {
+          message = payloadText.trim() || message;
+        }
+      } else {
+        message = payloadText.trim() || message;
+      }
+    }
+
+    throw new Error(message);
   }
 
   return (await response.json()) as T;
 }
 
-async function withFallback<T>(runner: () => Promise<T>, fallback: () => T | Promise<T>): Promise<T> {
-  try {
-    return await runner();
-  } catch {
-    return fallback();
-  }
-}
-
 export async function listCustomerThreads() {
-  return withFallback(
-    async () => {
-      const payload = await requestJson<{ customers: BackendCustomer[] }>('/customers');
-      return payload.customers.map((customer) => mapCustomerSummary(customer));
-    },
-    () => demoThreads.map((thread) => mapThreadToSummary(thread)),
-  );
+  const payload = await requestJson<{ customers: BackendCustomer[] }>('/customers');
+  return payload.customers.map((customer) => mapCustomerSummary(customer));
 }
 
 export async function getCustomerThread(customerId: string) {
-  return withFallback(
-    async () => {
-      const payload = await requestJson<{
-        customer: BackendCustomer;
-        sessions: BackendSession[];
-        reports: BackendReportEnvelope[];
-        audioAssets: BackendAudioAsset[];
-      }>(`/customers/${customerId}`);
+  const payload = await requestJson<{
+    customer: BackendCustomer;
+    sessions: BackendSession[];
+    reports: BackendReportEnvelope[];
+    audioAssets: BackendAudioAsset[];
+  }>(`/customers/${customerId}`);
 
-      const reportsById = new Map(payload.reports.map((row) => [row.id, mapReportEnvelope(row)]));
-      const clipCountBySession = payload.audioAssets.reduce<Record<string, number>>((acc, asset) => {
-        acc[asset.sessionId] = (acc[asset.sessionId] || 0) + 1;
-        return acc;
-      }, {});
+  const reportsById = new Map(payload.reports.map((row) => [row.id, mapReportEnvelope(row)]));
+  const clipCountBySession = payload.audioAssets.reduce<Record<string, number>>((acc, asset) => {
+    acc[asset.sessionId] = (acc[asset.sessionId] || 0) + 1;
+    return acc;
+  }, {});
 
-      const sessions = payload.sessions.map((session) =>
-        mapSession(session, {
-          clipCount: clipCountBySession[session.id] || 0,
-          report: session.reportId ? reportsById.get(session.reportId)?.report : undefined,
-        }),
-      );
-
-      const summary = mapCustomerSummary(payload.customer);
-      return {
-        ...summary,
-        summary: payload.customer.notes || 'Customer thread is ready for a coaching session.',
-        notes: ensureStringArray(payload.customer.metadata.notes),
-        sessions,
-      } satisfies CustomerThreadDetail;
-    },
-    () => {
-      const thread = demoThreads.find((item) => item.id === customerId) ?? demoThreads[0];
-      if (!thread) throw new Error('Customer not found');
-      return thread;
-    },
+  const sessions = payload.sessions.map((session) =>
+    mapSession(session, {
+      clipCount: clipCountBySession[session.id] || 0,
+      report: session.reportId ? reportsById.get(session.reportId)?.report : undefined,
+    }),
   );
+
+  const summary = mapCustomerSummary(payload.customer);
+  return {
+    ...summary,
+    summary: payload.customer.notes || 'Customer thread is ready for a coaching session.',
+    notes: ensureStringArray(payload.customer.metadata.notes),
+    sessions,
+  } satisfies CustomerThreadDetail;
 }
 
 export async function createCustomerThread(input: CreateCustomerInput) {
-  return withFallback(
-    async () => {
-      const payload = await requestJson<{ customer: BackendCustomer }>('/customers', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: input.customerName,
-          phone: input.phone,
-          notes: input.notes ?? '',
-          metadata: {
-            vehicleIntent: input.vehicleIntent,
-            stage: 'New thread',
-            badge: 'New',
-            notes: input.notes ? [input.notes] : [],
-          },
-        }),
-      });
-
-      return mapCustomerSummary(payload.customer);
-    },
-    () => {
-      const created: CustomerThreadDetail = {
-        id: `thread-${Math.random().toString(36).slice(2, 9)}`,
-        customerName: input.customerName || 'New Customer',
-        phone: input.phone || '+91 98xx xx xxxx',
-        vehicleIntent: input.vehicleIntent || 'Needs a tailored recommendation',
-        visitCount: 1,
-        lastVisitLabel: 'Just now',
-        unresolvedItems: ['Discovery still in progress'],
+  const payload = await requestJson<{ customer: BackendCustomer }>('/customers', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.customerName,
+      phone: input.phone,
+      notes: input.notes ?? '',
+      metadata: {
+        vehicleIntent: input.vehicleIntent,
         stage: 'New thread',
-        updatedAt: new Date().toISOString(),
         badge: 'New',
-        summary: input.notes || 'Fresh customer thread created in My Coach.',
         notes: input.notes ? [input.notes] : [],
-        sessions: [],
-      };
-      demoThreads.unshift(created);
-      return mapThreadToSummary(created);
-    },
-  );
+      },
+    }),
+  });
+
+  return mapCustomerSummary(payload.customer);
 }
 
 export async function submitCoachAudio(params: {
@@ -249,136 +219,72 @@ export async function submitCoachAudio(params: {
   title?: string;
   source: 'recorded' | 'uploaded' | 'mixed';
   clips: AudioClipPayload[];
+  transcriptText: string;
+  transcriptLines?: TranscriptTurn[];
 }) {
-  return withFallback(
-    async () => {
-      const sessionPayload = await requestJson<{ session: BackendSession }>('/sessions', {
-        method: 'POST',
-        body: JSON.stringify({
-          customerId: params.customerId,
-          title: params.title,
-          mode: 'analysis',
-          status: 'draft',
-        }),
-      });
+  const sessionPayload = await requestJson<{ session: BackendSession }>('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      customerId: params.customerId,
+      title: params.title,
+      mode: 'analysis',
+      status: 'draft',
+    }),
+  });
 
-      await requestJson(`/sessions/${sessionPayload.session.id}/audio`, {
-        method: 'POST',
-        body: JSON.stringify({ clips: params.clips }),
-      });
+  await requestJson(`/sessions/${sessionPayload.session.id}/audio`, {
+    method: 'POST',
+    body: JSON.stringify({
+      clips: params.clips,
+      transcriptText: params.transcriptText,
+      transcriptLines: params.transcriptLines,
+      transcriptSource: 'browser_stt',
+    }),
+  });
 
-      const analysis = await requestJson<{
-        session: BackendSession;
-        report: BackendReportEnvelope;
-        reportData: BackendReport;
-      }>(`/sessions/${sessionPayload.session.id}/analyze`, {
-        method: 'POST',
-      });
+  const analysis = await requestJson<{
+    session: BackendSession;
+    report: BackendReportEnvelope;
+    reportData: BackendReport;
+  }>(`/sessions/${sessionPayload.session.id}/analyze`, {
+    method: 'POST',
+  });
 
-      return {
-        session: mapSession(analysis.session, {
-          clipCount: params.clips.length,
-          report: mapReport(analysis.reportData),
-        }),
-        report: mapReport(analysis.reportData),
-      };
-    },
-    async () => {
-      const detail = demoThreads.find((thread) => thread.id === params.customerId);
-      if (!detail) throw new Error('Customer not found');
-      const report = buildDemoReport(detail);
-      const session: CoachSessionSummary = {
-        id: report.sessionId,
-        customerId: detail.id,
-        title: params.title || 'Customer conversation',
-        createdAt: new Date().toISOString(),
-        status: 'completed',
-        clipCount: params.clips.length,
-        transcript: report.transcriptHighlights,
-        report,
-        source: params.source,
-      };
-      detail.sessions.unshift(session);
-      detail.visitCount = Math.max(detail.visitCount, detail.sessions.length);
-      detail.updatedAt = new Date().toISOString();
-      detail.lastVisitLabel = 'Just now';
-      detail.unresolvedItems = report.nextVisitPrep.slice(0, 2);
-      return { session, report };
-    },
-  );
+  return {
+    session: mapSession(analysis.session, {
+      clipCount: params.clips.length,
+      report: mapReport(analysis.reportData),
+    }),
+    report: mapReport(analysis.reportData),
+  };
 }
 
 export async function listCoachReports() {
-  return withFallback(
-    async () => {
-      const payload = await requestJson<{ reports: BackendReportEnvelope[] }>('/reports');
-      return payload.reports.map(mapReportEnvelope);
-    },
-    () =>
-      demoThreads
-        .flatMap((thread) =>
-          thread.sessions
-            .filter((session) => session.report)
-            .map((session) => ({
-              id: session.report!.id,
-              sessionId: session.id,
-              customerId: thread.id,
-              customerName: thread.customerName,
-              sessionTitle: session.title,
-              generatedAt: session.report!.generatedAt,
-              overallScore: session.report!.overallScore,
-              grade: session.report!.grade,
-              summary: session.report!.summary,
-              report: session.report!,
-            })),
-        )
-        .sort((left, right) => right.generatedAt.localeCompare(left.generatedAt)),
-  );
+  const payload = await requestJson<{ reports: BackendReportEnvelope[] }>('/reports');
+  return payload.reports.map(mapReportEnvelope);
 }
 
 export async function regenerateCoachReport(sessionId: string) {
-  return withFallback(
-    async () => {
-      const analysis = await requestJson<{
-        session: BackendSession;
-        report: BackendReportEnvelope;
-        reportData: BackendReport;
-      }>(`/sessions/${sessionId}/analyze`, {
-        method: 'POST',
-      });
+  const analysis = await requestJson<{
+    session: BackendSession;
+    report: BackendReportEnvelope;
+    reportData: BackendReport;
+  }>(`/sessions/${sessionId}/analyze`, {
+    method: 'POST',
+  });
 
-      const refreshed = await listCoachReports();
-      return refreshed.find((item) => item.id === analysis.report.id) ?? mapReportEnvelope(analysis.report);
-    },
-    async () => {
-      for (const thread of demoThreads) {
-        const session = thread.sessions.find((item) => item.id === sessionId);
-        if (!session) continue;
+  const refreshed = await listCoachReports();
+  return refreshed.find((item) => item.id === analysis.report.id) ?? mapReportEnvelope(analysis.report);
+}
 
-        const nextReport = buildDemoReport(thread);
-        session.report = nextReport;
-        session.transcript = nextReport.transcriptHighlights;
-        return {
-          id: nextReport.id,
-          sessionId: session.id,
-          customerId: thread.id,
-          customerName: thread.customerName,
-          sessionTitle: session.title,
-          generatedAt: nextReport.generatedAt,
-          overallScore: nextReport.overallScore,
-          grade: nextReport.grade,
-          summary: nextReport.summary,
-          report: nextReport,
-        } satisfies CoachReportListItem;
-      }
-
-      throw new Error('Session not found');
-    },
-  );
+export async function getMasterCopyInfo() {
+  const payload = await requestJson<{ masterCopy: MasterCopyInfo }>('/master-copy');
+  activeMasterCopyInfo = payload.masterCopy;
+  return payload.masterCopy;
 }
 
 export function getTrainingMasterCopyLabel() {
-  return 'Training Master Copy v1';
+  return activeMasterCopyInfo?.version || 'Training Master Copy';
 }
 
 export function getQuestionBankPreview() {
@@ -537,6 +443,14 @@ export function clearPendingLiveSessionSubmission() {
   pendingLiveSessionSubmission = null;
 }
 
+export function hasUsableTranscript(turns: TranscriptTurn[] | null | undefined) {
+  return (turns || []).some((turn) => turn.text.trim().length >= 8);
+}
+
+export function getTranscriptUnavailableMessage() {
+  return TRANSCRIPT_UNAVAILABLE_MESSAGE;
+}
+
 function mapThreadToSummary(thread: CustomerThreadDetail): CustomerThreadSummary {
   return {
     id: thread.id,
@@ -569,6 +483,8 @@ function mapCustomerSummary(customer: BackendCustomer): CustomerThreadSummary {
 }
 
 function mapSession(session: BackendSession, extras: { clipCount: number; report?: CoachingReport }): CoachSessionSummary {
+  const transcriptTurns = (session.transcript || []).map(mapTranscriptTurn);
+
   return {
     id: session.id,
     customerId: session.customerId,
@@ -576,9 +492,10 @@ function mapSession(session: BackendSession, extras: { clipCount: number; report
     createdAt: session.createdAt,
     status: normalizeStatus(session.status),
     clipCount: extras.clipCount,
-    transcript: (session.transcript || []).map(mapTranscriptTurn),
+    transcript: transcriptTurns.length ? transcriptTurns : extras.report?.transcriptHighlights || [],
     report: extras.report,
     source: 'mixed',
+    errorMessage: session.errorMessage || null,
   };
 }
 
@@ -610,15 +527,17 @@ function mapReport(report: BackendReport): CoachingReport {
     sessionId: report.customerContext?.sessionId || '',
     overallScore: report.overallScore,
     grade: report.grade,
+    masterCopyVersion: report.masterCopyVersion || null,
+    masterCopyHash: report.masterCopyHash || null,
     headline: `${report.customerProfile?.label || 'Customer'} coaching review`,
     summary:
       report.summary ||
       report.reportHighlights?.join(' ') ||
       'My Coach generated a report using the current training master copy.',
-    sourceNote: `Analysis is based on ${getTrainingMasterCopyLabel()}.`,
+    sourceNote: `Analysis is based on ${report.masterCopyVersion || getTrainingMasterCopyLabel()}.`,
     speedStages,
     questionCoverage: (report.questionCoverage || [])
-      .slice(0, 6)
+      .slice(0, 8)
       .map((item) => `${item.id}: ${item.status} | ${item.question}`),
     objectionReviews: (report.objections || []).map(
       (item) => `${item.label}: ${item.handled} | ${item.strategy}`,
@@ -630,6 +549,8 @@ function mapReport(report: BackendReport): CoachingReport {
     nextVisitPrep: report.nextVisitPreparation || [],
     researchTasks: report.researchTasks || [],
     transcriptHighlights: (report.transcriptTurns || []).map(mapTranscriptTurn),
+    comparisonToPrevious: report.comparisonToPrevious || null,
+    warnings: report.warnings || [],
     generatedAt: report.generatedAt,
   };
 }
@@ -644,92 +565,6 @@ function mapTranscriptTurn(turn: BackendTurn): TranscriptTurn {
     speaker: normalizeSpeaker(turn.speaker),
     text: turn.text,
     timestamp: minutesLabel,
-  };
-}
-
-function buildDemoReport(thread: CustomerThreadDetail): CoachingReport {
-  const reportId = `report-${Math.random().toString(36).slice(2, 9)}`;
-  return {
-    id: reportId,
-    sessionId: `session-${Math.random().toString(36).slice(2, 9)}`,
-    overallScore: 82,
-    grade: 'A',
-    headline: `${thread.customerName} has a strong foundation with a few open loops to close.`,
-    summary:
-      'The recommendation direction is good, but the next visit should sharpen family, finance, and closure questions.',
-    sourceNote: `Analysis is based on ${getTrainingMasterCopyLabel()}.`,
-    speedStages: [
-      { stage: 'Start Right', score: 14, note: 'Warm opening and good intent-setting.' },
-      {
-        stage: 'Plan to Probe',
-        score: 19,
-        note: 'Discovery covered the basics, but a few deeper questions are still missing.',
-      },
-      {
-        stage: 'Explain Value Proposition',
-        score: 21,
-        note: 'The value story stayed tied to the customer need instead of reading specs.',
-      },
-      {
-        stage: 'Eliminate Objection',
-        score: 16,
-        note: 'Objection handling needs more evidence and a firmer confirm-close loop.',
-      },
-      {
-        stage: 'Drive Closure',
-        score: 12,
-        note: 'A next step was implied, but it should become calendar-specific.',
-      },
-    ],
-    questionCoverage: [
-      'Q1: covered | visit context established',
-      'Q18: partial | budget touched but not narrowed',
-      'Q27: missing | feature priorities not fully uncovered',
-    ],
-    objectionReviews: ['Let me think about it: partial | next step should be calendar-specific'],
-    productFitSummary:
-      'The recommendation direction fits the profile, but the next visit should prove the model against budget and family-use specifics.',
-    strengths: [
-      'Warm recall and strong rapport.',
-      'Good feature-to-benefit framing.',
-      'The conversation stayed relevant to the buyer context.',
-    ],
-    improvements: [
-      'Ask one deeper family-use question.',
-      'Quantify EMI comfort earlier.',
-      'End with a committed next step instead of a soft follow-up.',
-    ],
-    nextVisitPrep: [
-      'Lead with the unresolved question from the last visit.',
-      'Bring the model comparison that fits the family profile.',
-      'Prepare the EMI and ownership-cost breakdown.',
-    ],
-    researchTasks: [
-      'Rehearse ACE objection handling.',
-      'Review the product matching decision tree.',
-      'Study the model differentiators tied to this buyer profile.',
-    ],
-    transcriptHighlights: [
-      {
-        id: 'turn-1',
-        speaker: 'salesperson',
-        text: `Welcome back, ${thread.customerName}. Let us pick up from your last visit and focus on what matters most.`,
-        timestamp: '00:00',
-      },
-      {
-        id: 'turn-2',
-        speaker: 'customer',
-        text: 'I want something family-friendly, but I still need to be careful on running cost.',
-        timestamp: '00:18',
-      },
-      {
-        id: 'turn-3',
-        speaker: 'coach',
-        text: 'Reconnect the recommendation to family seating, mileage, and a specific next step.',
-        timestamp: '01:20',
-      },
-    ],
-    generatedAt: new Date().toISOString(),
   };
 }
 
@@ -773,8 +608,12 @@ type BackendSession = {
   customerId: string;
   title?: string;
   status: string;
+  transcriptText?: string;
   transcript?: BackendTurn[];
   reportId?: string | null;
+  errorMessage?: string | null;
+  processingStartedAt?: string | null;
+  processingCompletedAt?: string | null;
   createdAt: string;
 };
 
@@ -806,6 +645,8 @@ type BackendReport = {
   overallScore: number;
   grade: string;
   generatedAt: string;
+  masterCopyVersion?: string | null;
+  masterCopyHash?: string | null;
   summary?: string;
   reportHighlights?: string[];
   strengths?: string[];
@@ -819,4 +660,6 @@ type BackendReport = {
   customerProfile?: { label?: string };
   customerContext?: { sessionId?: string };
   speed?: Record<string, { label: string; score: number; rationale: string }>;
+  comparisonToPrevious?: string | null;
+  warnings?: string[];
 };

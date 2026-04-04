@@ -1,6 +1,8 @@
 import { motion } from 'motion/react';
 import { Screen } from '../types';
 import { announcements } from '../data/announcements';
+import { useEffect, useState } from 'react';
+import { getMasterCopyInfo } from '../lib/myCoachApi';
 
 const quickActions: Array<{
   eyebrow: string;
@@ -74,6 +76,14 @@ const spotlightAction = {
 };
 
 export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const [masterCopyLabel, setMasterCopyLabel] = useState(spotlightAction.meta);
+
+  useEffect(() => {
+    void getMasterCopyInfo()
+      .then((info) => setMasterCopyLabel(info.version))
+      .catch(() => {});
+  }, []);
+
   return (
     <main className="pt-24 px-6 pb-32 space-y-6 max-w-5xl mx-auto">
       {/* Hero Greeting */}
@@ -118,7 +128,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                   {spotlightAction.eyebrow}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-secondary/25 bg-secondary/12 px-3 py-1 font-label text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">
-                  {spotlightAction.meta}
+                  {masterCopyLabel}
                 </span>
               </div>
 

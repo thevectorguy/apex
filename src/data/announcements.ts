@@ -19,7 +19,7 @@ export const announcements: Announcement[] = [
     id: 'q4-inventory',
     title: 'Q4 Inventory Update: Limited Editions Arriving',
     category: 'Inventory Bulletin',
-    summary: 'Limited-run trims for Apex GT and Vulcan Core land this week. Floor staff should prioritize high-intent buyers and lock walkarounds before the weekend rush.',
+    summary: 'Limited-run trims for DILOS GT and Vulcan Core land this week. Floor staff should prioritize high-intent buyers and lock walkarounds before the weekend rush.',
     image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCOhnHrbg8iTmDnj4rvhacGPjZ2iPEIm5TKoCgdKtjvQamsK3WrLItoUULBZQADFBX_558VLM-4Lla0MJzC3CkA6jHeNnxFpa2gzJjtIhsfM9zFa-HiG5axVU2y77vTAWHv1qfiyeY9YvWt3QvjLmYXnbWn0u_rnA5On2hAvi_RJ43OCwTiUJxf9KXu20Uvx_nZ5PhhB9TRza8Ae9jWeouooBzfxLBSGAsV-wp8OvlUk2YdcIYdA1PgWtBkBYesk0kM5hklheUIurM',
     publishedAt: '10 min ago',
     audience: 'All showrooms',

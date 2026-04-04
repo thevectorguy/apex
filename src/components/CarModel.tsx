@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { MeshTransmissionMaterial, RoundedBox, Cylinder, Environment, ContactShadows, Float, CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,6 +6,15 @@ import * as THREE from 'three';
 export function CarModel({ color }: { color: string }) {
   const [activePart, setActivePart] = useState<string | null>(null);
   const controlsRef = useRef<CameraControls>(null);
+
+  useEffect(() => {
+    if (!controlsRef.current) {
+      return;
+    }
+
+    controlsRef.current.setLookAt(0, 2, 8, 0, 0.85, 0, false);
+    controlsRef.current.saveState();
+  }, []);
 
   const handlePointerDown = (e: any, partName: string) => {
     e.stopPropagation();

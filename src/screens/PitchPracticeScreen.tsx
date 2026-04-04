@@ -27,12 +27,12 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             <h3 className="font-headline font-bold text-on-surface">Honda Elevate</h3>
             <p className="font-label text-xs text-secondary mt-1">Focus: EV Features</p>
           </button>
-          
+
           <button className="flex-shrink-0 w-48 p-4 rounded-2xl bg-surface-container border border-outline-variant/10 text-left hover:bg-surface-container-high transition-all opacity-70 hover:opacity-100">
             <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc" alt="Apex GT" className="w-full h-full object-cover" />
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc" alt="DILOS GT" className="w-full h-full object-cover" />
             </div>
-            <h3 className="font-headline font-bold text-on-surface">Apex GT-Carbon</h3>
+            <h3 className="font-headline font-bold text-on-surface">DILOS GT-Carbon</h3>
             <p className="font-label text-xs text-on-surface-variant mt-1">Focus: Performance</p>
           </button>
         </div>
@@ -51,7 +51,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
               </p>
             </div>
           </label>
-          
+
           <label className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container border border-outline-variant/10 cursor-pointer hover:bg-surface-container-high transition-colors">
             <input type="radio" name="persona" className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
@@ -61,7 +61,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
               </p>
             </div>
           </label>
-          
+
           <label className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container border border-outline-variant/10 cursor-pointer hover:bg-surface-container-high transition-colors">
             <input type="radio" name="persona" className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
@@ -76,7 +76,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
 
       {/* Action */}
       <div className="flex justify-center mt-12">
-        <button 
+        <button
           onClick={() => onNavigate('live_scenario')}
           className="relative overflow-hidden group bg-gradient-to-r from-primary to-secondary text-on-primary-fixed px-12 py-5 rounded-full font-headline font-bold text-xl tracking-wide shadow-[0_0_30px_rgba(164,201,255,0.3)] hover:shadow-[0_0_40px_rgba(164,201,255,0.5)] transition-all transform hover:-translate-y-1 active:scale-95 flex items-center gap-3"
         >
