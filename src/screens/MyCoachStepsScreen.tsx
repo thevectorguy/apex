@@ -20,6 +20,23 @@ import {
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
 
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: null | (() => void);
+  onerror: null | ((event: { error?: string }) => void);
+  onresult: null | ((event: any) => void);
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+type BrowserSpeechWindow = Window & {
+  SpeechRecognition?: new () => BrowserSpeechRecognition;
+  webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+};
+
 export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(readRememberedThreadId());
   const [detail, setDetail] = useState<CustomerThreadDetail | null>(null);
@@ -35,7 +52,11 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const startRef = useRef<number>(0);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const shouldRestartRecognitionRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [transcriptLines, setTranscriptLines] = useState<string[]>([]);
+  const [interimTranscript, setInterimTranscript] = useState('');
 
   useEffect(() => {
     void loadThreads();
@@ -72,6 +93,8 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
     if (!draftTitle) return;
     setSessionTitle(draftTitle);
     setClips([]);
+    setTranscriptLines([]);
+    setInterimTranscript('');
     clearDraftSessionTitle();
     setSuccessMessage(`New visit ready for ${detail.customerName}. Add clips and run analysis when you are ready.`);
   }, [detail?.id, detail?.customerName]);
@@ -112,6 +135,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
 
   async function handleRecordToggle() {
     if (recording) {
+      stopSpeechRecognition();
       recorderRef.current?.stop();
       setRecording(false);
       return;
@@ -147,6 +171,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
       };
 
       recorder.start();
+      startSpeechRecognition();
       setRecording(true);
       setSuccessMessage(null);
     } catch (issue) {
@@ -156,6 +181,8 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   }
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    // TODO: Re-enable uploaded audio once backend STT is added for Vercel-safe transcript generation.
+    setError('Uploaded audio is temporarily disabled until backend STT is wired.');
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
 
@@ -183,6 +210,11 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
       setError('Attach at least one audio clip before analysis.');
       return;
     }
+    const transcriptText = transcriptLines.join(' ').trim();
+    if (!transcriptText) {
+      setError('Record a clip with browser transcript capture before running analysis.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -194,8 +226,11 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
         title: sessionTitle.trim() || 'Customer conversation',
         source: deriveSource(clips),
         clips,
+        transcriptText,
       });
       setClips([]);
+      setTranscriptLines([]);
+      setInterimTranscript('');
       await loadDetail(detail.id);
       if (result.report?.id) {
         rememberSelectedReportId(result.report.id);
@@ -209,9 +244,85 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   }
 
   function stopRecordingTracks() {
+    stopSpeechRecognition();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     recorderRef.current = null;
+    recognitionRef.current = null;
+  }
+
+  function createSpeechRecognition() {
+    if (typeof window === 'undefined') return null;
+    const speechWindow = window as BrowserSpeechWindow;
+    const RecognitionCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!RecognitionCtor) return null;
+
+    const recognition = new RecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        shouldRestartRecognitionRef.current = false;
+        setError('Browser speech recognition is blocked on this device.');
+      }
+      setInterimTranscript('');
+    };
+    recognition.onresult = (event) => {
+      const finalized: string[] = [];
+      let nextInterim = '';
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const text = result?.[0]?.transcript?.trim();
+        if (!text) continue;
+        if (result.isFinal) finalized.push(text);
+        else nextInterim = `${nextInterim} ${text}`.trim();
+      }
+
+      if (finalized.length) {
+        setTranscriptLines((current) => [...current, ...finalized]);
+      }
+
+      setInterimTranscript(nextInterim);
+    };
+    recognition.onend = () => {
+      if (shouldRestartRecognitionRef.current && recorderRef.current?.state === 'recording') {
+        try {
+          recognition.start();
+        } catch {
+          setError('Browser speech recognition stopped unexpectedly.');
+        }
+      }
+    };
+
+    return recognition;
+  }
+
+  function startSpeechRecognition() {
+    const recognition = recognitionRef.current ?? createSpeechRecognition();
+    if (!recognition) {
+      setError('Browser speech recognition is not available in this browser.');
+      return;
+    }
+
+    recognitionRef.current = recognition;
+    shouldRestartRecognitionRef.current = true;
+    try {
+      recognition.start();
+    } catch {
+      setError('Could not start browser speech recognition.');
+    }
+  }
+
+  function stopSpeechRecognition() {
+    shouldRestartRecognitionRef.current = false;
+    setInterimTranscript('');
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      recognitionRef.current?.abort();
+    }
   }
 
   function openTranscriptView(session?: CoachSessionSummary | null) {
@@ -305,21 +416,37 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                       </button>
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={!detail}
-                        className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface disabled:opacity-50"
+                        disabled
+                        className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface opacity-50"
+                        title="TODO: Enable once backend STT is added."
                       >
-                        Upload audio
+                        Upload audio soon
                       </button>
                       <input
                         ref={fileInputRef}
                         type="file"
                         multiple
                         accept="audio/*"
+                        disabled
                         onChange={(event) => void handleFiles(event)}
                         className="hidden"
                       />
                     </div>
+                  </div>
+
+                  <div className="rounded-[22pt] border border-white/8 bg-black/12 p-4">
+                    <p className="font-headline text-sm font-bold text-on-surface">Browser transcript</p>
+                    <p className="mt-1 text-sm leading-6 text-white/52">
+                      V1 uses browser STT as the transcript source. Uploaded audio stays disabled until backend STT is
+                      added.
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-white/72">
+                      {transcriptLines.length
+                        ? transcriptLines.slice(-4).join(' ')
+                        : recording
+                          ? interimTranscript || 'Listening for transcript...'
+                          : 'No transcript captured yet.'}
+                    </p>
                   </div>
 
                   <div className="space-y-2 rounded-[22pt] border border-white/8 bg-black/12 p-4">
@@ -327,12 +454,16 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                       <div>
                         <p className="font-headline text-lg font-bold text-on-surface">Draft queue</p>
                         <p className="mt-1 text-sm leading-6 text-white/52">
-                          Mix recorded clips and uploaded files. Everything in this queue is analyzed together.
+                          Recorded clips are analyzed together. Uploads stay disabled in v1 until backend STT is added.
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setClips([])}
+                        onClick={() => {
+                          setClips([]);
+                          setTranscriptLines([]);
+                          setInterimTranscript('');
+                        }}
                         disabled={!clips.length}
                         className="rounded-full border border-white/10 bg-black/12 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 disabled:opacity-40"
                       >
@@ -366,7 +497,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                       ))
                     ) : (
                       <p className="text-sm leading-6 text-white/48">
-                        No clips attached yet. Record from the floor or upload the visit audio to build the report.
+                        No clips attached yet. Record from the floor to build the report.
                       </p>
                     )}
                   </div>
@@ -374,7 +505,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                   <button
                     type="button"
                     onClick={() => void handleAnalyze()}
-                    disabled={saving || !clips.length || !detail}
+                    disabled={saving || !clips.length || !detail || !transcriptLines.length}
                     className="w-full rounded-full bg-secondary px-4 py-3.5 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed disabled:opacity-55"
                   >
                     {saving ? 'Analyzing conversation...' : 'Run My Coach analysis'}

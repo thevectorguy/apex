@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { type Screen } from '../types';
 import {
+  getMasterCopyInfo,
   getTrainingMasterCopyLabel,
   listCoachReports,
   rememberFlowOrigin,
@@ -14,9 +15,13 @@ export function MyCoachReportsScreen({ onNavigate }: { onNavigate: (screen: Scre
   const [reports, setReports] = useState<CoachReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [masterCopyLabel, setMasterCopyLabel] = useState(getTrainingMasterCopyLabel());
 
   useEffect(() => {
     void loadReports();
+    void getMasterCopyInfo()
+      .then((info) => setMasterCopyLabel(info.version))
+      .catch(() => {});
   }, []);
 
   async function loadReports() {
@@ -72,7 +77,7 @@ export function MyCoachReportsScreen({ onNavigate }: { onNavigate: (screen: Scre
                 Back to My Coach
               </button>
               <span className="inline-flex items-center rounded-full border border-secondary/24 bg-secondary/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-secondary">
-                {getTrainingMasterCopyLabel()}
+                {masterCopyLabel}
               </span>
             </div>
           </div>

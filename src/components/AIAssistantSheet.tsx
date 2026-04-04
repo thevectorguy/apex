@@ -52,7 +52,7 @@ export function AIAssistantSheet({ isOpen, onClose }: { isOpen: boolean, onClose
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
                 </div>
                 <div>
-                  <h2 className="font-headline font-bold text-lg text-on-surface">APEX Intelligence</h2>
+                  <h2 className="font-headline font-bold text-lg text-on-surface">DILOS Intelligence</h2>
                   <p className="font-label text-xs text-secondary tracking-widest uppercase">Expert System</p>
                 </div>
               </div>
@@ -66,12 +66,12 @@ export function AIAssistantSheet({ isOpen, onClose }: { isOpen: boolean, onClose
               <div className="self-start max-w-[85%]">
                 <div className="bg-surface-container-high rounded-2xl rounded-tl-sm p-4 border border-outline-variant/10">
                   <p className="font-body text-sm text-on-surface">
-                    Hello Arjun. I'm analyzing the <strong>Apex GT-Carbon</strong> performance data for your upcoming meeting with Mr. Smith. How can I assist you in preparing?
+                    Hello Arjun. I'm analyzing the <strong>DILOS GT-Carbon</strong> performance data for your upcoming meeting with Mr. Smith. How can I assist you in preparing?
                   </p>
                 </div>
                 <span className="text-[10px] font-label text-on-surface-variant ml-2 mt-1 block">10:42 AM</span>
               </div>
-              
+
               {/* Suggested Prompts */}
               <div className="flex gap-2 overflow-x-auto hide-scrollbar pt-2 pb-4">
                 <button className="whitespace-nowrap px-4 py-2 rounded-full border border-primary/30 text-primary font-body text-xs hover:bg-primary/10 transition-colors">
@@ -89,14 +89,14 @@ export function AIAssistantSheet({ isOpen, onClose }: { isOpen: boolean, onClose
                 <button className="absolute left-3 w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
                   <span className="material-symbols-outlined">add</span>
                 </button>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Ask anything..." 
+                  placeholder="Ask anything..."
                   className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-full py-3 pl-12 pr-12 font-body text-sm text-on-surface placeholder:text-outline/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 />
-                <button 
+                <button
                   className={`absolute right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${query.trim() ? 'bg-primary text-on-primary-fixed' : 'bg-transparent text-outline'}`}
                 >
                   <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>

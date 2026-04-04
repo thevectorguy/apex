@@ -1,24 +1,18 @@
-﻿import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
+﻿import { Suspense, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useDragControls } from 'motion/react';
 import {
   ArrowLeft,
   ArrowUpRight,
   Bookmark,
   Check,
   FileText,
-  Gem,
   Mail,
   MessageSquareText,
   Phone,
-  Plus,
-  ShieldCheck,
   Sparkles,
-  SunMedium,
   UserRound,
-  Waves,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import { Screen } from '../types';
 import { CarModel } from '../components/CarModel';
@@ -29,15 +23,6 @@ type WheelOption = {
   finish: string;
   priceNote: string;
   detail: string;
-};
-
-type AccessoryOption = {
-  id: string;
-  name: string;
-  detail: string;
-  priceNote: string;
-  icon: LucideIcon;
-  accentClassName: string;
 };
 
 type BrochureForm = {
@@ -72,48 +57,7 @@ const wheelOptions: WheelOption[] = [
   },
 ];
 
-const accessoryOptions: AccessoryOption[] = [
-  {
-    id: 'ambient-suite',
-    name: 'Ambient Suite',
-    detail: 'Layered cabin illumination with lounge-inspired mood presets.',
-    priceNote: '+ Rs 18,000',
-    icon: Sparkles,
-    accentClassName: 'bg-[linear-gradient(135deg,rgba(227,194,133,0.95),rgba(91,64,16,0.9))]',
-  },
-  {
-    id: 'sky-roof',
-    name: 'Panoramic Shade',
-    detail: 'Electrochromic roof glazing with a calmer, brighter day-drive feel.',
-    priceNote: '+ Rs 28,000',
-    icon: SunMedium,
-    accentClassName: 'bg-[linear-gradient(135deg,rgba(164,201,255,0.95),rgba(22,66,118,0.9))]',
-  },
-  {
-    id: 'comfort-shield',
-    name: 'Comfort Shield',
-    detail: 'Acoustic mats and premium edge trims for a more hushed cabin.',
-    priceNote: '+ Rs 16,500',
-    icon: ShieldCheck,
-    accentClassName: 'bg-[linear-gradient(135deg,rgba(155,168,190,0.95),rgba(39,49,65,0.9))]',
-  },
-  {
-    id: 'concierge-kit',
-    name: 'Concierge Kit',
-    detail: 'Textured cargo pieces, umbrella sleeve, and tailored travel inserts.',
-    priceNote: '+ Rs 12,000',
-    icon: Gem,
-    accentClassName: 'bg-[linear-gradient(135deg,rgba(197,198,206,0.92),rgba(74,79,92,0.9))]',
-  },
-  {
-    id: 'sound-capsule',
-    name: 'Sound Capsule',
-    detail: 'Signature welcome chime and tuned surround voicing for richer playback.',
-    priceNote: '+ Rs 22,000',
-    icon: Waves,
-    accentClassName: 'bg-[linear-gradient(135deg,rgba(137,182,255,0.92),rgba(22,37,86,0.92))]',
-  },
-];
+const SHEET_COLLAPSED_PEEK = 180;
 
 function sanitizePdfText(value: string) {
   return value
@@ -130,7 +74,6 @@ function createDemoBrochurePdf({
   phone,
   paintName,
   wheelName,
-  accessories,
   salesNote,
 }: {
   customerName: string;
@@ -138,7 +81,6 @@ function createDemoBrochurePdf({
   phone: string;
   paintName: string;
   wheelName: string;
-  accessories: string[];
   salesNote: string;
 }) {
   const lines = [
@@ -148,7 +90,6 @@ function createDemoBrochurePdf({
     phone ? `Phone: ${phone}` : 'Phone: showroom follow-up pending',
     `Exterior paint: ${paintName}`,
     `Wheel package: ${wheelName}`,
-    `Accessories: ${accessories.length ? accessories.join(', ') : 'No curated accessories selected'}`,
     salesNote ? `Note: ${salesNote}` : 'Note: Sample brochure prepared in studio mode.',
   ].map((line) => sanitizePdfText(line).slice(0, 108));
 
@@ -212,8 +153,8 @@ function writeBrochureHoldingPage(targetWindow: Window) {
 export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   const [paintColor, setPaintColor] = useState(colors[0].hex);
   const [selectedWheel, setSelectedWheel] = useState(wheelOptions[0].id);
-  const [selectedAccessories, setSelectedAccessories] = useState<string[]>(['ambient-suite', 'comfort-shield']);
-  const [sheetState, setSheetState] = useState<'collapsed' | 'expanded'>('expanded');
+  const [sheetState, setSheetState] = useState<'collapsed' | 'expanded'>('collapsed');
+  const [collapsedOffset, setCollapsedOffset] = useState(0);
   const [isBrochureModalOpen, setIsBrochureModalOpen] = useState(false);
   const [brochureStatus, setBrochureStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [lastBrochureLead, setLastBrochureLead] = useState<{ name: string; email: string } | null>(null);
@@ -224,12 +165,37 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
     phone: '',
     note: '',
   });
+  const sheetRef = useRef<HTMLElement | null>(null);
+  const sheetHandleDraggedRef = useRef(false);
+  const sheetDragControls = useDragControls();
   const brochureWindowRef = useRef<Window | null>(null);
   const brochureUrlRef = useRef<string | null>(null);
 
   const activeColor = colors.find((color) => color.hex === paintColor) ?? colors[0];
   const activeWheel = wheelOptions.find((wheel) => wheel.id === selectedWheel) ?? wheelOptions[0];
-  const activeAccessories = accessoryOptions.filter((item) => selectedAccessories.includes(item.id));
+
+  useLayoutEffect(() => {
+    const sheetElement = sheetRef.current;
+    if (!sheetElement || typeof window === 'undefined') {
+      return;
+    }
+
+    const updateCollapsedOffset = () => {
+      const nextOffset = Math.max(0, sheetElement.getBoundingClientRect().height - SHEET_COLLAPSED_PEEK);
+      setCollapsedOffset(nextOffset);
+    };
+
+    updateCollapsedOffset();
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateCollapsedOffset) : null;
+    resizeObserver?.observe(sheetElement);
+    window.addEventListener('resize', updateCollapsedOffset);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateCollapsedOffset);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isBrochureModalOpen) {
@@ -252,13 +218,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
       document.body.style.overflow = '';
     };
   }, []);
-
-  const toggleAccessory = (accessoryId: string) => {
-    setSelectedAccessories((current) =>
-      current.includes(accessoryId) ? current.filter((id) => id !== accessoryId) : [...current, accessoryId],
-    );
-    setSheetState('expanded');
-  };
 
   const updateBrochureForm = (field: keyof BrochureForm, value: string) => {
     setBrochureForm((current) => ({ ...current, [field]: value }));
@@ -304,7 +263,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
       phone: brochureForm.phone,
       paintName: activeColor.name,
       wheelName: activeWheel.name,
-      accessories: activeAccessories.map((item) => item.name),
       salesNote: brochureForm.note,
     });
 
@@ -402,12 +360,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
         >
           <h1 className="font-headline text-4xl font-extrabold tracking-tight text-white drop-shadow-md">Elevate</h1>
           <p className="mt-1 font-label text-xs uppercase tracking-[0.28em] text-white/55">Touring Edition</p>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 backdrop-blur-xl">
-            <Sparkles className="h-3.5 w-3.5 text-secondary" />
-            <span className="font-label text-[10px] uppercase tracking-[0.24em] text-white/65">
-              Bespoke Studio Preview
-            </span>
-          </div>
         </motion.div>
 
         <section
@@ -427,46 +379,63 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
             transition={{ duration: 4.4, ease: 'easeInOut', repeat: Infinity }}
             className="pointer-events-none absolute bottom-[31%] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3.5 py-2 text-white/70 backdrop-blur-xl"
           >
-            <Sparkles className="h-3.5 w-3.5 text-secondary" />
-            <span className="font-label text-[10px] uppercase tracking-[0.22em]">Swipe to orbit</span>
           </motion.div>
         </section>
 
         <motion.section
-          className="absolute bottom-0 left-0 right-0 z-40 flex flex-col overflow-visible rounded-t-[2.75rem] border-t border-white/10 bg-[linear-gradient(180deg,rgba(28,28,34,0.94),rgba(12,12,16,0.98))] pt-3 shadow-[0_-30px_90px_rgba(0,0,0,0.65)] backdrop-blur-3xl"
+          ref={sheetRef}
+          className="absolute bottom-0 left-0 right-0 z-40 flex flex-col overflow-hidden rounded-t-[2.75rem] border border-b-0 border-white/14 bg-[linear-gradient(180deg,rgba(34,36,44,0.4),rgba(9,10,14,0.28))] pt-3 shadow-[0_-22px_80px_rgba(0,0,0,0.46)] backdrop-blur-[28px]"
           initial={false}
-          animate={sheetState === 'expanded' ? { y: 0 } : { y: '66%' }}
+          animate={{ y: sheetState === 'expanded' ? 0 : collapsedOffset }}
           transition={{ type: 'spring', damping: 26, stiffness: 290 }}
           drag="y"
+          dragControls={sheetDragControls}
+          dragListener={false}
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={0.18}
+          dragMomentum={false}
+          onDragStart={() => {
+            sheetHandleDraggedRef.current = true;
+          }}
           onDragEnd={(_event, info) => {
-            if (info.offset.y > 50) {
+            if (info.offset.y > 40 || info.velocity.y > 320) {
               setSheetState('collapsed');
-            } else if (info.offset.y < -50) {
+            } else if (info.offset.y < -55 || info.velocity.y < -360) {
               setSheetState('expanded');
             }
+            window.setTimeout(() => {
+              sheetHandleDraggedRef.current = false;
+            }, 80);
           }}
         >
-          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_66%)] opacity-70" />
+          <div className="pointer-events-none absolute inset-0 rounded-t-[2.75rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06)_20%,rgba(255,255,255,0.015)_42%,rgba(255,255,255,0.07)_100%)] opacity-55" />
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+          <div className="pointer-events-none absolute -left-8 top-0 h-20 w-40 rounded-full bg-white/18 blur-3xl" />
+          <div className="pointer-events-none absolute -right-6 top-12 h-24 w-24 rounded-full bg-primary/10 blur-3xl" />
 
           <div
             className="w-full cursor-grab active:cursor-grabbing"
-            onClick={() => setSheetState(sheetState === 'expanded' ? 'collapsed' : 'expanded')}
+            onClick={() => {
+              if (sheetHandleDraggedRef.current) {
+                return;
+              }
+              setSheetState(sheetState === 'expanded' ? 'collapsed' : 'expanded');
+            }}
+            onPointerDown={(event) => sheetDragControls.start(event)}
+            style={{ touchAction: 'none' }}
           >
             <div className="flex justify-center pb-4">
-              <div className="h-1.5 w-12 rounded-full bg-white/20" />
+              <div className="h-1.5 w-12 rounded-full bg-white/28 shadow-[0_1px_1px_rgba(255,255,255,0.18)]" />
             </div>
           </div>
 
-          <div className="mx-auto w-full max-w-2xl space-y-7 px-6 pb-10">
+          <div className="mx-auto w-full max-w-2xl space-y-6 px-6 pb-[calc(env(safe-area-inset-bottom)+1.75rem)]">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08, type: 'spring', stiffness: 250, damping: 24 }}
             >
-              <div className="mb-4 flex items-end justify-between gap-4">
+              <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
                   <p className="font-label text-[10px] uppercase tracking-[0.22em] text-white/40">Finish Selection</p>
                   <h3 className="mt-1 font-headline text-xl font-semibold text-white">Exterior Paint</h3>
@@ -474,7 +443,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                 <span className="max-w-[11rem] text-right font-body text-sm leading-5 text-white/62">{activeColor.name}</span>
               </div>
 
-              <div className="-mx-2 flex gap-3 overflow-x-auto overflow-y-visible px-2 py-4 hide-scrollbar">
+              <div className="-mx-2 flex gap-3 overflow-x-auto overflow-y-visible px-2 py-3 hide-scrollbar">
                 {colors.map((color) => {
                   const isSelected = paintColor === color.hex;
 
@@ -489,18 +458,18 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                         setPaintColor(color.hex);
                         setSheetState('expanded');
                       }}
-                      className="relative flex h-[4.55rem] w-[4.55rem] flex-shrink-0 items-center justify-center rounded-[1.75rem] cursor-pointer"
+                      className="relative flex h-[4.25rem] w-[4.25rem] flex-shrink-0 items-center justify-center rounded-[1.55rem] cursor-pointer"
                       aria-label={color.name}
                     >
                       {isSelected && (
                         <motion.span
                           layoutId="paint-halo"
                           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                          className="absolute inset-0 rounded-[1.75rem] bg-primary/12 shadow-[0_0_40px_rgba(164,201,255,0.2)]"
+                          className="absolute inset-0 rounded-[1.55rem] bg-primary/10 shadow-[0_0_40px_rgba(164,201,255,0.18)]"
                         />
                       )}
                       <span
-                        className={`absolute inset-[5px] rounded-[1.5rem] border ${
+                        className={`absolute inset-[5px] rounded-[1.35rem] border ${
                           isSelected ? 'border-primary/60' : 'border-white/8'
                         } bg-white/[0.04]`}
                       />
@@ -532,7 +501,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                 <span className="font-label text-[10px] uppercase tracking-[0.22em] text-white/40">2 Finishes</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {wheelOptions.map((wheel) => {
                   const isSelected = selectedWheel === wheel.id;
 
@@ -540,16 +509,16 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                     <motion.button
                       key={wheel.id}
                       layout
-                      whileHover={{ y: -2 }}
+                      whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         setSelectedWheel(wheel.id);
                         setSheetState('expanded');
                       }}
-                      className={`relative overflow-hidden rounded-[1.55rem] border p-4 text-left transition-colors ${
+                      className={`relative overflow-hidden rounded-[1.35rem] border px-4 py-4 text-left transition-colors ${
                         isSelected
-                          ? 'border-primary/45 bg-primary/[0.08] shadow-[0_22px_45px_rgba(0,0,0,0.24)]'
-                          : 'border-white/8 bg-white/[0.04]'
+                          ? 'border-primary/40 bg-primary/[0.08] shadow-[0_16px_32px_rgba(0,0,0,0.2)]'
+                          : 'border-white/10 bg-white/[0.045]'
                       }`}
                     >
                       <div
@@ -559,23 +528,20 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                             : 'bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_55%)]'
                         }`}
                       />
-                      <div className="relative flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-label text-[10px] uppercase tracking-[0.18em] text-white/44">{wheel.finish}</p>
-                          <h4 className="mt-2 font-headline text-lg font-semibold leading-tight text-white">{wheel.name}</h4>
+                      <div className="relative">
+                        <p className="font-label text-[10px] uppercase tracking-[0.18em] text-white/44">{wheel.finish}</p>
+                        <h4 className="mt-2 font-headline text-base font-semibold leading-tight text-white">{wheel.name}</h4>
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          <p className={`font-label text-[11px] uppercase tracking-[0.18em] ${isSelected ? 'text-primary' : 'text-white/52'}`}>
+                            {wheel.priceNote}
+                          </p>
+                          {isSelected && (
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/35 bg-primary/14 text-primary">
+                              <Check className="h-4 w-4" />
+                            </span>
+                          )}
                         </div>
-                        <span
-                          className={`flex h-9 w-9 items-center justify-center rounded-full border ${
-                            isSelected
-                              ? 'border-primary/35 bg-primary/14 text-primary'
-                              : 'border-white/10 bg-white/[0.04] text-white/45'
-                          }`}
-                        >
-                          {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                        </span>
                       </div>
-                      <p className="relative mt-4 font-label text-[11px] uppercase tracking-[0.18em] text-primary">{wheel.priceNote}</p>
-                      <p className="relative mt-3 text-sm leading-6 text-white/55">{wheel.detail}</p>
                     </motion.button>
                   );
                 })}
@@ -586,117 +552,37 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 250, damping: 24 }}
+              className="border-t border-white/10 pt-5"
             >
-              <div className="mb-4 flex items-end justify-between gap-4">
-                <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.22em] text-white/40">Curated Add-Ons</p>
-                  <h3 className="mt-1 font-headline text-xl font-semibold text-white">Accessories</h3>
-                </div>
-                <span className="font-label text-[10px] uppercase tracking-[0.22em] text-white/40">{selectedAccessories.length} Selected</span>
-              </div>
-
-              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 py-2 hide-scrollbar">
-                {accessoryOptions.map((accessory) => {
-                  const isSelected = selectedAccessories.includes(accessory.id);
-                  const Icon = accessory.icon;
-
-                  return (
-                    <motion.button
-                      key={accessory.id}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => toggleAccessory(accessory.id)}
-                      className={`group relative flex min-w-[11rem] flex-shrink-0 flex-col rounded-[1.6rem] border p-4 text-left transition-colors ${
-                        isSelected
-                          ? 'border-white/16 bg-white/[0.08] shadow-[0_20px_44px_rgba(0,0,0,0.22)]'
-                          : 'border-white/8 bg-white/[0.04]'
-                      }`}
-                    >
-                      <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-2xl ${accessory.accentClassName} shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]`}
-                      >
-                        <Icon className="h-5 w-5 text-white" />
-                      </div>
-                      <h4 className="mt-4 font-headline text-base font-semibold text-white">{accessory.name}</h4>
-                      <p className="mt-2 text-sm leading-5 text-white/58">{accessory.detail}</p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span
-                          className={`font-label text-[11px] uppercase tracking-[0.18em] ${
-                            isSelected ? 'text-secondary' : 'text-white/45'
-                          }`}
-                        >
-                          {accessory.priceNote}
-                        </span>
-                        <span
-                          className={`flex h-7 w-7 items-center justify-center rounded-full border ${
-                            isSelected
-                              ? 'border-secondary/35 bg-secondary/14 text-secondary'
-                              : 'border-white/10 bg-white/[0.04] text-white/40'
-                          }`}
-                        >
-                          {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                        </span>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.26, type: 'spring', stiffness: 250, damping: 24 }}
-              className="relative overflow-hidden rounded-[1.85rem] border border-white/10 bg-[linear-gradient(140deg,rgba(164,201,255,0.12),rgba(255,255,255,0.04)_28%,rgba(227,194,133,0.12)_100%)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.25)]"
-            >
-              <div className="pointer-events-none absolute -right-8 top-0 h-32 w-32 rounded-full bg-primary/12 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-10 left-0 h-28 w-28 rounded-full bg-secondary/12 blur-3xl" />
-
-              <div className="relative">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-primary backdrop-blur-xl">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-label text-[10px] uppercase tracking-[0.24em] text-white/45">Brochure Handoff</p>
-                    <h3 className="mt-2 font-headline text-xl font-semibold leading-tight text-white">
-                      Open a polished brochure while you capture the lead.
-                    </h3>
-                  </div>
-                </div>
-
-                <p className="mt-4 max-w-[21rem] text-sm leading-6 text-white/62">
-                  Replace the finance footer with a demo-ready lead capture flow. The modal collects the customer details and opens a sample PDF brochure preview for the showroom walkthrough.
-                </p>
-
-                {lastBrochureLead && (
-                  <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2">
-                    <Mail className="h-3.5 w-3.5 shrink-0 text-secondary" />
-                    <span className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-white/68">
-                      Last queued for {lastBrochureLead.name} · {lastBrochureLead.email}
-                    </span>
-                  </div>
-                )}
-
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="flex-1 rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-3.5 font-headline text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl transition-colors hover:bg-white/[0.08]"
+                >
+                  Finance
+                </button>
                 <motion.button
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.985 }}
                   onClick={handleOpenBrochureModal}
-                  className="relative mt-5 flex w-full items-center justify-between overflow-hidden rounded-[1.35rem] border border-secondary/20 bg-[linear-gradient(135deg,rgba(227,194,133,0.24),rgba(255,255,255,0.09))] px-5 py-4 text-left shadow-[0_18px_45px_rgba(0,0,0,0.26)]"
+                  className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] border border-secondary/22 bg-[linear-gradient(135deg,rgba(227,194,133,0.2),rgba(255,255,255,0.08))] px-4 py-3.5 font-headline text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.22)] backdrop-blur-xl"
                 >
-                  <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_16%,rgba(255,255,255,0.18)_46%,transparent_74%)] opacity-70" />
-                  <span className="relative flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/16 text-secondary">
-                      <Mail className="h-4 w-4" />
-                    </span>
-                    <span>
-                      <span className="block font-headline text-base font-semibold text-white">Brochure</span>
-                      <span className="block font-body text-sm text-white/58">Capture lead + open sample PDF</span>
-                    </span>
+                  <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.16)_48%,transparent_74%)] opacity-70" />
+                  <span className="relative flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-secondary" />
+                    <span>Brochure</span>
                   </span>
-                  <ArrowUpRight className="relative h-5 w-5 text-white/72" />
                 </motion.button>
               </div>
+
+              {lastBrochureLead && (
+                <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-secondary" />
+                  <span className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-white/68">
+                    Last queued for {lastBrochureLead.name} · {lastBrochureLead.email}
+                  </span>
+                </div>
+              )}
             </motion.div>
           </div>
         </motion.section>
@@ -718,16 +604,16 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-              className="fixed inset-x-4 bottom-6 z-[60] mx-auto max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(28,28,34,0.98),rgba(12,12,16,0.98))] shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+              className="fixed inset-x-3 bottom-3 top-3 z-[60] mx-auto flex w-auto max-w-md flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(28,28,34,0.98),rgba(12,12,16,0.98))] shadow-[0_28px_90px_rgba(0,0,0,0.55)] sm:inset-x-4 sm:bottom-6 sm:top-auto sm:max-h-[calc(100dvh-3rem)]"
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.16),transparent_68%)]" />
               <div className="pointer-events-none absolute -bottom-10 right-0 h-28 w-28 rounded-full bg-secondary/10 blur-3xl" />
 
-              <div className="relative p-6">
-                <div className="flex items-start justify-between gap-4">
+              <div className="relative flex min-h-0 flex-1 flex-col">
+                <div className="flex items-start justify-between gap-4 px-5 pb-0 pt-5 sm:px-6 sm:pt-6">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-[0.24em] text-white/42">Brochure Handoff</p>
-                    <h2 className="mt-2 font-headline text-2xl font-bold leading-tight text-white">Send the Elevate brochure</h2>
+                    <h2 className="mt-2 font-headline text-xl font-bold leading-tight text-white sm:text-2xl">Send the Elevate brochure</h2>
                     <p className="mt-2 text-sm leading-6 text-white/60">
                       Capture the customer details now. A sample PDF preview will open in a background tab for the showroom demo as soon as you confirm.
                     </p>
@@ -741,145 +627,146 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                   </button>
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-white/62">
-                    {activeColor.name}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-white/62">
-                    {activeWheel.name}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-white/62">
-                    {activeAccessories.length} accessories selected
-                  </span>
+                <div className="min-h-0 overflow-y-auto px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-white/62">
+                      {activeColor.name}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-white/62">
+                      {activeWheel.name}
+                    </span>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {brochureStatus === 'sent' ? (
+                      <motion.div
+                        key="brochure-success"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="mt-6 rounded-[1.45rem] border border-secondary/18 bg-secondary/10 p-4 sm:rounded-[1.6rem] sm:p-5"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-on-secondary-fixed sm:h-12 sm:w-12">
+                          <Check className="h-5 w-5" />
+                        </div>
+                        <h3 className="mt-4 font-headline text-lg font-semibold text-white sm:text-xl">Brochure queued</h3>
+                        <p className="mt-2 text-sm leading-6 text-white/62">
+                          {brochureForm.name}'s sample PDF is opening in the preview tab now. This stays demo-safe while still showing the end-to-end premium handoff.
+                        </p>
+                      </motion.div>
+                    ) : (
+                      <motion.form
+                        key="brochure-form"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        onSubmit={handleSendBrochure}
+                        className="mt-5 space-y-3.5 sm:mt-6 sm:space-y-4"
+                      >
+                        <label className="block">
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Customer Name</span>
+                          <div className="relative">
+                            <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <input
+                              type="text"
+                              required
+                              value={brochureForm.name}
+                              onChange={(event) => updateBrochureForm('name', event.target.value)}
+                              placeholder="Aarav Mehta"
+                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                            />
+                          </div>
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Email</span>
+                          <div className="relative">
+                            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <input
+                              type="email"
+                              required
+                              value={brochureForm.email}
+                              onChange={(event) => updateBrochureForm('email', event.target.value)}
+                              placeholder="customer@example.com"
+                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                            />
+                          </div>
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Phone</span>
+                          <div className="relative">
+                            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <input
+                              type="tel"
+                              value={brochureForm.phone}
+                              onChange={(event) => updateBrochureForm('phone', event.target.value)}
+                              placeholder="+91 98XXXXXX42"
+                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                            />
+                          </div>
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Sales Note</span>
+                          <div className="relative">
+                            <MessageSquareText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-white/35" />
+                            <textarea
+                              rows={3}
+                              value={brochureForm.note}
+                              onChange={(event) => updateBrochureForm('note', event.target.value)}
+                              placeholder="Interested in lunar silver finish and delivery timeline."
+                              className="w-full resize-none rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                            />
+                          </div>
+                        </label>
+
+                        <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.04] p-4 sm:rounded-[1.35rem]">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/12 text-secondary">
+                              <FileText className="h-[18px] w-[18px]" />
+                            </div>
+                            <div>
+                              <p className="font-headline text-sm font-semibold text-white">Demo-ready workflow</p>
+                              <p className="mt-1 text-sm leading-6 text-white/58">
+                                This generates a polished sample PDF using the selected paint and wheel so you can show the managers a complete brochure handoff.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="sticky bottom-0 -mx-5 mt-2 border-t border-white/8 bg-[linear-gradient(180deg,rgba(12,12,16,0.12),rgba(12,12,16,0.94))] px-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-4 backdrop-blur-xl sm:static sm:mx-0 sm:mt-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-2 sm:backdrop-blur-none">
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={handleCloseBrochureModal}
+                              className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3.5 font-headline text-sm font-semibold text-white/72 transition-colors hover:bg-white/[0.08]"
+                            >
+                              Cancel
+                            </button>
+
+                            <motion.button
+                              whileTap={{ scale: 0.985 }}
+                              type="submit"
+                              disabled={brochureStatus === 'sending'}
+                              className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] border border-primary/22 bg-[linear-gradient(135deg,rgba(164,201,255,0.24),rgba(255,255,255,0.08))] px-4 py-3.5 font-headline text-sm font-semibold text-white shadow-[0_16px_40px_rgba(0,0,0,0.28)] disabled:cursor-default disabled:opacity-75"
+                            >
+                              <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.18)_48%,transparent_74%)] opacity-70" />
+                              <span className="relative flex items-center gap-2">
+                                {brochureStatus === 'sending' ? (
+                                  <span className="h-4 w-4 rounded-full border-2 border-white/25 border-t-white animate-spin" />
+                                ) : (
+                                  <Mail className="h-4 w-4" />
+                                )}
+                                <span>{brochureStatus === 'sending' ? 'Preparing brochure...' : 'Send brochure'}</span>
+                              </span>
+                            </motion.button>
+                          </div>
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
                 </div>
-
-                <AnimatePresence mode="wait">
-                  {brochureStatus === 'sent' ? (
-                    <motion.div
-                      key="brochure-success"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className="mt-6 rounded-[1.6rem] border border-secondary/18 bg-secondary/10 p-5"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-on-secondary-fixed">
-                        <Check className="h-5 w-5" />
-                      </div>
-                      <h3 className="mt-4 font-headline text-xl font-semibold text-white">Brochure queued</h3>
-                      <p className="mt-2 text-sm leading-6 text-white/62">
-                        {brochureForm.name}'s sample PDF is opening in the preview tab now. This stays demo-safe while still showing the end-to-end premium handoff.
-                      </p>
-                    </motion.div>
-                  ) : (
-                    <motion.form
-                      key="brochure-form"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      onSubmit={handleSendBrochure}
-                      className="mt-6 space-y-4"
-                    >
-                      <label className="block">
-                        <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Customer Name</span>
-                        <div className="relative">
-                          <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                          <input
-                            type="text"
-                            required
-                            value={brochureForm.name}
-                            onChange={(event) => updateBrochureForm('name', event.target.value)}
-                            placeholder="Aarav Mehta"
-                            className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
-                          />
-                        </div>
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Email</span>
-                        <div className="relative">
-                          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                          <input
-                            type="email"
-                            required
-                            value={brochureForm.email}
-                            onChange={(event) => updateBrochureForm('email', event.target.value)}
-                            placeholder="customer@example.com"
-                            className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
-                          />
-                        </div>
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Phone</span>
-                        <div className="relative">
-                          <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                          <input
-                            type="tel"
-                            value={brochureForm.phone}
-                            onChange={(event) => updateBrochureForm('phone', event.target.value)}
-                            placeholder="+91 98XXXXXX42"
-                            className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
-                          />
-                        </div>
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Sales Note</span>
-                        <div className="relative">
-                          <MessageSquareText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-white/35" />
-                          <textarea
-                            rows={4}
-                            value={brochureForm.note}
-                            onChange={(event) => updateBrochureForm('note', event.target.value)}
-                            placeholder="Interested in premium cabin accessories and delivery timeline."
-                            className="w-full resize-none rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
-                          />
-                        </div>
-                      </label>
-
-                      <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.04] p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/12 text-secondary">
-                            <FileText className="h-[18px] w-[18px]" />
-                          </div>
-                          <div>
-                            <p className="font-headline text-sm font-semibold text-white">Demo-ready workflow</p>
-                            <p className="mt-1 text-sm leading-6 text-white/58">
-                              This generates a polished sample PDF using the selected paint, wheel, and accessories so you can show the managers a complete brochure handoff.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={handleCloseBrochureModal}
-                          className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3.5 font-headline text-sm font-semibold text-white/72 transition-colors hover:bg-white/[0.08]"
-                        >
-                          Cancel
-                        </button>
-
-                        <motion.button
-                          whileTap={{ scale: 0.985 }}
-                          type="submit"
-                          disabled={brochureStatus === 'sending'}
-                          className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] border border-primary/22 bg-[linear-gradient(135deg,rgba(164,201,255,0.24),rgba(255,255,255,0.08))] px-4 py-3.5 font-headline text-sm font-semibold text-white shadow-[0_16px_40px_rgba(0,0,0,0.28)] disabled:cursor-default disabled:opacity-75"
-                        >
-                          <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.18)_48%,transparent_74%)] opacity-70" />
-                          <span className="relative flex items-center gap-2">
-                            {brochureStatus === 'sending' ? (
-                              <span className="h-4 w-4 rounded-full border-2 border-white/25 border-t-white animate-spin" />
-                            ) : (
-                              <Mail className="h-4 w-4" />
-                            )}
-                            <span>{brochureStatus === 'sending' ? 'Preparing brochure...' : 'Send brochure'}</span>
-                          </span>
-                        </motion.button>
-                      </div>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
               </div>
             </motion.div>
           </>

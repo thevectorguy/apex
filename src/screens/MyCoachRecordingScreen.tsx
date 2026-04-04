@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  clearDraftSessionTitle,
   clearPendingLiveSessionSubmission,
   clearRememberedReportId,
   clearRememberedSessionId,
   getCustomerThread,
-  readDraftSessionTitle,
   readRememberedThreadId,
   rememberFlowOrigin,
   rememberSelectedThreadId,
@@ -48,13 +46,13 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   const [detail, setDetail] = useState<CustomerThreadDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sessionTitle, setSessionTitle] = useState(readDraftSessionTitle() ?? '');
   const [captureState, setCaptureState] = useState<LiveCaptureState>('idle');
   const [segments, setSegments] = useState<DraftRecordingSegment[]>([]);
   const [capturedMs, setCapturedMs] = useState(0);
   const [tick, setTick] = useState(Date.now());
   const [meterValues, setMeterValues] = useState<number[]>(EMPTY_METER_VALUES);
   const [previewLines, setPreviewLines] = useState<PreviewTranscriptLine[]>([]);
+  const [finalTranscriptLines, setFinalTranscriptLines] = useState<PreviewTranscriptLine[]>([]);
   const [interimPreview, setInterimPreview] = useState('');
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
@@ -70,7 +68,9 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   const shouldRestartRecognitionRef = useRef(false);
   const captureStateRef = useRef<LiveCaptureState>('idle');
   const segmentsRef = useRef<DraftRecordingSegment[]>([]);
+  const finalTranscriptLinesRef = useRef<PreviewTranscriptLine[]>([]);
   const previewStatusRef = useRef<PreviewStatus>('idle');
+  const shouldClearPendingOnUnmountRef = useRef(true);
 
   const previewSupported = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -82,6 +82,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
     capturedMs + (captureState === 'recording' && segmentStartedAtRef.current ? tick - segmentStartedAtRef.current : 0);
   const statusPill = captureState === 'recording' ? 'Recording' : captureState === 'paused' ? 'Paused' : 'Ready';
   const primaryActionLabel = captureState === 'recording' ? 'Pause capture' : segments.length ? 'Resume capture' : 'Start capture';
+  const reactiveLevel = Math.min(
+    1,
+    Math.max(0, meterValues.reduce((sum, value) => sum + value, 0) / Math.max(1, meterValues.length)),
+  );
 
   useEffect(() => {
     captureStateRef.current = captureState;
@@ -96,13 +100,19 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   }, [previewStatus]);
 
   useEffect(() => {
-    clearDraftSessionTitle();
+    finalTranscriptLinesRef.current = finalTranscriptLines;
+  }, [finalTranscriptLines]);
+
+  useEffect(() => {
     clearPendingLiveSessionSubmission();
+    shouldClearPendingOnUnmountRef.current = true;
     void loadDetail(selectedThreadId);
 
     return () => {
       void teardownLiveCapture();
-      clearPendingLiveSessionSubmission();
+      if (shouldClearPendingOnUnmountRef.current) {
+        clearPendingLiveSessionSubmission();
+      }
     };
   }, []);
 
@@ -110,11 +120,6 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
     if (!selectedThreadId) return;
     rememberSelectedThreadId(selectedThreadId);
   }, [selectedThreadId]);
-
-  useEffect(() => {
-    if (!detail?.customerName) return;
-    setSessionTitle((current) => current || `${detail.customerName} live session`);
-  }, [detail?.customerName]);
 
   useEffect(() => {
     if (captureState !== 'recording') return;
@@ -230,6 +235,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 
       if (finalized.length) {
         setPreviewLines((current) => [...current, ...finalized.map((text) => ({ id: makeId('preview'), text }))].slice(-8));
+        setFinalTranscriptLines((current) => [...current, ...finalized.map((text) => ({ id: makeId('transcript'), text }))]);
       }
 
       setInterimPreview(nextInterim);
@@ -373,16 +379,23 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
       }
 
       const nextSegments = segmentsRef.current;
+      const transcriptText = finalTranscriptLinesRef.current.map((line) => line.text).join(' ').trim();
       if (!nextSegments.length) {
         setCaptureState('paused');
         setError('Record at least one segment before ending the conversation.');
         return;
       }
+      if (!transcriptText) {
+        setCaptureState('paused');
+        setError('My Coach needs a browser transcript before analysis can start.');
+        return;
+      }
 
       stagePendingLiveSessionSubmission({
         customerId: detail.id,
-        title: sessionTitle.trim() || `${detail.customerName} live session`,
+        title: `${detail.customerName} live session`,
         source: 'recorded',
+        transcriptText,
         clips: nextSegments.map(({ fileName, mimeType, base64, source, durationMs }) => ({
           fileName,
           mimeType,
@@ -396,8 +409,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
       clearRememberedSessionId();
       clearRememberedReportId();
       await teardownLiveCapture();
+      shouldClearPendingOnUnmountRef.current = false;
       onNavigate('my_coach_processing');
     } catch (issue) {
+      clearPendingLiveSessionSubmission();
       setCaptureState('paused');
       setError(issue instanceof Error ? issue.message : 'Could not prepare the live session for processing.');
     }
@@ -486,64 +501,87 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                   <MetaPill label={`${segments.length} segments`} tone="default" />
                   <MetaPill label={formatDuration(elapsedMs)} tone="secondary" />
                 </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <DetailPill label="Intent" value={detail.vehicleIntent} />
+                  <DetailPill label="Phone" value={detail.phone} />
+                </div>
               </div>
 
-              <div className="mt-4 grid shrink-0 gap-2">
-                <InfoCard label="Intent" value={detail.vehicleIntent} />
-                <InfoCard label="Phone" value={detail.phone} />
-              </div>
-
-              <label className="mt-4 block shrink-0">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Session title</span>
-                <input
-                  value={sessionTitle}
-                  onChange={(event) => setSessionTitle(event.target.value)}
-                  placeholder="Customer conversation"
-                  className="mt-2 w-full rounded-[22px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-primary/36 focus:outline-none"
-                />
-              </label>
-
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-4">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-3">
                 <motion.button
                   type="button"
                   onClick={() => void handleCaptureToggle()}
                   whileTap={{ scale: 0.96 }}
                   animate={{
+                    scale:
+                      captureState === 'recording'
+                        ? 1.02 + reactiveLevel * 0.08
+                        : captureState === 'paused'
+                          ? 0.98
+                          : 1,
                     boxShadow:
                       captureState === 'recording'
-                        ? ['0 0 0 0 rgba(164,201,255,0.16)', '0 0 0 22px rgba(164,201,255,0)', '0 0 0 0 rgba(164,201,255,0.16)']
+                        ? `0 30px 90px rgba(0,0,0,0.42), 0 0 ${28 + reactiveLevel * 34}px rgba(164,201,255,${0.18 + reactiveLevel * 0.18})`
                         : '0 24px 64px rgba(0,0,0,0.38)',
                   }}
-                  transition={captureState === 'recording' ? { duration: 2.6, repeat: Infinity, ease: 'easeOut' } : { duration: 0.3 }}
-                  className={`relative flex h-36 w-36 items-center justify-center rounded-full border border-white/12 ${
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className={`relative flex h-[11.5rem] w-[11.5rem] items-center justify-center rounded-full border border-white/12 ${
                     captureState === 'recording'
                       ? 'bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.36),rgba(25,35,58,0.92))]'
                       : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),rgba(18,24,34,0.92))]'
                   }`}
                 >
                   <motion.div
-                    animate={{ scale: captureState === 'recording' ? [1, 1.06, 1] : 1, opacity: captureState === 'recording' ? [0.92, 1, 0.92] : 0.82 }}
-                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    animate={{
+                      scale: captureState === 'recording' ? 1.08 + reactiveLevel * 0.14 : 1,
+                      opacity: captureState === 'recording' ? 0.24 + reactiveLevel * 0.18 : 0,
+                    }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="absolute inset-[-10px] rounded-full border border-primary/24"
+                  />
+                  <motion.div
+                    animate={{
+                      scale: captureState === 'recording' ? 1.18 + reactiveLevel * 0.18 : 1,
+                      opacity: captureState === 'recording' ? 0.12 + reactiveLevel * 0.12 : 0,
+                    }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="absolute inset-[-24px] rounded-full border border-primary/14"
+                  />
+                  <motion.div
+                    animate={{
+                      scale: captureState === 'recording' ? 0.96 + reactiveLevel * 0.08 : 1,
+                      opacity: captureState === 'recording' ? 0.88 + reactiveLevel * 0.12 : 0.82,
+                    }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
                     className="absolute inset-3 rounded-full border border-white/10 bg-black/24"
                   />
                   <div className="relative z-10 text-center">
-                    <span className="material-symbols-outlined text-[40px] text-white">{captureState === 'recording' ? 'pause' : 'mic'}</span>
+                    <motion.span
+                      animate={{
+                        y: captureState === 'recording' ? -reactiveLevel * 2 : 0,
+                        scale: captureState === 'recording' ? 1 + reactiveLevel * 0.08 : 1,
+                      }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                      className="material-symbols-outlined text-[44px] text-white"
+                    >
+                      {captureState === 'recording' ? 'pause' : 'mic'}
+                    </motion.span>
                     <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/58">{primaryActionLabel}</p>
                   </div>
                 </motion.button>
 
-                <div className="mt-5 flex w-full max-w-[260px] items-end justify-center gap-1.5">
+                <div className="mt-5 flex w-full max-w-[220px] items-end justify-center gap-1">
                   {meterValues.map((value, index) => (
                     <motion.span
                       key={`meter-${index}`}
-                      animate={{ height: `${Math.max(14, value * 72)}px`, opacity: captureState === 'recording' ? 1 : 0.62 }}
+                      animate={{ height: `${Math.max(8, value * 28)}px`, opacity: captureState === 'recording' ? 0.78 : 0.4 }}
                       transition={{ duration: 0.18, ease: 'easeOut' }}
-                      className={`block w-1.5 rounded-full ${index % 4 === 0 ? 'bg-secondary/80' : 'bg-primary/82'}`}
+                      className={`block w-1 rounded-full ${index % 4 === 0 ? 'bg-secondary/70' : 'bg-primary/70'}`}
                     />
                   ))}
                 </div>
 
-                <p className="mt-4 max-w-[18rem] text-center text-xs leading-6 text-white/58">
+                <p className="mt-4 max-w-[16rem] text-center text-[11px] leading-5 text-white/56">
                   {captureState === 'recording'
                     ? 'Keep the phone steady and let the customer finish each thought before you pause.'
                     : segments.length
@@ -705,11 +743,11 @@ function MetaPill({ label, tone }: { label: string; tone: 'default' | 'primary' 
   return <span className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${toneClasses}`}>{label}</span>;
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function DetailPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[24px] border border-white/8 bg-black/18 px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">{label}</p>
-      <p className="mt-2 text-sm leading-6 text-white/74">{value}</p>
+    <div className="rounded-full border border-white/8 bg-black/18 px-3 py-2.5">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-white/38">{label}</p>
+      <p className="mt-1 max-w-[11rem] truncate text-sm text-white/74">{value}</p>
     </div>
   );
 }

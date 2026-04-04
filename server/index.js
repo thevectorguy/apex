@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { getDb } from './lib/db.js';
+import { isSupabaseConfigured } from './lib/persistence.js';
 import { ensureStorageDirs } from './lib/storage.js';
 import { registerMyCoachRoutes } from './routes/myCoach.js';
 
@@ -14,8 +15,10 @@ for (const envPath of ['.env.local', '.env']) {
 }
 
 export function createServer() {
-  ensureStorageDirs();
-  getDb();
+  if (!isSupabaseConfigured()) {
+    ensureStorageDirs();
+    getDb();
+  }
 
   const app = express();
   app.use(express.json({ limit: '50mb' }));

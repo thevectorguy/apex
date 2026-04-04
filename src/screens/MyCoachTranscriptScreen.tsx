@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import {
+  getTranscriptUnavailableMessage,
   getCustomerThread,
+  hasUsableTranscript,
   listCustomerThreads,
   readFlowOrigin,
   rememberFlowOrigin,
@@ -47,6 +49,7 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
 
   const activeSession =
     detail?.sessions.find((session) => session.id === selectedSessionId) ?? detail?.sessions[0] ?? null;
+  const transcriptUnavailable = Boolean(activeSession?.report) && !hasUsableTranscript(activeSession?.transcript);
 
   async function loadThreads() {
     setLoading(true);
@@ -196,6 +199,16 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
             ) : null}
           </div>
 
+          {transcriptUnavailable ? (
+            <div className="mt-5 rounded-[22pt] border border-secondary/20 bg-secondary/10 px-4 py-4 text-sm leading-6 text-white/74">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">Transcript unavailable</p>
+              <p className="mt-2">{getTranscriptUnavailableMessage()}</p>
+              <p className="mt-2 text-white/54">
+                Try recording closer to the speaker, reducing background noise, or uploading a clearer clip next time.
+              </p>
+            </div>
+          ) : null}
+
           <div className="mt-5 space-y-3 max-h-[60vh] overflow-y-auto pr-1 hide-scrollbar">
             {loading ? (
               <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
@@ -222,6 +235,10 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
                   <p className="mt-2 text-sm leading-6 text-white/74">{turn.text}</p>
                 </motion.div>
               ))
+            ) : transcriptUnavailable ? (
+              <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
+                No transcript turns were returned for this completed session.
+              </div>
             ) : (
               <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
                 Transcript turns will appear here after analysis.
