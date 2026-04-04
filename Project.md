@@ -1,4 +1,4 @@
-# APEX — Car Showroom Sales Intelligence Platform
+# DILOS — Car Showroom Sales Intelligence Platform
 ### App Specification & Design Document · v1.0
 
 ---
@@ -33,9 +33,9 @@
 
 ### 1.1 The Product
 
-**APEX** (Automotive Performance & Experience Exchange) is a native iOS application built exclusively for car showroom sales executives. It is the single pane of glass for everything a salesperson needs during a live customer interaction — from pulling up a brochure to practicing a pitch before the floor opens, to escalating a live objection to an AI that responds with visuals, data, and the 3D model of the car itself.
+**DILOS** (Automotive Performance & Experience Exchange) is a native iOS application built exclusively for car showroom sales executives. It is the single pane of glass for everything a salesperson needs during a live customer interaction — from pulling up a brochure to practicing a pitch before the floor opens, to escalating a live objection to an AI that responds with visuals, data, and the 3D model of the car itself.
 
-The name "APEX" is intentional. It is the top of the performance curve. Every interaction with this app should feel like driving a premium car — powerful, smooth, effortless, and unmistakably high-quality.
+The name "DILOS" is intentional. It is the top of the performance curve. Every interaction with this app should feel like driving a premium car — powerful, smooth, effortless, and unmistakably high-quality.
 
 ### 1.2 The Problem It Solves
 
@@ -46,7 +46,7 @@ A car showroom salesperson's day is chaotic. They:
 - Need to communicate with managers or head office without leaving the floor
 - Have no structured way to practice pitch scenarios
 
-APEX eliminates every one of these friction points.
+DILOS eliminates every one of these friction points.
 
 ### 1.3 Core Design Mandate
 
@@ -151,7 +151,7 @@ All surfaces use **UIBlurEffect** with the following mapping:
 ### 3.1 Navigation Structure
 
 ```
-APEX App
+DILOS App
 │
 ├── [Root] Tab Bar Controller (5 tabs)
 │   │
@@ -184,7 +184,7 @@ APEX App
 │           ├── → LiveSessionViewController
 │           └── → SessionReviewViewController
 │
-└── [Global Overlay] APEX AI Button (floating, always visible)
+└── [Global Overlay] DILOS AI Button (floating, always visible)
     └── → AIAssistantSheetViewController (tall bottom sheet, ~85% screen)
         ├── → ContextualBrochureViewer (slide-in panel)
         └── → ContextualCarModelViewer (slide-in panel)
@@ -222,7 +222,7 @@ The tab bar is custom-built (not a standard UITabBar) with the following charact
 #### 4.1.1 Launch Screen
 
 - Full-screen `#0A0A0F` background
-- Centred APEX wordmark in SF Pro Display Bold 48pt, `Accent Primary` champagne gold
+- Centred DILOS wordmark in SF Pro Display Bold 48pt, `Accent Primary` champagne gold
 - Wordmark fades in (opacity 0 → 1, 0.6s ease-out) with a simultaneous upward translate (Y+20 → Y0)
 - A single horizontal light streak animates across the wordmark (like a lens flare on a car badge)
 - Duration: 2.2 seconds total, then cross-dissolves to login/dashboard
@@ -232,7 +232,7 @@ The tab bar is custom-built (not a standard UITabBar) with the following charact
 - Full-bleed background: abstract bokeh render of showroom lights (static image, dark)
 - Glassmorphic login card centred, 340pt wide
   - Company logo at top (configurable)
-  - "APEX" subheader in Caption style, letter-spaced
+  - "DILOS" subheader in Caption style, letter-spaced
   - Employee ID field (SF Pro Mono, custom styled text field)
   - Biometric auth button: Touch ID / Face ID with SF Symbol `faceid` or `touchid`
   - "Sign in with Face ID" primary CTA — gold gradient button
@@ -379,7 +379,7 @@ The tab bar is custom-built (not a standard UITabBar) with the following charact
 - "Email to Customer" flow:
   - Tap `envelope.fill`: bottom sheet slides up
   - Pre-filled "To:" field (manual entry or from Leads list)
-  - Subject: auto-populated "APEX | [Car Name] Brochure"
+  - Subject: auto-populated "DILOS | [Car Name] Brochure"
   - Body: pre-written professional template
   - Attach brochure: auto-attached, shown as chip
   - "Send" gold CTA button
@@ -424,7 +424,7 @@ The tab bar is custom-built (not a standard UITabBar) with the following charact
 
 **Header Row** (64pt):
 - `sparkles` icon (animated — rotating slowly, gold tint)
-- "APEX Intelligence" in Headline semibold
+- "DILOS Intelligence" in Headline semibold
 - History button top-right (`clock.arrow.circlepath`)
 
 **Prompt Suggestions** (shown only when no conversation is active):
@@ -477,7 +477,7 @@ When AI response includes "View Brochure" or "Open 3D" chips:
 
 - From tab tap or "View in 3D Studio" deep link:
 - Screen fades to pure black (0.4s)
-- Brand wordmark "APEX STUDIO" fades in center (gold, Display Bold)
+- Brand wordmark "DILOS STUDIO" fades in center (gold, Display Bold)
 - Wordmark dissolves as the 3D scene fades in
 - Scene starts with a cinematic pan-in from behind the car (camera path, 1.8s)
 - Total entry: ~2.5 seconds
@@ -691,7 +691,7 @@ Grid of scenario cards (2 columns):
 - Primary mode: voice
   - Large microphone button (56pt, gold gradient circle)
   - When recording: waveform bars animate, "listening..." text
-  - When processing: "APEX thinking..." with spinner
+  - When processing: "DILOS thinking..." with spinner
   - When ready: AI avatar becomes active and responds
 - Secondary mode: text (keyboard icon bottom-right toggles to text input field)
 - "End Session" small text link bottom-center
@@ -796,7 +796,7 @@ These run continuously in the background, never demanding attention:
 
 All components are custom-designed but follow HIG conventions.
 
-### 6.1 APEXCard
+### 6.1 DILOSCard
 
 ```
 Properties:
@@ -804,7 +804,7 @@ Properties:
   - cornerRadius: CGFloat (default: 20)
   - hasShadow: Bool (default: true)
   - isInteractive: Bool (enables tap scale animation)
-  - badge: APEXBadge? (optional overlay badge)
+  - badge: DILOSBadge? (optional overlay badge)
 
 Shadow spec (hasShadow=true):
   - Color: #000000 at 40% opacity
@@ -812,7 +812,7 @@ Shadow spec (hasShadow=true):
   - Y offset: 8pt
 ```
 
-### 6.2 APEXButton
+### 6.2 DILOSButton
 
 ```
 Styles:
@@ -829,7 +829,7 @@ Sizes:
   - .pill: hugs content width, 32pt height
 ```
 
-### 6.3 APEXTextField
+### 6.3 DILOSTextField
 
 ```
 - Dark blur background
@@ -839,7 +839,7 @@ Sizes:
 - Custom clear button icon
 ```
 
-### 6.4 APEXBadge
+### 6.4 DILOSBadge
 
 ```
 Types:
@@ -850,7 +850,7 @@ Types:
 Colors: .error | .warning | .success | .info | .gold
 ```
 
-### 6.5 APEXAvatar
+### 6.5 DILOSAvatar
 
 ```
 - Initials-based (letter generated from name)
@@ -859,7 +859,7 @@ Colors: .error | .warning | .success | .info | .gold
 - Optional presence indicator (online dot, 8pt, bottom-right)
 ```
 
-### 6.6 APEXProgressRing
+### 6.6 DILOSProgressRing
 
 ```
 - Track color: Text/Tertiary
@@ -869,7 +869,7 @@ Colors: .error | .warning | .success | .info | .gold
 - Sizes: .small(44) | .medium(72) | .large(120)
 ```
 
-### 6.7 APEXToast
+### 6.7 DILOSToast
 
 ```
 - Appears from top-center, slides down and fades out after 3s
@@ -1019,7 +1019,7 @@ enum UserRole: String, Codable {
 ### 7.2 API Endpoints (REST/JSON)
 
 ```
-Base URL: https://api.apex-auto.in/v1
+Base URL: https://api.DILOS-auto.in/v1
 
 Authentication:
   POST   /auth/login              { employeeCode, password }
@@ -1072,7 +1072,7 @@ Notifications:
 ### 7.3 WebSocket Events (Real-time)
 
 ```
-Connection: wss://ws.apex-auto.in/v1?token={accessToken}
+Connection: wss://ws.DILOS-auto.in/v1?token={accessToken}
 
 Incoming events:
   message.new          → { threadId, message: Message }
@@ -1116,10 +1116,10 @@ Outgoing:
 ### 8.2 Project Structure
 
 ```
-APEX.xcodeproj
+DILOS.xcodeproj
 │
 ├── App/
-│   ├── APEXApp.swift
+│   ├── DILOSApp.swift
 │   ├── AppCoordinator.swift
 │   └── AppEnvironment.swift
 │
@@ -1154,13 +1154,13 @@ APEX.xcodeproj
 │   ├── Typography.swift
 │   ├── Spacing.swift
 │   ├── Components/
-│   │   ├── APEXCard.swift
-│   │   ├── APEXButton.swift
-│   │   ├── APEXTextField.swift
-│   │   ├── APEXBadge.swift
-│   │   ├── APEXProgressRing.swift
-│   │   ├── APEXToast.swift
-│   │   └── APEXTabBar.swift
+│   │   ├── DILOSCard.swift
+│   │   ├── DILOSButton.swift
+│   │   ├── DILOSTextField.swift
+│   │   ├── DILOSBadge.swift
+│   │   ├── DILOSProgressRing.swift
+│   │   ├── DILOSToast.swift
+│   │   └── DILOSTabBar.swift
 │   └── Animations/
 │       ├── SpringPresets.swift
 │       ├── TransitionLibrary.swift
@@ -1206,7 +1206,7 @@ No third-party UI libraries. Only:
 **System Prompt Architecture**:
 
 ```
-You are APEX, an AI sales intelligence assistant for a car showroom salesperson in India.
+You are DILOS, an AI sales intelligence assistant for a car showroom salesperson in India.
 Your role is to help sales executives in real-time during customer interactions.
 
 Context injected per request:
@@ -1422,9 +1422,9 @@ Build number: auto-incremented by CI
 
 | Environment | API | Purpose |
 |-------------|-----|---------|
-| Development | dev.api.apex-auto.in | Daily development |
-| Staging | staging.api.apex-auto.in | QA and UAT |
-| Production | api.apex-auto.in | Live |
+| Development | dev.api.DILOS-auto.in | Daily development |
+| Staging | staging.api.DILOS-auto.in | QA and UAT |
+| Production | api.DILOS-auto.in | Live |
 
 Switching via Xcode scheme + build config.
 
@@ -1437,7 +1437,7 @@ Switching via Xcode scheme + build config.
 
 ### 14.4 App Store Metadata
 
-- **App Name**: APEX — Auto Sales Platform
+- **App Name**: DILOS — Auto Sales Platform
 - **Category**: Business
 - **Age Rating**: 4+
 - **Privacy**: Location not collected. No data sold. AI queries processed server-side.
@@ -1517,5 +1517,5 @@ Switching via Xcode scheme + build config.
 
 ---
 
-*APEX App Specification — Confidential · v1.0 · Prepared for Development Handoff*
+*DILOS App Specification — Confidential · v1.0 · Prepared for Development Handoff*
 *All dimensions in points (pt). All durations in seconds (s).*
