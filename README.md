@@ -1,6 +1,6 @@
-# APEX
+# DILOS
 
-APEX is a Vite + React showroom experience prototype. This branch now includes `My Coach`, a sales-coaching workflow that records or uploads customer conversations, transcribes them through Groq, scores them against the uploaded training master copy, and saves coaching reports for repeat visits.
+DILOS is a Vite + React showroom experience prototype. This branch now includes `My Coach`, a sales-coaching workflow that records or uploads customer conversations, transcribes them through Groq, scores them against the uploaded training master copy, and saves coaching reports for repeat visits.
 
 ## Local Setup
 
