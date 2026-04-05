@@ -17,6 +17,7 @@ import {
 import { Screen } from '../types';
 import { CarModel } from '../components/CarModel';
 import { readSearchParam } from '../lib/appRouter';
+import { inventoryVehicleById, type InventoryVehicleId } from '../data/marutiVehicles';
 
 type WheelOption = {
   id: string;
@@ -57,19 +58,6 @@ const wheelOptions: WheelOption[] = [
     detail: 'Diamond-cut spokes and a darker gloss barrel for a more assertive showroom stance.',
   },
 ];
-
-const vehicleContent = {
-  elevate: {
-    modelName: 'Elevate',
-    editionLabel: 'Touring Edition',
-    brochureTitle: 'Elevate',
-  },
-  'gt-carbon': {
-    modelName: 'DILOS GT-Carbon',
-    editionLabel: 'Limited Edition',
-    brochureTitle: 'DILOS GT-Carbon',
-  },
-} as const;
 
 const SHEET_COLLAPSED_PEEK = 180;
 
@@ -167,8 +155,9 @@ function writeBrochureHoldingPage(targetWindow: Window, brochureTitle: string) {
 }
 
 export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  const vehicleKey = readSearchParam('vehicle') === 'gt-carbon' ? 'gt-carbon' : 'elevate';
-  const vehicle = vehicleContent[vehicleKey];
+  const requestedVehicle = readSearchParam('vehicle') as InventoryVehicleId | null;
+  const vehicleKey: InventoryVehicleId = requestedVehicle && requestedVehicle in inventoryVehicleById ? requestedVehicle : 'brezza';
+  const vehicle = inventoryVehicleById[vehicleKey];
   const [paintColor, setPaintColor] = useState(colors[0].hex);
   const [selectedWheel, setSelectedWheel] = useState(wheelOptions[0].id);
   const [sheetState, setSheetState] = useState<'collapsed' | 'expanded'>('collapsed');
@@ -246,7 +235,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
       const previewWindow =
         brochureWindowRef.current && !brochureWindowRef.current.closed
           ? brochureWindowRef.current
-          : window.open('', 'elevate-brochure-demo');
+          : window.open('', 'inventory-brochure-demo');
 
       if (previewWindow) {
         brochureWindowRef.current = previewWindow;
@@ -295,7 +284,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
     const previewWindow =
       brochureWindowRef.current && !brochureWindowRef.current.closed
         ? brochureWindowRef.current
-        : window.open('', 'elevate-brochure-demo');
+        : window.open('', 'inventory-brochure-demo');
 
     if (previewWindow) {
       brochureWindowRef.current = previewWindow;

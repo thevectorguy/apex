@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { marutiBrochures } from '../data/brochures';
 
 export function BrochureViewerSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   useEffect(() => {
@@ -10,12 +11,6 @@ export function BrochureViewerSheet({ isOpen, onClose }: { isOpen: boolean, onCl
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
-
-  const brochures = [
-    { name: 'DILOS GT-Carbon', type: 'Performance', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc' },
-    { name: 'Honda Elevate', type: 'EV SUV', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY' },
-  ];
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -60,10 +55,10 @@ export function BrochureViewerSheet({ isOpen, onClose }: { isOpen: boolean, onCl
 
             {/* Content List */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {brochures.map((b, i) => (
-                <div key={i} className="flex gap-4 p-4 rounded-2xl bg-surface-container-high border border-outline-variant/10 hover:bg-surface-container-highest transition-colors cursor-pointer group">
+              {marutiBrochures.slice(0, 3).map((b) => (
+                <div key={b.id} className="flex gap-4 p-4 rounded-2xl bg-surface-container-high border border-outline-variant/10 hover:bg-surface-container-highest transition-colors cursor-pointer group">
                   <div className="w-32 h-24 rounded-xl overflow-hidden bg-surface-container-highest">
-                    <img src={b.img} alt={b.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={b.image} alt={b.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="flex-1 flex flex-col justify-center">
                     <h3 className="font-headline font-bold text-lg text-on-surface">{b.name}</h3>

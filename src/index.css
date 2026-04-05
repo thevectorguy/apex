@@ -111,6 +111,15 @@ body {
   animation: sheen 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
 .announcements-headline {
   font-family: "General Sans", sans-serif;
   letter-spacing: -0.04em;
@@ -123,4 +132,20 @@ body {
 .announcements-label {
   font-family: "Satoshi", sans-serif;
   letter-spacing: 0.16em;
+}
+
+@keyframes slide-up-bottom {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.animate-slide-up-bottom {
+  animation: slide-up-bottom 0.4s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes fade-in-backdrop {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-fade-in-backdrop {
+  animation: fade-in-backdrop 0.4s ease-out forwards;
 }

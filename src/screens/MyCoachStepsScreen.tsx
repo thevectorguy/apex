@@ -88,6 +88,16 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   }, [selectedSessionId]);
 
   useEffect(() => {
+    if (!successMessage) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccessMessage(null);
+    }, 3600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [successMessage]);
+
+  useEffect(() => {
     if (!detail?.id) return;
     const draftTitle = readDraftSessionTitle();
     if (!draftTitle) return;

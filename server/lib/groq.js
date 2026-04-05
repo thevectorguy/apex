@@ -3,43 +3,23 @@ import './networkTls.js';
 import { MASTER_COPY_HASH, MASTER_COPY_PROMPT, MASTER_COPY_VERSION, trainingMasterCopy } from './masterCopy.js';
 
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
-const SPEED_STAGE_DEFINITIONS = [
-  {
-    key: 'start_right',
-    label: 'Start Right',
-    aliases: ['start_right', 'start right', 'startright', 'start', 'opening', 'rapport', 'rapport_building'],
-  },
-  {
-    key: 'plan_to_probe',
-    label: 'Plan to Probe',
-    aliases: ['plan_to_probe', 'plan to probe', 'plantoprobe', 'discovery', 'probe', 'probing', 'questioning'],
-  },
-  {
-    key: 'explain_value_proposition',
-    label: 'Explain Value Proposition',
-    aliases: [
-      'explain_value_proposition',
-      'explain value proposition',
-      'explainvalueproposition',
-      'value',
-      'value_proposition',
-      'presentation',
-      'product_presentation',
-    ],
-  },
-  {
-    key: 'eliminate_objection',
-    label: 'Eliminate Objection',
-    aliases: ['eliminate_objection', 'eliminate objection', 'handle_objection', 'objections', 'objection_handling'],
-  },
-  {
-    key: 'drive_closure',
-    label: 'Drive Closure',
-    aliases: ['drive_closure', 'drive closure', 'closure', 'closing', 'close', 'next_step', 'nextstep'],
-  },
-];
+const SPEED_STAGE_DEFINITIONS = trainingMasterCopy.speedFramework.map((stage) => {
+  const basicAliases = [
+    stage.id,
+    stage.id.replace(/_/g, ' '),
+    stage.id.replace(/_/g, ''),
+    stage.label.toLowerCase(),
+  ];
+  return {
+    key: stage.id,
+    label: stage.label,
+    aliases: Array.from(new Set([...basicAliases, ...(stage.keywords || [])])),
+  };
+});
 const QUESTION_LOOKUP = new Map(trainingMasterCopy.fundamentalQuestions.map((question) => [question.id, question.question]));
 const GRADE_BANDS = [...trainingMasterCopy.reportTemplate.gradeBands].sort((left, right) => right.min - left.min);
+const MY_COACH_TRANSCRIPTION_PROMPT =
+  'Car showroom sales conversation in India. Mix of English and Hindi or regional language. Maruti Suzuki showroom. ex-showroom price, on-road price, EMI, down payment, exchange bonus, booking amount, registration, insurance, accessories, test drive, finance, loan, variant, mileage, sunroof, automatic, manual, petrol, diesel, CNG, hybrid, Baleno, Brezza, Fronx, Ertiga, Swift, Dzire, WagonR, Alto, Celerio, Ignis, Grand Vitara, Jimny, Invicto, S-Presso, XL6, competitor brands may include Hyundai, Tata, Kia, Mahindra, Honda, Toyota';
 
 function hasGroqKey() {
   return Boolean(process.env.GROQ_API_KEY);
@@ -74,23 +54,42 @@ async function groqFetch(path, init = {}) {
   return response;
 }
 
-export async function transcribeAudioFile({ filePath, mimeType, language = 'en' }) {
-  if (!hasGroqKey()) {
-    return {
-      text: 'Transcript unavailable. Set GROQ_API_KEY to enable Groq transcription.',
-      segments: [],
-      provider: 'fallback',
-      model: null,
-    };
-  }
-
+export async function transcribeAudioFile({ fileBuffer, fileName = 'audio.webm', mimeType, language = null }) {
   const transcribeModel = getTranscribeModel();
-  const fileBuffer = fs.readFileSync(filePath);
   const form = new FormData();
   form.append('model', transcribeModel);
-  form.append('language', language);
+
+  const langCode = typeof language === 'string' ? language.toLowerCase().trim() : null;
+  const whisperLangCode = langCode ? ({
+    english: 'en', en: 'en',
+    hindi: 'hi', hi: 'hi',
+    marathi: 'mr', mr: 'mr',
+    gujarati: 'gu', gu: 'gu',
+    tamil: 'ta', ta: 'ta',
+    telugu: 'te', te: 'te',
+    kannada: 'kn', kn: 'kn',
+    malayalam: 'ml', ml: 'ml',
+    bengali: 'bn', bn: 'bn',
+    punjabi: 'pa', pa: 'pa',
+    odia: 'or', or: 'or',
+    assamese: 'as', as: 'as',
+    urdu: 'ur', ur: 'ur'
+  }[langCode] || null) : null;
+
+  if (whisperLangCode) {
+    form.append('language', whisperLangCode);
+  }
+
+  let promptStr = MY_COACH_TRANSCRIPTION_PROMPT;
+  if (language && language.trim().length > 0) {
+    promptStr = `Car showroom sales conversation in India. The conversation is primarily in ${language} and English. ` +
+      promptStr.replace(/^Car showroom sales conversation in India\. Mix of English and Hindi or regional language\. /, '');
+  }
+
+  form.append('prompt', promptStr);
   form.append('response_format', 'verbose_json');
-  form.append('file', new Blob([fileBuffer], { type: mimeType }), filePath.split(/[/\\]/).pop() || 'audio.webm');
+  form.append('timestamp_granularities[]', 'segment');
+  form.append('file', new Blob([fileBuffer], { type: mimeType }), fileName);
 
   const response = await groqFetch('/audio/transcriptions', {
     method: 'POST',
@@ -104,6 +103,7 @@ export async function transcribeAudioFile({ filePath, mimeType, language = 'en' 
         start: segment.start ?? null,
         end: segment.end ?? null,
         text: String(segment.text || '').trim(),
+        confidence: normalizeSegmentConfidence(segment),
       }))
     : [];
 
@@ -114,6 +114,12 @@ export async function transcribeAudioFile({ filePath, mimeType, language = 'en' 
     model: transcribeModel,
     raw: payload,
   };
+}
+
+function normalizeSegmentConfidence(segment) {
+  const averageLogProb = Number(segment?.avg_logprob);
+  if (!Number.isFinite(averageLogProb)) return null;
+  return Math.min(1, Math.max(0, Number(Math.exp(averageLogProb).toFixed(3))));
 }
 
 const COACHING_REPORT_SCHEMA = {
@@ -141,20 +147,11 @@ const COACHING_REPORT_SCHEMA = {
       speed: {
         type: 'object',
         additionalProperties: false,
-        properties: {
-          start_right: speedStageSchema('Start Right'),
-          plan_to_probe: speedStageSchema('Plan to Probe'),
-          explain_value_proposition: speedStageSchema('Explain Value Proposition'),
-          eliminate_objection: speedStageSchema('Eliminate Objection'),
-          drive_closure: speedStageSchema('Drive Closure'),
-        },
-        required: [
-          'start_right',
-          'plan_to_probe',
-          'explain_value_proposition',
-          'eliminate_objection',
-          'drive_closure',
-        ],
+        properties: SPEED_STAGE_DEFINITIONS.reduce((acc, stage) => {
+          acc[stage.key] = speedStageSchema(stage.label);
+          return acc;
+        }, {}),
+        required: SPEED_STAGE_DEFINITIONS.map(stage => stage.key),
       },
       questionCoverage: {
         type: 'array',
@@ -165,7 +162,7 @@ const COACHING_REPORT_SCHEMA = {
             id: { type: 'string' },
             question: { type: 'string' },
             status: { type: 'string' },
-            evidence: { type: 'array', items: { type: 'string' } },
+            evidence: { type: ['string', 'null'] },
           },
           required: ['id', 'question', 'status', 'evidence'],
         },
@@ -177,11 +174,14 @@ const COACHING_REPORT_SCHEMA = {
           additionalProperties: false,
           properties: {
             label: { type: 'string' },
+            category: { type: 'string' },
             handled: { type: 'string' },
-            strategy: { type: 'string' },
+            how: { type: ['string', 'null'] },
+            advice: { type: ['string', 'null'] },
+            strategy: { type: ['string', 'null'] },
             evidence: { type: 'array', items: { type: 'string' } },
           },
-          required: ['label', 'handled', 'strategy', 'evidence'],
+          required: ['label', 'category', 'handled', 'how', 'advice', 'strategy', 'evidence'],
         },
       },
       productFit: {
@@ -189,14 +189,55 @@ const COACHING_REPORT_SCHEMA = {
         additionalProperties: false,
         properties: {
           verdict: { type: 'string' },
+          pitchedModels: { type: 'array', items: { type: 'string' } },
+          salesmanPick: { type: ['string', 'null'] },
+          customerPreferred: { type: ['string', 'null'] },
+          idealMatch: { type: ['string', 'null'] },
+          avoidModels: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                model: { type: 'string' },
+                rationale: { type: 'string' },
+                evidence: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['model', 'rationale', 'evidence'],
+            },
+          },
+          why: { type: 'string' },
           recommendedModel: { type: ['string', 'null'] },
           betterAlternative: { type: ['string', 'null'] },
-          why: { type: 'string' },
         },
-        required: ['verdict', 'recommendedModel', 'betterAlternative', 'why'],
+        required: [
+          'verdict',
+          'pitchedModels',
+          'salesmanPick',
+          'customerPreferred',
+          'idealMatch',
+          'avoidModels',
+          'why',
+          'recommendedModel',
+          'betterAlternative',
+        ],
       },
       strengths: { type: 'array', items: { type: 'string' } },
       improvements: { type: 'array', items: { type: 'string' } },
+      coachAdvice: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            title: { type: 'string' },
+            detail: { type: 'string' },
+            priority: { type: 'string' },
+          },
+          required: ['title', 'detail', 'priority'],
+        },
+      },
+      nextVisitOpener: { type: 'string' },
       nextVisitPreparation: { type: 'array', items: { type: 'string' } },
       researchTasks: { type: 'array', items: { type: 'string' } },
       reportHighlights: { type: 'array', items: { type: 'string' } },
@@ -216,6 +257,39 @@ const COACHING_REPORT_SCHEMA = {
           required: ['id', 'speaker', 'text', 'start', 'end'],
         },
       },
+      customerSentiment: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          start: { type: 'string' },
+          end: { type: 'string' },
+          shift: { type: 'string' },
+        },
+        required: ['start', 'end', 'shift'],
+      },
+      turningPoints: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            title: { type: 'string' },
+            detail: { type: 'string' },
+            timestamp: { type: ['string', 'null'] },
+          },
+          required: ['title', 'detail', 'timestamp'],
+        },
+      },
+      followUpMessage: { type: 'string' },
+      drivingIndex: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          primaryDriver: { type: 'string' },
+          insight: { type: 'string' },
+        },
+        required: ['primaryDriver', 'insight'],
+      },
       comparisonToPrevious: { type: ['string', 'null'] },
       warnings: { type: 'array', items: { type: 'string' } },
     },
@@ -232,11 +306,17 @@ const COACHING_REPORT_SCHEMA = {
       'productFit',
       'strengths',
       'improvements',
+      'coachAdvice',
+      'nextVisitOpener',
       'nextVisitPreparation',
       'researchTasks',
       'reportHighlights',
       'coachNotes',
       'transcriptTurns',
+      'customerSentiment',
+      'turningPoints',
+      'followUpMessage',
+      'drivingIndex',
       'comparisonToPrevious',
       'warnings',
     ],
@@ -395,6 +475,26 @@ function validateCoachingReportShape(report) {
   if (!Array.isArray(report.transcriptTurns)) {
     throw new Error('Groq response transcriptTurns is not an array after normalization');
   }
+
+  if (!Array.isArray(report.coachAdvice)) {
+    throw new Error('Groq response coachAdvice is not an array after normalization');
+  }
+
+  if (!Array.isArray(report.productFit?.pitchedModels)) {
+    throw new Error('Groq response productFit.pitchedModels is not an array after normalization');
+  }
+
+  if (!report.customerSentiment || typeof report.customerSentiment !== 'object') {
+    throw new Error('Groq response customerSentiment is invalid after normalization');
+  }
+
+  if (!Array.isArray(report.turningPoints)) {
+    throw new Error('Groq response turningPoints is not an array after normalization');
+  }
+
+  if (!report.drivingIndex || typeof report.drivingIndex !== 'object') {
+    throw new Error('Groq response drivingIndex is invalid after normalization');
+  }
 }
 
 function normalizeCoachingReport(report, context) {
@@ -435,13 +535,29 @@ function normalizeCoachingReport(report, context) {
     productFit: normalizeProductFit(report.productFit ?? report.productRecommendation ?? report.recommendation),
     strengths: coerceStringArray(report.strengths ?? report.wins ?? report.positives),
     improvements: coerceStringArray(report.improvements ?? report.gaps ?? report.opportunities),
+    coachAdvice: normalizeCoachAdvice(report.coachAdvice ?? report.coachingAdvice ?? report.advice),
+    nextVisitOpener: normalizeNextVisitOpener(
+      report.nextVisitOpener ?? report.openingScript ?? report.nextVisit?.openingScript ?? report.nextVisit?.opener,
+    ),
     nextVisitPreparation: coerceStringArray(
-      report.nextVisitPreparation ?? report.nextVisitPrep ?? report.nextVisit ?? report.nextSteps,
+      report.nextVisitPreparation ??
+        report.nextVisitPrep ??
+        report.nextVisit?.preparation ??
+        report.nextVisit?.prepChecklist ??
+        report.nextSteps,
     ),
     researchTasks: coerceStringArray(report.researchTasks ?? report.homework ?? report.followUpResearch),
     reportHighlights,
     coachNotes: coerceStringArray(report.coachNotes ?? report.notes ?? report.coachingNotes),
     transcriptTurns: normalizedTranscriptTurns,
+    customerSentiment: normalizeCustomerSentiment(
+      report.customerSentiment ?? report.sentiment ?? report.customerMood ?? report.sentimentJourney,
+    ),
+    turningPoints: normalizeTurningPoints(report.turningPoints ?? report.keyTurningPoints ?? report.pivotalMoments),
+    followUpMessage: normalizeFollowUpMessage(
+      report.followUpMessage ?? report.followupMessage ?? report.whatsAppMessage ?? report.smsMessage,
+    ),
+    drivingIndex: normalizeDrivingIndex(report.drivingIndex ?? report.priceSensitivityIndex ?? report.primaryMotivation),
     comparisonToPrevious: normalizeNullableString(
       report.comparisonToPrevious ?? report.previousVisitComparison ?? report.previousComparison,
     ),
@@ -547,7 +663,10 @@ function normalizeQuestionCoverage(value) {
         id,
         question,
         status: normalizeCoverageStatus(item?.status ?? item?.coverage ?? item?.result),
-        evidence: coerceStringArray(item?.evidence ?? item?.examples ?? item?.notes ?? item?.reason),
+        evidence: normalizeQuestionEvidence(
+          item?.status ?? item?.coverage ?? item?.result,
+          item?.evidence ?? item?.examples ?? item?.notes ?? item?.reason,
+        ),
       };
     })
     .filter((item) => item.question);
@@ -567,16 +686,24 @@ function normalizeObjections(value) {
       if (typeof item === 'string') {
         return {
           label: item.trim(),
-          handled: 'UNKNOWN',
-          strategy: '',
+          category: 'other',
+          handled: 'NOT_HANDLED',
+          how: null,
+          advice: null,
+          strategy: null,
           evidence: [],
         };
       }
 
+      const how = normalizeNullableString(item?.how ?? item?.handledHow ?? item?.resolutionDetail ?? item?.response);
+      const advice = normalizeNullableString(item?.advice ?? item?.tip ?? item?.coachingTip ?? item?.recommendation);
       return {
         label: coerceString(item?.label ?? item?.objection ?? item?.name, 'Unspecified objection'),
+        category: normalizeObjectionCategory(item?.category ?? item?.type ?? item?.bucket),
         handled: normalizeHandledStatus(item?.handled ?? item?.status ?? item?.resolution),
-        strategy: coerceString(item?.strategy ?? item?.approach ?? item?.recommendation, ''),
+        how,
+        advice,
+        strategy: normalizeNullableString(item?.strategy ?? item?.approach ?? advice ?? how),
         evidence: coerceStringArray(item?.evidence ?? item?.examples ?? item?.notes),
       };
     })
@@ -587,6 +714,11 @@ function normalizeProductFit(value) {
   if (typeof value === 'string') {
     return {
       verdict: 'NOT_MADE',
+      pitchedModels: [],
+      salesmanPick: null,
+      customerPreferred: null,
+      idealMatch: null,
+      avoidModels: [],
       recommendedModel: null,
       betterAlternative: null,
       why: value.trim(),
@@ -594,17 +726,187 @@ function normalizeProductFit(value) {
   }
 
   const source = value && typeof value === 'object' ? value : {};
+  const pitchedModels = coerceStringArray(
+    source.pitchedModels ?? source.modelsDiscussed ?? source.models ?? source.discussedModels,
+  );
+  const salesmanPick = normalizeNullableString(
+    source.salesmanPick ?? source.salespersonPick ?? source.salesPick ?? source.primaryPitch,
+  );
+  const customerPreferred = normalizeNullableString(
+    source.customerPreferred ?? source.customerChoice ?? source.customerPick ?? source.likedModel,
+  );
+  const idealMatch = normalizeNullableString(
+    source.idealMatch ?? source.bestFit ?? source.idealModel ?? source.betterAlternative ?? source.alternative,
+  );
+  const avoidModels = normalizeAvoidModels(
+    source.avoidModels ?? source.avoids ?? source.avoid ?? source.modelsToAvoid ?? source.badFits,
+  );
   const recommendedModel = normalizeNullableString(
-    source.recommendedModel ?? source.recommendation ?? source.model ?? source.modelRecommendation,
+    source.recommendedModel ??
+      source.recommendation ??
+      source.model ??
+      source.modelRecommendation ??
+      customerPreferred ??
+      salesmanPick,
   );
   const why = coerceString(source.why ?? source.rationale ?? source.reason ?? source.summary, '');
   return {
-    verdict: normalizeProductVerdict(source.verdict ?? source.status ?? source.outcome, recommendedModel, why),
-    recommendedModel,
-    betterAlternative: normalizeNullableString(
-      source.betterAlternative ?? source.alternative ?? source.alternativeModel ?? source.betterOption,
+    verdict: normalizeProductVerdict(
+      source.verdict ?? source.status ?? source.outcome,
+      pitchedModels,
+      customerPreferred ?? recommendedModel,
+      why,
     ),
+    pitchedModels,
+    salesmanPick,
+    customerPreferred,
+    idealMatch,
+    avoidModels,
+    recommendedModel,
+    betterAlternative: idealMatch,
     why: why || 'Product recommendation was not clearly stated in the transcript.',
+  };
+}
+
+function normalizeAvoidModels(value) {
+  const items = Array.isArray(value)
+    ? value
+    : value && typeof value === 'object'
+      ? Array.isArray(value.items)
+        ? value.items
+        : Object.values(value)
+      : [];
+
+  return items
+    .map((item) => {
+      if (typeof item === 'string') {
+        const model = coerceString(item, '');
+        return model ? { model, rationale: '', evidence: [] } : null;
+      }
+
+      if (!item || typeof item !== 'object') return null;
+
+      const model = coerceString(item.model ?? item.name ?? item.label ?? item.car, '');
+      const rationale = coerceString(item.rationale ?? item.reason ?? item.why ?? item.detail, '');
+      const evidence = coerceStringArray(item.evidence ?? item.signals ?? item.points);
+
+      return model ? { model, rationale, evidence } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+function normalizeCoachAdvice(value) {
+  const items = Array.isArray(value)
+    ? value
+    : value && typeof value === 'object'
+      ? Array.isArray(value.items)
+        ? value.items
+        : Object.values(value)
+      : [];
+
+  return items
+    .map((item, index) => {
+      if (typeof item === 'string') {
+        const detail = item.trim();
+        return detail
+          ? {
+              title: buildAdviceTitle(detail, index),
+              detail,
+              priority: 'medium',
+            }
+          : null;
+      }
+
+      if (!item || typeof item !== 'object') return null;
+
+      const detail = coerceString(item.detail ?? item.advice ?? item.feedback ?? item.note, '');
+      const title = coerceString(item.title ?? item.heading ?? item.label, buildAdviceTitle(detail, index));
+      if (!title && !detail) return null;
+
+      return {
+        title: title || buildAdviceTitle(detail, index),
+        detail: detail || title,
+        priority: normalizeCoachPriority(item.priority ?? item.level ?? item.importance),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeNextVisitOpener(value) {
+  return coerceString(value, '');
+}
+
+function normalizeCustomerSentiment(value) {
+  if (typeof value === 'string') {
+    return {
+      start: 'Neutral',
+      end: value.trim() || 'Neutral',
+      shift: 'Steady',
+    };
+  }
+
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    start: coerceString(source.start ?? source.beginning ?? source.initial, 'Neutral'),
+    end: coerceString(source.end ?? source.ending ?? source.final, 'Neutral'),
+    shift: coerceString(source.shift ?? source.change ?? source.trajectory, 'Steady'),
+  };
+}
+
+function normalizeTurningPoints(value) {
+  const items = Array.isArray(value)
+    ? value
+    : value && typeof value === 'object'
+      ? Array.isArray(value.items)
+        ? value.items
+        : Object.values(value)
+      : [];
+
+  return items
+    .map((item, index) => {
+      if (typeof item === 'string') {
+        const detail = item.trim();
+        return detail
+          ? {
+              title: `Turning Point ${index + 1}`,
+              detail,
+              timestamp: null,
+            }
+          : null;
+      }
+
+      if (!item || typeof item !== 'object') return null;
+
+      const title = coerceString(item.title ?? item.label ?? item.moment, `Turning Point ${index + 1}`);
+      const detail = coerceString(item.detail ?? item.description ?? item.summary ?? item.why, '');
+      if (!detail && !title) return null;
+
+      return {
+        title: title || `Turning Point ${index + 1}`,
+        detail: detail || title,
+        timestamp: normalizeNullableString(item.timestamp ?? item.time ?? item.at),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeFollowUpMessage(value) {
+  return coerceString(value, '');
+}
+
+function normalizeDrivingIndex(value) {
+  if (typeof value === 'string') {
+    return {
+      primaryDriver: value.trim() || 'Unclear',
+      insight: '',
+    };
+  }
+
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    primaryDriver: coerceString(source.primaryDriver ?? source.driver ?? source.theme ?? source.label, 'Unclear'),
+    insight: coerceString(source.insight ?? source.summary ?? source.why, ''),
   };
 }
 
@@ -699,19 +1001,36 @@ function normalizeCoverageStatus(value) {
   return 'MISSED';
 }
 
+function normalizeQuestionEvidence(status, value) {
+  if (normalizeCoverageStatus(status) === 'MISSED') return null;
+  const evidence = coerceStringArray(value);
+  return evidence.length ? evidence.join(' | ') : null;
+}
+
 function normalizeHandledStatus(value) {
   if (typeof value === 'boolean') {
     return value ? 'HANDLED' : 'NOT_HANDLED';
   }
 
   const normalized = normalizeKey(value);
-  if (!normalized) return 'UNKNOWN';
+  if (!normalized) return 'NOT_HANDLED';
   if (['handled', 'resolved', 'addressed', 'yes'].includes(normalized)) return 'HANDLED';
+  if (['partial', 'partially', 'mixed', 'somewhat', 'incomplete'].includes(normalized)) return 'PARTIALLY';
   if (['missed', 'unhandled', 'no', 'pending'].includes(normalized)) return 'NOT_HANDLED';
-  return String(value).trim().toUpperCase();
+  return 'NOT_HANDLED';
 }
 
-function normalizeProductVerdict(value, recommendedModel, why) {
+function normalizeObjectionCategory(value) {
+  const normalized = normalizeKey(value);
+  if (['price', 'pricing', 'cost', 'budget', 'emi', 'finance'].includes(normalized)) return 'price';
+  if (['competitor', 'competition', 'comparison', 'brand'].includes(normalized)) return 'competitor';
+  if (['features', 'feature', 'variant', 'specs', 'technology'].includes(normalized)) return 'features';
+  if (['timing', 'timeline', 'delivery', 'wait', 'delay'].includes(normalized)) return 'timing';
+  if (['trust', 'credibility', 'quality', 'reliability', 'build'].includes(normalized)) return 'trust';
+  return 'other';
+}
+
+function normalizeProductVerdict(value, pitchedModels, recommendedModel, why) {
   const normalized = normalizeKey(value);
   if (normalized) {
     if (['correct', 'rightfit', 'right_fit', 'match', 'goodfit', 'good_fit'].includes(normalized)) return 'CORRECT';
@@ -722,8 +1041,24 @@ function normalizeProductVerdict(value, recommendedModel, why) {
     if (['notmade', 'not_made', 'norecommendation', 'none', 'unknown'].includes(normalized)) return 'NOT_MADE';
   }
 
+  if (!pitchedModels.length && !recommendedModel) return 'NOT_MADE';
   if (recommendedModel && why) return 'PARTIALLY_CORRECT';
   return 'NOT_MADE';
+}
+
+function normalizeCoachPriority(value) {
+  const normalized = normalizeKey(value);
+  if (['high', 'urgent', 'critical'].includes(normalized)) return 'high';
+  if (['low', 'minor', 'nice_to_have'].includes(normalized)) return 'low';
+  return 'medium';
+}
+
+function buildAdviceTitle(detail, index) {
+  const normalized = coerceString(detail, '');
+  if (!normalized) return `Coach Tip ${index + 1}`;
+  const firstChunk = normalized.split(/[.!?]/)[0].trim();
+  if (!firstChunk) return `Coach Tip ${index + 1}`;
+  return firstChunk.length > 70 ? `${firstChunk.slice(0, 67).trim()}...` : firstChunk;
 }
 
 function findSpeedStageKey(value) {
@@ -746,8 +1081,7 @@ function normalizeStageScore(value) {
 function normalizePercent(value, fallback) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
-  if (numeric <= 1) return clamp(Math.round(numeric * 100), 0, 100);
-  if (numeric <= 10 && Number.isInteger(numeric)) return clamp(Math.round(numeric * 10), 0, 100);
+  if (numeric > 0 && numeric < 1 && !Number.isInteger(numeric)) return clamp(Math.round(numeric * 100), 0, 100);
   return clamp(Math.round(numeric), 0, 100);
 }
 

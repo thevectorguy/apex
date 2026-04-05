@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Screen } from '../types';
 import { announcements } from '../data/announcements';
+import { assignedInventoryVehicles } from '../data/marutiVehicles';
 import { useEffect, useState } from 'react';
 import { getMasterCopyInfo } from '../lib/myCoachApi';
 
@@ -18,10 +19,10 @@ const quickActions: Array<{
 }> = [
   {
     eyebrow: 'Catalog',
-    value: '24',
+    value: '5',
     unit: 'Models',
-    detail: '8 ready today',
-    hint: 'Browse live inventory',
+    detail: '2 assigned today',
+    hint: 'Browse Maruti inventory',
     icon: 'directions_car',
     route: 'catalog',
     cardClass: 'from-[#1d1a15] via-[#302716] to-[#14141c]',
@@ -32,7 +33,7 @@ const quickActions: Array<{
     eyebrow: 'Practice',
     value: '2',
     unit: 'Drills',
-    detail: 'EV and close rehearsal',
+    detail: 'Mileage and finance rehearsal',
     hint: 'Launch simulator',
     icon: 'exercise',
     route: 'pitch_practice',
@@ -272,38 +273,33 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
       <section className="space-y-4">
         <h2 className="font-headline text-lg font-bold tracking-tight text-on-surface">Assigned Inventory</h2>
         <div className="flex overflow-x-auto hide-scrollbar gap-4 -mx-6 px-6">
-          <div className="flex-none w-64 bg-surface-container rounded-[20pt] p-4 space-y-3 cursor-pointer hover:bg-surface-container-high transition-colors" onClick={() => onNavigate('catalog')}>
-            <div className="h-32 rounded-xl overflow-hidden">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQuubsx10_Tc8Dsha7IAyxkOLkan5kCzi8lOroMtoKW5xYfo_r4AuNlrK6zB_BdNRxVwki8wr1Zk7-_tDY5A_CkXzWtNSml-C8Td_rZlVZ7iojCIE5YmaC90ZQuHhF78nhUiQNZAZpXUB7CK1pcXaudx32lpQWD-faqMQlTGDHVKUE7KD66jGNnx3AUuHj3CyGQS1CTt-4oV-1p6rAdCfGpTVu2qZMpNNBHArcv2xeKIYHJExDfHKUzWAXsNqHylVWBAfM_TqDcS0"
-                alt="Car"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h4 className="font-headline font-bold text-on-surface">GT Speedster X</h4>
-              <div className="flex gap-2 mt-1">
-                <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">V12 Hybrid</span>
-                <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">In Stock</span>
+          {assignedInventoryVehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              className="flex-none w-64 bg-surface-container rounded-[20pt] p-4 space-y-3 cursor-pointer hover:bg-surface-container-high transition-colors"
+              onClick={() => onNavigate('catalog')}
+            >
+              <div className="h-32 rounded-xl overflow-hidden">
+                <img
+                  src={vehicle.image}
+                  alt={vehicle.modelName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h4 className="font-headline font-bold text-on-surface">{vehicle.modelName}</h4>
+                <p className="mt-1 text-xs text-on-surface-variant">{vehicle.variantName}</p>
+                <div className="flex gap-2 mt-2">
+                  <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">
+                    {vehicle.network}
+                  </span>
+                  <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">
+                    {vehicle.inventoryStatus}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex-none w-64 bg-surface-container rounded-[20pt] p-4 space-y-3 cursor-pointer hover:bg-surface-container-high transition-colors" onClick={() => onNavigate('catalog')}>
-            <div className="h-32 rounded-xl overflow-hidden">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMfKypZNoBEJ5ofBH6RuPdTRqXNlSq2bPwr_Dbw5YyFOPtaZ-rXaPsuDVgJ-gwJ56-h1ZhIsB8bs6sTo1al1JCr_Jq32rS63lzKd6BNgvZ9IxVnLDT5l479RhK8DESJOB7GTgpovGVKruWXmKOTLcTZ9Hi_BXdWBcu7KzkS-M6D50XfLDsHhoSaXF-jRHuslCaZOpnSgM3-X_iA-hc7SH65xQt23qI9ILZTHNwZrbSJBpAnoEF0mgjaZETfH-HtcAPBzCHSW4wkcU"
-                alt="Car"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h4 className="font-headline font-bold text-on-surface">Vulcan Core</h4>
-              <div className="flex gap-2 mt-1">
-                <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">All-Electric</span>
-                <span className="font-label text-[10px] bg-surface-container-highest px-2 py-0.5 rounded text-primary uppercase">Reserved</span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -316,7 +312,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">SM</div>
               <div>
                 <p className="font-bold text-on-surface">Sarah Mitchell</p>
-                <p className="text-xs text-on-surface-variant">Vulcan Core Inquiry</p>
+                <p className="text-xs text-on-surface-variant">Brezza ZXi+ walkaround</p>
               </div>
             </div>
             <span className="bg-error-container text-on-error-container px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">Hot</span>
@@ -326,7 +322,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold">DL</div>
               <div>
                 <p className="font-bold text-on-surface">David Lee</p>
-                <p className="text-xs text-on-surface-variant">Scheduled Walkaround</p>
+                <p className="text-xs text-on-surface-variant">Fronx Alpha exchange case</p>
               </div>
             </div>
             <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">New</span>
@@ -336,7 +332,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               <div className="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary font-bold">KB</div>
               <div>
                 <p className="font-bold text-on-surface">Kiran Baxi</p>
-                <p className="text-xs text-on-surface-variant">Finance Approval Pending</p>
+                <p className="text-xs text-on-surface-variant">Ertiga family finance approval</p>
               </div>
             </div>
             <span className="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tighter">Follow-up</span>

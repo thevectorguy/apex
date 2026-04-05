@@ -15,7 +15,7 @@ export type Screen =
   | 'live_scenario'
   | 'studio_config';
 
-export type TranscriptSpeaker = 'salesperson' | 'customer' | 'system';
+export type TranscriptSpeaker = 'salesperson' | 'customer' | 'system' | 'unknown';
 
 export type CoachingGrade = 'A+' | 'A' | 'B' | 'C' | 'D';
 
