@@ -43,7 +43,6 @@ const EMPTY_METER_VALUES = Array.from({ length: METER_BAR_COUNT }, () => 0.12);
 const PREVIEW_STACK_LIMIT = 8;
 const RECOGNITION_SETTLE_IDLE_MS = 500;
 const RECOGNITION_STOP_TIMEOUT_MS = 1200;
-const BROWSER_TRANSCRIPT_REQUIRED_ERROR = 'My Coach needs a browser transcript before analysis can start.';
 
 export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(readRememberedThreadId());
@@ -89,15 +88,12 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   const elapsedMs =
     capturedMs + (captureState === 'recording' && segmentStartedAtRef.current ? tick - segmentStartedAtRef.current : 0);
   const statusPill = captureState === 'recording' ? 'Recording' : captureState === 'paused' ? 'Paused' : 'Ready';
-  const needsTranscriptRetry = error === BROWSER_TRANSCRIPT_REQUIRED_ERROR;
   const primaryActionLabel =
     captureState === 'recording'
       ? 'Pause capture'
-      : needsTranscriptRetry
-        ? 'Retry capture'
-        : segments.length
-          ? 'Resume capture'
-          : 'Start capture';
+      : segments.length
+        ? 'Resume capture'
+        : 'Start capture';
   const reactiveLevel = Math.min(
     1,
     Math.max(0, meterValues.reduce((sum, value) => sum + value, 0) / Math.max(1, meterValues.length)),
@@ -275,8 +271,15 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         const result = event.results[index];
         const text = result?.[0]?.transcript?.trim();
         if (!text) continue;
-        if (result.isFinal) finalized.push(text);
-        else nextInterim = `${nextInterim} ${text}`.trim();
+        if (result.isFinal) {
+          console.log('[my-coach][stt:isFinal]', {
+            at: new Date().toISOString(),
+            resultIndex: event.resultIndex,
+            slotIndex: index,
+            text,
+          });
+          finalized.push(text);
+        } else nextInterim = `${nextInterim} ${text}`.trim();
       }
 
       if (finalized.length) {
@@ -289,6 +292,12 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         setFinalTranscriptLines((current) => {
           const nextLines = [...current, ...finalizedTranscriptLines];
           finalTranscriptLinesRef.current = nextLines;
+          console.log('[my-coach][stt:append-final-buffer]', {
+            at: new Date().toISOString(),
+            appended: finalized,
+            bufferSize: nextLines.length,
+            bufferText: nextLines.map((line) => line.text),
+          });
           return nextLines;
         });
       }
@@ -450,19 +459,6 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         return;
       }
 
-      if (needsTranscriptRetry) {
-        setError(null);
-        setSegments([]);
-        segmentsRef.current = [];
-        setCapturedMs(0);
-        setTick(Date.now());
-        setPreviewLines([]);
-        setFinalTranscriptLines([]);
-        finalTranscriptLinesRef.current = [];
-        setInterimPreview('');
-        setPreviewStatus('idle');
-      }
-
       await startRecordingSegment();
     } catch (issue) {
       setCaptureState('paused');
@@ -484,14 +480,15 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 
       const nextSegments = segmentsRef.current;
       const transcriptText = finalTranscriptLinesRef.current.map((line) => line.text).join(' ').trim();
+      console.log('[my-coach][stt:end-conversation-check]', {
+        at: new Date().toISOString(),
+        segmentCount: nextSegments.length,
+        finalTranscriptLines: finalTranscriptLinesRef.current.map((line) => line.text),
+        transcriptText,
+      });
       if (!nextSegments.length) {
         setCaptureState('paused');
         setError('Record at least one segment before ending the conversation.');
-        return;
-      }
-      if (!transcriptText) {
-        setCaptureState('paused');
-        setError(BROWSER_TRANSCRIPT_REQUIRED_ERROR);
         return;
       }
 
@@ -499,7 +496,6 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         customerId: detail.id,
         title: `${detail.customerName} live session`,
         source: 'recorded',
-        transcriptText,
         clips: nextSegments.map(({ fileName, mimeType, base64, source, durationMs }) => ({
           fileName,
           mimeType,
@@ -668,7 +664,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 	                      transition={{ duration: 0.18, ease: 'easeOut' }}
 	                      className="material-symbols-outlined text-[44px] text-white"
 	                    >
-	                      {captureState === 'recording' ? 'pause' : needsTranscriptRetry ? 'replay' : 'mic'}
+	                      {captureState === 'recording' ? 'pause' : 'mic'}
 	                    </motion.span>
 	                    <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/58">{primaryActionLabel}</p>
 	                  </div>

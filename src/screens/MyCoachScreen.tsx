@@ -16,7 +16,7 @@ import {
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
 
-const emptyForm = { customerName: '', phone: '', customerContext: '', notes: '' };
+const emptyForm = { customerName: '', phone: '', customerContext: '', preferredLanguage: '', notes: '' };
 
 export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
@@ -25,6 +25,8 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [failedFields, setFailedFields] = useState<string[]>([]);
+  const [animatingFields, setAnimatingFields] = useState<string[]>([]);
   const activeThread = selectedThreadId ? threads.find((thread) => thread.id === selectedThreadId) ?? null : null;
 
   useEffect(() => {
@@ -63,6 +65,20 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
 
   async function handleCreateThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    
+    const newFailedFields: string[] = [];
+    if (!form.customerName.trim()) newFailedFields.push('customerName');
+    if (!form.phone.trim()) newFailedFields.push('phone');
+    if (!form.customerContext.trim()) newFailedFields.push('customerContext');
+
+    if (newFailedFields.length > 0) {
+      setFailedFields(newFailedFields);
+      setAnimatingFields(newFailedFields);
+      setTimeout(() => setAnimatingFields([]), 600);
+      return;
+    }
+    setFailedFields([]);
+
     setSaving(true);
     setError(null);
 
@@ -187,21 +203,40 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
           <div className="grid gap-3 lg:grid-cols-2">
             <input
               value={form.customerName}
-              onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, customerName: event.target.value }));
+                if (failedFields.includes('customerName')) setFailedFields((current) => current.filter((f) => f !== 'customerName'));
+              }}
               placeholder="Customer name"
-              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
+                failedFields.includes('customerName') ? 'border-error/80' : 'border-white/8'
+              } ${animatingFields.includes('customerName') ? 'animate-shake' : ''}`}
             />
             <input
               value={form.phone}
-              onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, phone: event.target.value }));
+                if (failedFields.includes('phone')) setFailedFields((current) => current.filter((f) => f !== 'phone'));
+              }}
               placeholder="Phone number"
-              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
+                failedFields.includes('phone') ? 'border-error/80' : 'border-white/8'
+              } ${animatingFields.includes('phone') ? 'animate-shake' : ''}`}
             />
             <input
               value={form.customerContext}
-              onChange={(event) => setForm((current) => ({ ...current, customerContext: event.target.value }))}
-              placeholder="Customer context"
-              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none lg:col-span-2"
+              onChange={(event) => {
+                setForm((current) => ({ ...current, customerContext: event.target.value }));
+                if (failedFields.includes('customerContext')) setFailedFields((current) => current.filter((f) => f !== 'customerContext'));
+              }}
+              placeholder="Need summary or customer context"
+              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
+                failedFields.includes('customerContext') ? 'border-error/80' : 'border-white/8'
+              } ${animatingFields.includes('customerContext') ? 'animate-shake' : ''}`}
+            />
+            <LanguagePickerSheet
+              value={form.preferredLanguage}
+              onChange={(val) => setForm((current) => ({ ...current, preferredLanguage: val }))}
             />
             <textarea
               value={form.notes}
@@ -272,5 +307,133 @@ function Banner({ text, tone }: { text: string; tone: 'error' | 'success' }) {
     >
       {text}
     </div>
+  );
+}
+
+function LanguagePickerSheet({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  function handleClose() {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+    }, 400);
+  }
+
+  const languages = [
+    { label: 'English', value: 'English' },
+    { label: 'Hindi', value: 'Hindi' },
+    { label: 'Marathi', value: 'Marathi' },
+    { label: 'Gujarati', value: 'Gujarati' },
+    { label: 'Tamil', value: 'Tamil' },
+    { label: 'Telugu', value: 'Telugu' },
+    { label: 'Kannada', value: 'Kannada' },
+    { label: 'Malayalam', value: 'Malayalam' },
+    { label: 'Bengali', value: 'Bengali' },
+    { label: 'Punjabi', value: 'Punjabi' },
+    { label: 'Odia', value: 'Odia' },
+  ];
+
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm focus:border-primary/40 focus:outline-none"
+      >
+        <span className={`text-left truncate ${value ? 'text-on-surface' : 'text-white/32'}`}>
+          {value || 'Language'}
+        </span>
+        <span className="material-symbols-outlined shrink-0 text-[18px] text-white/40">expand_more</span>
+      </button>
+
+      {(isOpen || isClosing) && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+          <button
+            type="button"
+            className={`absolute inset-0 w-full h-full cursor-default transition-opacity duration-[400ms] ease-out bg-black/40 backdrop-blur-[2px] ${
+              isClosing ? 'opacity-0' : 'animate-fade-in-backdrop opacity-100'
+            }`}
+            onClick={handleClose}
+            aria-label="Close"
+          />
+          <div className={`relative z-10 pb-6 md:pb-8 transition-transform duration-[400ms] ease-[cubic-bezier(0.2,0.8,0.4,1)] ${
+            isClosing ? 'translate-y-full' : 'translate-y-0 animate-slide-up-bottom'
+          }`}>
+            <div className="mx-4 mb-3 overflow-hidden rounded-3xl border border-white/10 bg-[#1c1d25]/85 backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
+              <div className="border-b border-white/10 px-5 py-4">
+                <p className="text-center text-[13px] font-semibold uppercase tracking-[0.12em] text-white/50">
+                  Select Language
+                </p>
+              </div>
+              <div className="max-h-[45vh] overflow-y-auto overscroll-contain">
+                <LanguageOption
+                  label="Language (Any)"
+                  isSelected={value === ''}
+                  onClick={() => {
+                    onChange('');
+                    handleClose();
+                  }}
+                />
+                {languages.map((lang) => (
+                  <LanguageOption
+                    key={lang.value}
+                    label={lang.label}
+                    isSelected={value === lang.value}
+                    onClick={() => {
+                      onChange(lang.value);
+                      handleClose();
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mx-4 overflow-hidden rounded-[22px] border border-white/10 bg-[#1c1d25]/85 backdrop-blur-2xl shadow-2xl">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-full px-6 py-4 text-center text-[17px] font-semibold text-primary transition-colors hover:bg-white/5 active:bg-white/10"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LanguageOption({
+  label,
+  isSelected,
+  onClick,
+}: {
+  label: string;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center justify-between border-b border-white/5 px-6 py-4 text-left transition-colors last:border-0 hover:bg-white/5 active:bg-white/10 ${
+        isSelected ? 'bg-primary/5 text-primary' : 'text-white/85'
+      }`}
+    >
+      <span className="text-[17px] font-medium tracking-tight">{label}</span>
+      {isSelected && (
+        <span className="material-symbols-outlined text-[22px] text-primary">check</span>
+      )}
+    </button>
   );
 }

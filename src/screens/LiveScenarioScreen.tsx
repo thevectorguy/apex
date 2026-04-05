@@ -2,13 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Screen } from '../types';
 import { readSearchParam } from '../lib/appRouter';
+import { inventoryVehicleById, type InventoryVehicleId } from '../data/marutiVehicles';
 
 type SessionState = 'idle' | 'listening' | 'processing' | 'speaking';
-
-const vehicleLabels: Record<string, string> = {
-  elevate: 'Honda Elevate',
-  'gt-carbon': 'DILOS GT-Carbon',
-};
 
 const personaLabels: Record<string, string> = {
   skeptic: 'The Skeptic',
@@ -19,20 +15,24 @@ const personaLabels: Record<string, string> = {
 export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   const [session, setSession] = useState<SessionState>('idle');
   const [transcript, setTranscript] = useState('');
-  const vehicleLabel = vehicleLabels[readSearchParam('vehicle') || 'elevate'] || vehicleLabels.elevate;
+  const requestedVehicle = readSearchParam('vehicle') as InventoryVehicleId | null;
+  const vehicleLabel =
+    requestedVehicle && requestedVehicle in inventoryVehicleById
+      ? inventoryVehicleById[requestedVehicle].brochureTitle
+      : inventoryVehicleById.brezza.brochureTitle;
   const personaLabel = personaLabels[readSearchParam('persona') || 'skeptic'] || personaLabels.skeptic;
 
   // Fake interaction flow for the prototype
   useEffect(() => {
     if (session === 'listening') {
-      setTranscript("So, about the Touring edition...");
+      setTranscript('Can you show me what extra I get in the top variant?');
       const t = setTimeout(() => setSession('processing'), 2000);
       return () => clearTimeout(t);
     } else if (session === 'processing') {
       const t = setTimeout(() => setSession('speaking'), 1500);
       return () => clearTimeout(t);
     } else if (session === 'speaking') {
-      setTranscript("I'm just not sure about the range. I drive a lot for work, sometimes 200 kilometers a day. What happens if I get stuck in traffic with the AC on?");
+      setTranscript("I drive both city and highway every week. Is the automatic still efficient enough, and which variant gives me the best value without overspending?");
     }
   }, [session]);
 
@@ -191,7 +191,7 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                   <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-[14px] md:text-[16px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
                   </div>
-                  <span className="font-body text-xs md:text-sm font-medium text-white shadow-sm line-clamp-2 leading-tight">Focus on the regenerative braking feature.</span>
+                  <span className="font-body text-xs md:text-sm font-medium text-white shadow-sm line-clamp-2 leading-tight">Anchor the pitch on mileage confidence, trim value, and ease of ownership.</span>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Screen } from '../types';
 import { writeSearchParam } from '../lib/appRouter';
+import { pitchPracticeVehicles, type InventoryVehicleId } from '../data/marutiVehicles';
 
 export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  const [selectedVehicle, setSelectedVehicle] = useState<'elevate' | 'gt-carbon'>('elevate');
+  const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicleId>('brezza');
   const [selectedPersona, setSelectedPersona] = useState<'skeptic' | 'tech_enthusiast' | 'budget_buyer'>('skeptic');
 
   function startSimulation() {
@@ -31,37 +32,24 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
       <section className="mb-10">
         <h2 className="font-headline text-xl font-semibold text-on-surface mb-4">Select Vehicle</h2>
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4">
-          <button
-            type="button"
-            onClick={() => setSelectedVehicle('elevate')}
-            className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
-              selectedVehicle === 'elevate'
-                ? 'bg-surface-container-high border-2 border-primary'
-                : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
-            }`}
-          >
-            <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhXIdhTuTs5bnCuHvnw0p3tJN0JqMUu2oGchCZJEQBKVKyRYaARHUn50iGNTKYanc-sf8dVJXz-3-eI7SBI-S-x2Tuj2ucWlA4BfPpEPUkJw6V5KSx8KEdIn_p_xAYL_f0Ba7x2QnsIThG_wcWYOEb8rhgBcSZe4apSnxgM7y4o8D7-rL_hvDuu_sMawFSyNxd5pDStq4GiJdqcU3CQmfcPge91c15Cb4LD3DbzfNmRdZsFvM-yertu2SzHFulXvlhCgqESKJCjfY" alt="Elevate" className="w-full h-full object-cover" />
-            </div>
-            <h3 className="font-headline font-bold text-on-surface">Honda Elevate</h3>
-            <p className="font-label text-xs text-secondary mt-1">Focus: EV Features</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedVehicle('gt-carbon')}
-            className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
-              selectedVehicle === 'gt-carbon'
-                ? 'bg-surface-container-high border-2 border-primary'
-                : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
-            }`}
-          >
-            <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ1s3plcYdQGJnNeQ1aPcdeSfdPe08bpcEvAjF_DUhMMi7mKxjcMatFH0MSkVV2shP9a4zXxjNkUD3fr4eEQSmQndDRPvSDYnKdYImSbkoU-bg4Fadej4b065x3gGjGGtkjzLdDOJPlFtePMWws2hcRZk_brwj_nWCFwnrWVTi_DwPTqBpHHc_RCUkQQqax3UDztPdHSkxLIBGjYOlmNnyTOtFV4L66BAZnRqoRg2K9mMniTB5EBOvXCumJbR2r7RiE1lB0vRsfxc" alt="DILOS GT" className="w-full h-full object-cover" />
-            </div>
-            <h3 className="font-headline font-bold text-on-surface">DILOS GT-Carbon</h3>
-            <p className="font-label text-xs text-on-surface-variant mt-1">Focus: Performance</p>
-          </button>
+          {pitchPracticeVehicles.map((vehicle) => (
+            <button
+              key={vehicle.id}
+              type="button"
+              onClick={() => setSelectedVehicle(vehicle.id)}
+              className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
+                selectedVehicle === vehicle.id
+                  ? 'bg-surface-container-high border-2 border-primary'
+                  : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
+              }`}
+            >
+              <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
+                <img src={vehicle.image} alt={vehicle.modelName} className="w-full h-full object-cover" />
+              </div>
+              <h3 className="font-headline font-bold text-on-surface">{vehicle.modelName}</h3>
+              <p className="font-label text-xs text-secondary mt-1">{vehicle.variantName}</p>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -74,7 +62,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Skeptic</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
-                Concerned about EV range and charging infrastructure. Needs reassurance with facts and figures.
+                Worried about mileage claims, resale, and whether the higher trim is really worth it.
               </p>
             </div>
           </label>
@@ -84,7 +72,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Tech Enthusiast</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
-                Wants to know about the infotainment system, autonomous features, and app integration.
+                Wants a sharp walkthrough of infotainment, connected features, cameras, and convenience tech.
               </p>
             </div>
           </label>
@@ -94,7 +82,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Budget Buyer</h3>
               <p className="font-body text-sm text-on-surface-variant mt-1">
-                Focused on total cost of ownership, financing options, and long-term value.
+                Focused on EMI, exchange value, running cost, and which Maruti variant lands best on value.
               </p>
             </div>
           </label>

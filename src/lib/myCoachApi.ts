@@ -18,7 +18,7 @@ export type CustomerThreadSummary = {
 
 export type TranscriptTurn = {
   id: string;
-  speaker: 'salesperson' | 'customer' | 'coach';
+  speaker: 'salesperson' | 'customer' | 'coach' | 'unknown';
   text: string;
   timestamp: string;
   confidence?: number;
@@ -28,6 +28,69 @@ export type SpeedStageScore = {
   stage: string;
   score: number;
   note: string;
+  evidence?: string[];
+};
+
+export type QuestionCoverageStatus = 'COVERED' | 'PARTIALLY' | 'MISSED';
+
+export type QuestionCoverageItem = {
+  id: string;
+  question: string;
+  status: QuestionCoverageStatus;
+  evidence: string | null;
+};
+
+export type ObjectionHandledStatus = 'HANDLED' | 'PARTIALLY' | 'NOT_HANDLED';
+
+export type ObjectionReviewItem = {
+  label: string;
+  category: 'price' | 'competitor' | 'features' | 'timing' | 'trust' | 'other';
+  handled: ObjectionHandledStatus;
+  how: string | null;
+  advice: string | null;
+  strategy: string | null;
+  evidence: string[];
+};
+
+export type ProductFitReview = {
+  verdict: 'CORRECT' | 'PARTIALLY_CORRECT' | 'INCORRECT' | 'NOT_MADE';
+  pitchedModels: string[];
+  salesmanPick: string | null;
+  customerPreferred: string | null;
+  idealMatch: string | null;
+  avoidModels: ProductFitAvoidItem[];
+  why: string;
+  recommendedModel?: string | null;
+  betterAlternative?: string | null;
+};
+
+export type ProductFitAvoidItem = {
+  model: string;
+  rationale: string;
+  evidence: string[];
+};
+
+export type CoachAdviceItem = {
+  title: string;
+  detail: string;
+  priority: 'high' | 'medium' | 'low';
+};
+
+export type CustomerSentiment = {
+  start: string;
+  end: string;
+  shift: string;
+};
+
+export type TurningPoint = {
+  title: string;
+  detail: string;
+  timestamp: string | null;
+};
+
+export type DrivingIndex = {
+  primaryDriver: string;
+  insight: string;
 };
 
 export type CoachingReport = {
@@ -42,13 +105,22 @@ export type CoachingReport = {
   sourceNote: string;
   speedStages: SpeedStageScore[];
   questionCoverage: string[];
+  questionCoverageItems: QuestionCoverageItem[];
   objectionReviews: string[];
+  objections: ObjectionReviewItem[];
   productFitSummary: string;
+  productFit: ProductFitReview;
   strengths: string[];
   improvements: string[];
+  coachAdvice: CoachAdviceItem[];
+  nextVisitOpener: string;
   nextVisitPrep: string[];
   researchTasks: string[];
   transcriptHighlights: TranscriptTurn[];
+  customerSentiment: CustomerSentiment;
+  turningPoints: TurningPoint[];
+  followUpMessage: string;
+  drivingIndex: DrivingIndex;
   comparisonToPrevious?: string | null;
   warnings?: string[];
   generatedAt: string;
@@ -91,6 +163,7 @@ export type CreateCustomerInput = {
   phone: string;
   customerContext: string;
   notes?: string;
+  preferredLanguage?: string;
 };
 
 export type AudioClipPayload = {
@@ -118,8 +191,6 @@ export type PendingLiveSessionSubmission = {
   title: string;
   source: 'recorded' | 'uploaded' | 'mixed';
   clips: AudioClipPayload[];
-  transcriptText: string;
-  transcriptLines?: TranscriptTurn[];
 };
 
 export type MasterCopyInfo = {
@@ -131,7 +202,7 @@ export type MasterCopyInfo = {
 let pendingLiveSessionSubmission: PendingLiveSessionSubmission | null = null;
 let activeMasterCopyInfo: MasterCopyInfo | null = null;
 const TRANSCRIPT_UNAVAILABLE_MESSAGE =
-  'Audio was captured, but My Coach could not build a reliable transcript for this session. This can happen when the conversation was in another language, too quiet, or mostly silence.';
+  'Audio was captured, but My Coach could not build a reliable transcript for this session.';
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -202,6 +273,7 @@ export async function getCustomerThread(customerId: string) {
 }
 
 export async function createCustomerThread(input: CreateCustomerInput) {
+  const preferredLanguage = input.preferredLanguage?.trim();
   const payload = await requestJson<{ customer: BackendCustomer }>('/customers', {
     method: 'POST',
     body: JSON.stringify({
@@ -214,6 +286,7 @@ export async function createCustomerThread(input: CreateCustomerInput) {
         stage: 'New thread',
         badge: 'New',
         notes: input.notes ? [input.notes] : [],
+        ...(preferredLanguage ? { preferredLanguage } : {}),
       },
     }),
   });
@@ -226,7 +299,7 @@ export async function submitCoachAudio(params: {
   title?: string;
   source: 'recorded' | 'uploaded' | 'mixed';
   clips: AudioClipPayload[];
-  transcriptText: string;
+  transcriptText?: string;
   transcriptLines?: TranscriptTurn[];
 }) {
   const sessionPayload = await requestJson<{ session: BackendSession }>('/sessions', {
@@ -243,8 +316,8 @@ export async function submitCoachAudio(params: {
     method: 'POST',
     body: JSON.stringify({
       clips: params.clips,
-      transcriptText: params.transcriptText,
-      transcriptLines: params.transcriptLines,
+      ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
+      ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
       transcriptSource: 'browser_stt',
     }),
   });
@@ -548,7 +621,7 @@ function mapSession(session: BackendSession, extras: { clipCount: number; report
     createdAt: session.createdAt,
     status: normalizeStatus(session.status),
     clipCount: extras.clipCount,
-    transcript: transcriptTurns.length ? transcriptTurns : extras.report?.transcriptHighlights || [],
+    transcript: transcriptTurns,
     report: extras.report,
     source: 'mixed',
     errorMessage: session.errorMessage || null,
@@ -576,7 +649,24 @@ function mapReport(report: BackendReport): CoachingReport {
     stage: stage.label,
     score: stage.score,
     note: stage.rationale || 'Stage review generated from the training master copy.',
+    evidence: Array.isArray(stage.evidence) ? ensureStringArray(stage.evidence) : [],
   }));
+  const questionCoverageItems = (report.questionCoverage || []).map(mapQuestionCoverageItem);
+  const objections = (report.objections || []).map(mapObjectionItem);
+  const productFit = mapProductFit(report.productFit);
+  const coachAdvice = (report.coachAdvice || []).map(mapCoachAdviceItem);
+  const transcriptHighlights = (report.transcriptTurns || []).map(mapTranscriptTurn);
+  const nextVisitOpener = ensureString(report.nextVisitOpener);
+  const drivingIndex = mapDrivingIndex(report.drivingIndex);
+  const preferredModelLabel = extractProductFitLabel(
+    productFit.idealMatch || productFit.recommendedModel || productFit.salesmanPick || productFit.customerPreferred,
+  );
+  const fallbackFitLabel = productFit.verdict === 'NOT_MADE' ? 'Not Made' : '';
+  const productFitSummary =
+    preferredModelLabel ||
+    fallbackFitLabel ||
+    productFit.why ||
+    'Product fit was evaluated against the current training master copy.';
 
   return {
     id: report.id || `report-${Math.random().toString(36).slice(2, 9)}`,
@@ -592,23 +682,125 @@ function mapReport(report: BackendReport): CoachingReport {
       'My Coach generated a report using the current training master copy.',
     sourceNote: `Analysis is based on ${report.masterCopyVersion || getTrainingMasterCopyLabel()}.`,
     speedStages,
-    questionCoverage: (report.questionCoverage || [])
+    questionCoverage: questionCoverageItems
       .slice(0, 8)
-      .map((item) => `${item.id}: ${item.status} | ${item.question}`),
-    objectionReviews: (report.objections || []).map(
-      (item) => `${item.label}: ${item.handled} | ${item.strategy}`,
+      .map((item) => `${item.status} | ${item.question}${item.evidence ? ` | ${item.evidence}` : ''}`),
+    questionCoverageItems,
+    objectionReviews: objections.map(
+      (item) => `${item.label}: ${item.handled} | ${item.how || item.advice || item.strategy || item.category}`,
     ),
-    productFitSummary:
-      report.productFit?.why || 'Product fit was evaluated against the current training master copy.',
+    objections,
+    productFitSummary,
+    productFit,
     strengths: report.strengths || [],
     improvements: report.improvements || [],
+    coachAdvice,
+    nextVisitOpener,
     nextVisitPrep: report.nextVisitPreparation || [],
     researchTasks: report.researchTasks || [],
-    transcriptHighlights: (report.transcriptTurns || []).map(mapTranscriptTurn),
+    transcriptHighlights,
+    customerSentiment: mapCustomerSentiment(report.customerSentiment),
+    turningPoints: (report.turningPoints || []).map(mapTurningPoint),
+    followUpMessage: ensureString(report.followUpMessage),
+    drivingIndex,
     comparisonToPrevious: report.comparisonToPrevious || null,
     warnings: report.warnings || [],
     generatedAt: report.generatedAt,
   };
+}
+
+function mapQuestionCoverageItem(item: BackendQuestionCoverageItem): QuestionCoverageItem {
+  return {
+    id: item.id || '',
+    question: item.question || 'Relevant question',
+    status: normalizeQuestionCoverageStatus(item.status),
+    evidence: typeof item.evidence === 'string' && item.evidence.trim() ? item.evidence.trim() : null,
+  };
+}
+
+function mapObjectionItem(item: BackendObjectionItem): ObjectionReviewItem {
+  return {
+    label: item.label || 'Unspecified objection',
+    category: normalizeObjectionCategory(item.category),
+    handled: normalizeObjectionHandledStatus(item.handled),
+    how: ensureNullableString(item.how),
+    advice: ensureNullableString(item.advice),
+    strategy: ensureNullableString(item.strategy),
+    evidence: ensureStringArray(item.evidence),
+  };
+}
+
+function mapProductFit(productFit?: BackendProductFit): ProductFitReview {
+  return {
+    verdict: normalizeProductFitVerdict(productFit?.verdict),
+    pitchedModels: ensureStringArray(productFit?.pitchedModels),
+    salesmanPick: ensureNullableString(productFit?.salesmanPick),
+    customerPreferred: ensureNullableString(productFit?.customerPreferred),
+    idealMatch: ensureNullableString(productFit?.idealMatch ?? productFit?.betterAlternative),
+    avoidModels: (productFit?.avoidModels || []).map(mapProductFitAvoidItem).slice(0, 2),
+    why:
+      ensureString(productFit?.why) || 'Product fit was evaluated against the current training master copy.',
+    recommendedModel: ensureNullableString(productFit?.recommendedModel),
+    betterAlternative: ensureNullableString(productFit?.betterAlternative),
+  };
+}
+
+function mapProductFitAvoidItem(item: BackendProductFitAvoidItem): ProductFitAvoidItem {
+  return {
+    model: formatModelLabel(ensureString(item.model) || 'Avoided Fit'),
+    rationale: ensureString(item.rationale) || 'This pitch did not align well with the customer signals in the conversation.',
+    evidence: ensureStringArray(item.evidence),
+  };
+}
+
+function mapCoachAdviceItem(item: BackendCoachAdviceItem): CoachAdviceItem {
+  return {
+    title: ensureString(item.title) || 'Coach Tip',
+    detail: ensureString(item.detail) || ensureString(item.title) || 'Advice generated from the latest report.',
+    priority: normalizeCoachAdvicePriority(item.priority),
+  };
+}
+
+function mapCustomerSentiment(sentiment?: BackendCustomerSentiment): CustomerSentiment {
+  return {
+    start: ensureString(sentiment?.start) || 'Neutral',
+    end: ensureString(sentiment?.end) || 'Neutral',
+    shift: ensureString(sentiment?.shift) || 'Steady',
+  };
+}
+
+function mapTurningPoint(item: BackendTurningPoint): TurningPoint {
+  return {
+    title: ensureString(item.title) || 'Turning Point',
+    detail: ensureString(item.detail) || ensureString(item.title) || 'Key moment from the conversation.',
+    timestamp: ensureNullableString(item.timestamp),
+  };
+}
+
+function mapDrivingIndex(index?: BackendDrivingIndex): DrivingIndex {
+  return {
+    primaryDriver: ensureString(index?.primaryDriver) || 'Unclear',
+    insight: ensureString(index?.insight),
+  };
+}
+
+function extractProductFitLabel(value?: string | null) {
+  const normalized = ensureString(value);
+  if (!normalized) return '';
+  return formatModelLabel(normalized.split('|')[0]?.trim() || normalized);
+}
+
+function formatModelLabel(value: string) {
+  const normalized = ensureString(value);
+  if (!normalized) return '';
+  return normalized
+    .split(/\s+/)
+    .map((part) => {
+      if (!part) return part;
+      if (/[A-Z0-9]{2,}/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' ');
 }
 
 function mapTranscriptTurn(turn: BackendTurn): TranscriptTurn {
@@ -621,13 +813,56 @@ function mapTranscriptTurn(turn: BackendTurn): TranscriptTurn {
     speaker: normalizeSpeaker(turn.speaker),
     text: turn.text,
     timestamp: minutesLabel,
+    confidence: typeof turn.confidence === 'number' ? turn.confidence : undefined,
   };
 }
 
 function normalizeSpeaker(speaker: string) {
   if (speaker === 'system') return 'coach';
   if (speaker === 'salesperson' || speaker === 'customer') return speaker;
+  if (speaker === 'unknown') return 'unknown';
   return 'coach';
+}
+
+function normalizeQuestionCoverageStatus(status: string): QuestionCoverageStatus {
+  if (status === 'COVERED' || status === 'PARTIALLY' || status === 'MISSED') return status;
+  return 'MISSED';
+}
+
+function normalizeObjectionHandledStatus(status: string): ObjectionHandledStatus {
+  if (status === 'HANDLED' || status === 'PARTIALLY' || status === 'NOT_HANDLED') return status;
+  return 'NOT_HANDLED';
+}
+
+function normalizeObjectionCategory(category?: string): ObjectionReviewItem['category'] {
+  if (
+    category === 'price' ||
+    category === 'competitor' ||
+    category === 'features' ||
+    category === 'timing' ||
+    category === 'trust' ||
+    category === 'other'
+  ) {
+    return category;
+  }
+  return 'other';
+}
+
+function normalizeProductFitVerdict(verdict?: string): ProductFitReview['verdict'] {
+  if (
+    verdict === 'CORRECT' ||
+    verdict === 'PARTIALLY_CORRECT' ||
+    verdict === 'INCORRECT' ||
+    verdict === 'NOT_MADE'
+  ) {
+    return verdict;
+  }
+  return 'NOT_MADE';
+}
+
+function normalizeCoachAdvicePriority(priority?: string): CoachAdviceItem['priority'] {
+  if (priority === 'high' || priority === 'medium' || priority === 'low') return priority;
+  return 'medium';
 }
 
 function normalizeStatus(status: string) {
@@ -646,6 +881,15 @@ function normalizeSummaryStatus(status: unknown) {
 
 function ensureStringArray(value: unknown) {
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
+}
+
+function ensureString(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function ensureNullableString(value: unknown) {
+  const normalized = ensureString(value);
+  return normalized || null;
 }
 
 function relativeLabel(dateString: string) {
@@ -686,6 +930,7 @@ type BackendTurn = {
   speaker: string;
   text: string;
   start?: number | null;
+  confidence?: number | null;
 };
 
 type BackendAudioAsset = {
@@ -715,15 +960,79 @@ type BackendReport = {
   reportHighlights?: string[];
   strengths?: string[];
   improvements?: string[];
+  coachAdvice?: BackendCoachAdviceItem[];
+  nextVisitOpener?: string;
   nextVisitPreparation?: string[];
   researchTasks?: string[];
   transcriptTurns?: BackendTurn[];
-  questionCoverage?: Array<{ id: string; status: string; question: string }>;
-  objections?: Array<{ label: string; handled: string; strategy: string }>;
-  productFit?: { why?: string };
+  questionCoverage?: BackendQuestionCoverageItem[];
+  objections?: BackendObjectionItem[];
+  productFit?: BackendProductFit;
   customerProfile?: { label?: string };
   customerContext?: { sessionId?: string };
-  speed?: Record<string, { label: string; score: number; rationale: string }>;
+  speed?: Record<string, { label: string; score: number; rationale: string; evidence?: string[] }>;
+  customerSentiment?: BackendCustomerSentiment;
+  turningPoints?: BackendTurningPoint[];
+  followUpMessage?: string;
+  drivingIndex?: BackendDrivingIndex;
   comparisonToPrevious?: string | null;
   warnings?: string[];
+};
+
+type BackendQuestionCoverageItem = {
+  id: string;
+  status: string;
+  question: string;
+  evidence?: string | null;
+};
+
+type BackendObjectionItem = {
+  label: string;
+  category?: string;
+  handled: string;
+  how?: string | null;
+  advice?: string | null;
+  strategy?: string | null;
+  evidence?: string[];
+};
+
+type BackendProductFit = {
+  verdict?: string;
+  pitchedModels?: string[];
+  salesmanPick?: string | null;
+  customerPreferred?: string | null;
+  idealMatch?: string | null;
+  avoidModels?: BackendProductFitAvoidItem[];
+  why?: string;
+  recommendedModel?: string | null;
+  betterAlternative?: string | null;
+};
+
+type BackendProductFitAvoidItem = {
+  model?: string;
+  rationale?: string;
+  evidence?: string[];
+};
+
+type BackendCoachAdviceItem = {
+  title?: string;
+  detail?: string;
+  priority?: string;
+};
+
+type BackendCustomerSentiment = {
+  start?: string;
+  end?: string;
+  shift?: string;
+};
+
+type BackendTurningPoint = {
+  title?: string;
+  detail?: string;
+  timestamp?: string | null;
+};
+
+type BackendDrivingIndex = {
+  primaryDriver?: string;
+  insight?: string;
 };

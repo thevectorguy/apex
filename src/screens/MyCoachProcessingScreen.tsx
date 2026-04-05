@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import {
   clearPendingLiveSessionSubmission,
+  getTranscriptUnavailableMessage,
   readPendingLiveSessionSubmission,
   rememberFlowOrigin,
   rememberSelectedReportId,
@@ -18,12 +19,15 @@ const PROCESSING_TIPS = [
   'If the customer compares two models, mention both so the coach can anchor the recommendation correctly.',
 ];
 
+const TRANSCRIPT_UNAVAILABLE_MESSAGE = getTranscriptUnavailableMessage();
+
 export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
   const [running, setRunning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const cancelledRef = useRef(false);
+  const processingStartedRef = useRef(false);
 
   useEffect(() => {
     const phraseTimer = window.setInterval(() => {
@@ -40,6 +44,8 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
   }, []);
 
   useEffect(() => {
+    if (processingStartedRef.current) return;
+    processingStartedRef.current = true;
     void runProcessing();
     return () => {
       cancelledRef.current = true;
@@ -79,11 +85,24 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
     }
   }
 
+  function handleRetryCapture() {
+    const pending = readPendingLiveSessionSubmission();
+    cancelledRef.current = true;
+    if (pending) {
+      rememberSelectedThreadId(pending.customerId);
+      rememberFlowOrigin('live_session');
+    }
+    clearPendingLiveSessionSubmission();
+    onNavigate('my_coach_recording');
+  }
+
   function handleBack() {
     cancelledRef.current = true;
     clearPendingLiveSessionSubmission();
     onNavigate('my_coach');
   }
+
+  const transcriptNeedsRecapture = error === TRANSCRIPT_UNAVAILABLE_MESSAGE;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#080b11] text-white">
@@ -159,10 +178,10 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
             {error ? (
               <button
                 type="button"
-                onClick={() => void runProcessing()}
+                onClick={transcriptNeedsRecapture ? handleRetryCapture : () => void runProcessing()}
                 className="rounded-full bg-secondary px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed"
               >
-                Retry processing
+                {transcriptNeedsRecapture ? 'Retry capture' : 'Retry processing'}
               </button>
             ) : null}
             <button

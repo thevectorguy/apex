@@ -1,5 +1,5 @@
 import { buildPreviousVisitSummary } from '../lib/analysis.js';
-import { generateCoachingReport } from '../lib/groq.js';
+import { generateCoachingReport, transcribeAudioFile } from '../lib/groq.js';
 import {
   createAudioAssets,
   createCustomer,
@@ -25,6 +25,11 @@ import {
   updateSession,
 } from '../lib/persistence.js';
 import { MASTER_COPY_HASH, MASTER_COPY_VERSION, trainingMasterCopy } from '../lib/masterCopy.js';
+
+const TRANSCRIPT_UNAVAILABLE_ERROR =
+  'Audio was captured, but My Coach could not build a reliable transcript for this session.';
+const MIN_TRANSCRIPT_WORDS = 20;
+const MIN_WORDS_PER_SECOND = 0.4;
 
 export function registerMyCoachRoutes(app) {
   app.get('/api/my-coach/health', (_req, res) => {
@@ -156,6 +161,7 @@ export function registerMyCoachRoutes(app) {
   app.post('/api/my-coach/sessions/:sessionId/audio', async (req, res) => {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
+    const customer = await getCustomer(session.customerId);
 
     const payload = req.body || {};
     const clipPayloads = Array.isArray(payload.clips) ? payload.clips : [payload];
@@ -186,12 +192,28 @@ export function registerMyCoachRoutes(app) {
     const transcriptText =
       String(payload.transcriptText || '').trim() || transcriptLines.map((line) => line.text).filter(Boolean).join(' ');
 
-    const audioAssets = await createAudioAssets(session, validClips);
-    await updateSession(session.id, {
-      transcriptText: transcriptText || session.transcriptText || '',
-      transcript: transcriptLines.length ? transcriptLines : buildTranscriptTurns(transcriptText, [], session.id),
-      errorMessage: null,
-    });
+    const [audioAssets, transcription] = await Promise.all([
+      createAudioAssets(session, validClips),
+      transcribeSessionClips({
+        clips: validClips,
+        sessionId: session.id,
+        language: resolvePreferredTranscriptionLanguage(customer),
+      }).catch((err) => {
+        console.error('Concurrent transcription failed:', err);
+        return null;
+      }),
+    ]);
+
+    const sessionPatch = { errorMessage: null };
+    if (transcription && transcription.text) {
+      sessionPatch.transcriptText = transcription.text;
+      sessionPatch.transcript = transcription.turns;
+    } else if (transcriptText || transcriptLines.length) {
+      sessionPatch.transcriptText = transcriptText || session.transcriptText || '';
+      sessionPatch.transcript = transcriptLines.length ? transcriptLines : buildTranscriptTurns(transcriptText, [], session.id);
+    }
+    
+    await updateSession(session.id, sessionPatch);
 
     res.status(201).json({ ok: true, audioAssets });
   });
@@ -206,12 +228,6 @@ export function registerMyCoachRoutes(app) {
       return res.status(400).json({ ok: false, error: 'At least one audio asset is required before analysis' });
     }
 
-    const transcriptText = String(session.transcriptText || '').trim();
-    if (!transcriptText) {
-      await updateSession(session.id, { status: 'error', errorMessage: 'Browser transcript is required before analysis.' });
-      return res.status(400).json({ ok: false, error: 'Browser transcript is required before analysis.' });
-    }
-
     await updateSession(session.id, {
       status: 'processing',
       processingStartedAt: new Date().toISOString(),
@@ -222,9 +238,13 @@ export function registerMyCoachRoutes(app) {
     try {
       const previousReport = await getLatestCompletedReportForCustomer(session.customerId, session.id);
       const previousVisitSummary = previousReport ? buildPreviousVisitSummary(previousReport.report) : null;
-      const transcriptTurns = Array.isArray(session.transcript) && session.transcript.length
-        ? session.transcript
-        : buildTranscriptTurns(transcriptText, [], session.id);
+      
+      const transcriptText = session.transcriptText;
+      const transcriptTurns = session.transcript || [];
+
+      if (!transcriptText || !transcriptTurns.length) {
+        throw new Error(TRANSCRIPT_UNAVAILABLE_ERROR);
+      }
 
       const report = await generateCoachingReport({
         transcriptText,
@@ -257,7 +277,8 @@ export function registerMyCoachRoutes(app) {
 
       const updatedSession = await updateSession(session.id, {
         status: 'completed',
-        transcript: hydratedReport.transcriptTurns,
+        transcriptText,
+        transcript: transcriptTurns,
         analysis: hydratedReport,
         reportId: createdReport.id,
         processingCompletedAt: new Date().toISOString(),
@@ -378,6 +399,105 @@ function splitIntoTurns(text) {
     .map((part) => part.trim())
     .filter(Boolean)
     .slice(0, 80);
+}
+
+async function transcribeSessionClips({ clips, sessionId, language }) {
+  const transcriptParts = [];
+  const transcriptTurns = [];
+  let offsetSeconds = 0;
+
+  for (const [index, clip] of clips.entries()) {
+    const fileBuffer = Buffer.from(clip.audioBase64, 'base64');
+    const result = await transcribeAudioFile({
+      fileBuffer,
+      fileName: clip.filename || `audioclip-${index}.webm`,
+      mimeType: clip.mimeType,
+      language,
+    });
+
+    const clipText = String(result.text || '').trim();
+    if (clipText) {
+      transcriptParts.push(clipText);
+    }
+
+    const clipTurns = Array.isArray(result.segments) && result.segments.length
+      ? result.segments
+          .filter((segment) => String(segment.text || '').trim())
+          .map((segment, segIndex) => ({
+            id: `${sessionId}_clip_${index + 1}_${segment.id || segIndex + 1}`,
+            speaker: 'unknown',
+            text: String(segment.text || '').trim(),
+            start: Number.isFinite(Number(segment.start)) ? Number(segment.start) + offsetSeconds : null,
+            end: Number.isFinite(Number(segment.end)) ? Number(segment.end) + offsetSeconds : null,
+            confidence: Number.isFinite(Number(segment.confidence)) ? Number(segment.confidence) : null,
+          }))
+      : buildRawTranscriptTurns(clipText, `${sessionId}_clip_${index + 1}`);
+
+    transcriptTurns.push(...clipTurns);
+    offsetSeconds += resolveClipDurationSeconds(clip, result.segments);
+  }
+
+  return {
+    text: transcriptParts.join(' ').trim() || transcriptTurns.map((turn) => turn.text).join(' ').trim(),
+    turns: transcriptTurns,
+    totalDurationSeconds: offsetSeconds,
+  };
+}
+
+function buildRawTranscriptTurns(text, sourceId) {
+  return splitIntoTurns(text).map((part, index) => ({
+    id: `${sourceId}_turn_${index + 1}`,
+    speaker: 'unknown',
+    text: part,
+    start: null,
+    end: null,
+    confidence: null,
+  }));
+}
+
+function resolveClipDurationSeconds(clip, segments) {
+  const durationMs = Number(clip.durationMs);
+  if (Number.isFinite(durationMs) && durationMs > 0) {
+    return durationMs / 1000;
+  }
+
+  const maxSegmentEnd = Array.isArray(segments)
+    ? Math.max(
+        0,
+        ...segments.map((segment) => {
+          const end = Number(segment?.end);
+          return Number.isFinite(end) ? end : 0;
+        }),
+      )
+    : 0;
+  return maxSegmentEnd;
+}
+
+function resolvePreferredTranscriptionLanguage(customer) {
+  const metadata = customer?.metadata && typeof customer.metadata === 'object' ? customer.metadata : {};
+  const preferredLanguage = String(metadata.preferredLanguage || metadata.speechLanguageHint || '').trim();
+  return preferredLanguage || null;
+}
+
+function isTranscriptUsableForAnalysis({ transcriptText, totalDurationSeconds }) {
+  const wordCount = countWords(transcriptText);
+  if (wordCount < MIN_TRANSCRIPT_WORDS) {
+    return false;
+  }
+
+  const durationSeconds = Number(totalDurationSeconds);
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    return true;
+  }
+
+  return wordCount / durationSeconds >= MIN_WORDS_PER_SECOND;
+}
+
+function countWords(text) {
+  return String(text || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
 function inferSpeaker(text, index) {

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 export const trainingMasterCopy = {
   name: 'My Coach',
-  version: 'Training Master Copy v1',
+  version: 'Training Master Copy v2',
   source: 'MyCoachNow_MasterCopy.docx',
   domain: 'Maruti Suzuki Arena & Nexa coaching',
   speedFramework: [
@@ -10,7 +10,7 @@ export const trainingMasterCopy = {
     { id: 'plan_to_probe', label: 'Plan to Probe', weight: 25, purpose: 'Discover needs, lifestyle, usage, family, geography, finance, and aspirations.', behaviors: ['Ask open-ended questions', 'Listen actively', 'Take notes', 'Mirror and paraphrase', 'Probe deeper'], redFlags: ['Closed questions only', 'Interrupting', 'No follow-up probing'], keywords: ['what', 'how many', 'how often', 'tell me about', 'budget', 'family', 'drive', 'need', 'want', 'prefer'] },
     { id: 'explain_value_proposition', label: 'Explain Value Proposition', weight: 25, purpose: 'Map features to needs using FAB.', behaviors: ['Recommend based on probing', 'Use FAB', 'Reference customer words', 'Show the car', 'Present max two options'], redFlags: ['Reading spec sheet', 'Too many options'], keywords: ['because', 'which means', 'for you', 'based on', 'recommend', 'best fit', 'feature', 'benefit', 'advantage'] },
     { id: 'eliminate_objection', label: 'Eliminate Objection', weight: 25, purpose: 'Handle concerns with empathy and evidence.', behaviors: ['Never interrupt', 'Never argue', 'Use Acknowledge-Clarify-Evidence', 'Confirm resolution'], redFlags: ['Defensive tone', 'Immediate discounting'], keywords: ['too expensive', 'cheaper', 'not sure', 'think about it', 'concern', 'build quality', 'looks', 'online'] },
-    { id: 'drive_closure', label: 'Drive Closure', weight: 10, purpose: 'Move to a decision or next step.', behaviors: ['Ask for the decision', 'Confirm next step', 'Capture follow-up'], redFlags: ['No close', 'No next step'], keywords: ['shall we', 'book', 'test drive', 'follow up', 'next step', 'decision', 'reserve', 'close'] },
+    { id: 'drive_closure', label: 'Drive Closure', weight: 10, purpose: 'Move to a decision or next step.', behaviors: ['Ask for the decision', 'Confirm next step', 'Capture follow-up'], redFlags: ['No close', 'No next step', 'Customer leaves without commitment', 'Customer prefers competitor or another showroom', 'Customer walks away unresolved'], keywords: ['shall we', 'book', 'test drive', 'follow up', 'next step', 'decision', 'reserve', 'close'] },
   ],
   fundamentalQuestions: [
     { id: 'Q1', section: 'visit_context', question: 'First visit, return visit, or referral?', why: 'Sets context', keywords: ['first visit', 'return visit', 'welcome back', 'referral'] },
@@ -116,7 +116,19 @@ export const trainingMasterCopy = {
     'Practice the return-visit opener and joint-visit reset.',
   ],
   reportTemplate: {
-    summarySections: ['overall_score', 'speed_breakdown', 'question_coverage', 'product_fit', 'objections', 'strengths', 'improvements', 'next_visit', 'research_tasks'],
+    summarySections: [
+      'overall_score',
+      'speed_breakdown',
+      'question_coverage',
+      'product_fit',
+      'coaching_advice',
+      'objections',
+      'strengths',
+      'improvements',
+      'next_visit',
+      'extras',
+      'research_tasks',
+    ],
     gradeBands: [
       { min: 90, grade: 'A+', meaning: 'Exceptional' },
       { min: 80, grade: 'A', meaning: 'Strong' },
@@ -180,7 +192,11 @@ Do not output any text outside the JSON object.
 ${speedSection}
 
 === FUNDAMENTAL QUESTIONS ===
-Score each question as COVERED, PARTIALLY, or MISSED.
+Select only the questions relevant to this customer and conversation.
+For each selected question, score it as COVERED, PARTIALLY, or MISSED.
+Do not include irrelevant questions just to increase the count.
+Do not treat this as keyword matching only. Infer the discovery path a strong salesperson should have taken from the customer's hints, resistance, priorities, lifestyle clues, and buying stage.
+If a customer signal implies a natural follow-up question that would move the sale forward, include that question even if the customer never directly volunteered the full detail.
 ${questionsSection}
 
 === CUSTOMER PROFILES AND MATCHING ===
@@ -193,8 +209,73 @@ ${catalogSection}
 Use ACE: Acknowledge -> Clarify -> Evidence.
 ${objectionSection}
 
+=== PRODUCT FIT RULES ===
+Return productFit as an object with:
+- verdict: CORRECT | PARTIALLY_CORRECT | INCORRECT | NOT_MADE
+- pitchedModels: array of every model discussed using identifying detail when useful
+- salesmanPick: "Model | what the salesperson pushed hardest" or null
+- customerPreferred: "Model | signals the customer liked it most" or null
+- idealMatch: best-fit model based on customer needs or null if the pitch was already correct
+- avoidModels: array of up to 2 objects for models that should have been avoided or were poor-fit pitches.
+  Schema: [{ "model": "string", "rationale": "string", "evidence": ["string"] }]
+  Only include when there is a real mismatch worth coaching on.
+  Use evidence from the conversation signals, not generic catalog facts alone.
+- why: coach-style explanation of the fit decision
+If salesmanPick differs from idealMatch, call out the coaching gap in "why".
+
+=== COACHING ADVICE RULES ===
+Generate coachAdvice as an array of personalized coaching tips for this exact conversation.
+- Advice may use explicit transcript evidence or implicit coaching judgment from the flow of the conversation.
+- Depth should match the conversation depth: shallow talks may only need 1-2 tips, richer talks can have 5-7.
+- Flag wrong-product focus when the salesperson pushed the wrong vehicle.
+- Flag missed upsell moments when the transcript created a clear opening.
+- If the salesperson did well, frame the advice as "next level" coaching.
+- Coach like a mentor who respects the player. Never berate.
+Schema: [{ "title": "string", "detail": "string", "priority": "high|medium|low" }]
+
+=== QUESTION COVERAGE RULES ===
+Return only the relevant questions for this customer profile and context.
+- status must be COVERED, PARTIALLY, or MISSED
+- evidence should be concise and only included for COVERED or PARTIALLY
+- do not show IDs in the coaching explanation; the IDs are only for structured output
+- Evaluate like a showroom coach, not a transcript search tool.
+- Infer missing but relevant discovery questions from what the customer hinted at:
+  budget pressure, family mentions, current car pain, color interest, timing, finance sensitivity, usage pattern, decision-maker clues, competitor mention, safety concern, feature excitement, or hesitation.
+- Prefer questions that would have advanced the conversation, narrowed the right model, uncovered the real blocker, or created a stronger next step.
+- A question can be MISSED even if the topic was never explicitly raised, as long as a sharp salesperson should reasonably have asked it from the context.
+- Bias the section toward coaching gaps, not transcript credit.
+- When there are meaningful missed or partially explored discovery paths, include those.
+- For richer conversations, it is normal to return more than 4 relevant questions if several important probing opportunities were missed or only partially explored.
+- Be thoughtful, not inflated: include meaningful coaching questions, not every remotely possible one.
+
+=== OBJECTION DETAIL RULES ===
+Identify all meaningful objections or resistance, including contextual ones beyond the predefined library.
+Return each objection as:
+- label
+- category: price | competitor | features | timing | trust | other
+- handled: HANDLED | PARTIALLY | NOT_HANDLED
+- how: short explanation if it was addressed, otherwise null
+- advice: short coaching tip if PARTIALLY or NOT_HANDLED, otherwise null
+
+=== NEXT VISIT RULES ===
+Return nextVisitOpener as a warm 2-3 sentence opener for the customer's next visit.
+- Reference specific details when available, such as liked model, color, family member, commute, or budget concern.
+- It should feel natural and personal, not robotic.
+
+=== EXTRAS RULES ===
+Return these extra coaching signals:
+- customerSentiment: { start, end, shift }
+- turningPoints: array of 2-3 objects with title, detail, timestamp
+- followUpMessage: short WhatsApp or SMS follow-up draft
+- drivingIndex: { primaryDriver, insight }
+
 === SCORING RULES ===
 Overall score: 0-100.
+For each stage in the SPEED framework, you must provide a "score" (0-100), a "rationale" justifying why you gave that score, and "evidence" (quotes or actions) from the transcript.
+For Drive Closure specifically:
+- Score high only when there is a genuine close or a clearly agreed next step.
+- Do not confuse product interest by itself with closure.
+- If the customer leaves, walks away, prefers another showroom/brand, or ends unresolved, closure should not score high unless the salesperson still secured a real next step.
 Question coverage score = (COVERED + 0.5 x PARTIALLY) / total questions.
 Product verdict must be one of CORRECT, PARTIALLY_CORRECT, INCORRECT, NOT_MADE.
 Grade bands: ${gradeBands}
@@ -205,7 +286,8 @@ Use transcript evidence wherever possible.
 Do not invent product facts outside this master copy.
 If the transcript is weak or incomplete, put the limitation in warnings.
 Always include masterCopyVersion as "${MASTER_COPY_VERSION}".
-Populate these sections meaningfully: overallScore, grade, summary, customerProfile, speed, questionCoverage, objections, productFit, strengths, improvements, nextVisitPreparation, researchTasks, reportHighlights, coachNotes, transcriptTurns, comparisonToPrevious, warnings.
+Populate these sections meaningfully: overallScore, grade, summary, customerProfile, speed, questionCoverage, objections, productFit, strengths, improvements, coachAdvice, nextVisitOpener, nextVisitPreparation, researchTasks, reportHighlights, coachNotes, transcriptTurns, customerSentiment, turningPoints, followUpMessage, drivingIndex, comparisonToPrevious, warnings.
+For the "speed" section, ensure each stage has "score", "rationale", and "evidence" keys matching the framework definition.
 `.trim();
 }
 

@@ -229,7 +229,9 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/42">{turn.speaker}</span>
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                      {turn.speaker === 'unknown' ? 'speaker' : turn.speaker}
+                    </span>
                     <span className="text-[10px] uppercase tracking-[0.16em] text-white/34">{turn.timestamp}</span>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-white/74">{turn.text}</p>
