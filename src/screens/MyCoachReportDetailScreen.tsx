@@ -20,7 +20,6 @@ import {
   type TranscriptTurn,
   type TurningPoint,
 } from '../lib/myCoachApi';
-import { personalizeCoachCopy } from '../lib/personalizeCoachCopy';
 import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
 
 const reportSections = [
@@ -176,7 +175,7 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
                     <h1 className="mt-2 font-headline text-[30px] font-bold leading-none text-white sm:text-[38px]">
                       {selectedReport.customerName}
                     </h1>
-                    <p className="mt-3 max-w-[36rem] text-sm leading-6 text-white/62">{personalizeCoachCopy(selectedReport.report.summary)}</p>
+                    <p className="mt-3 max-w-[36rem] text-sm leading-6 text-white/62">{selectedReport.report.summary}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <MetaChip label={selectedReport.sessionTitle} />
                       <MetaChip label={formatReportDate(selectedReport.generatedAt)} />
@@ -297,7 +296,7 @@ function OverviewTab({ report }: { report: CoachReportListItem['report'] }) {
 
       <div className="space-y-4">
         <SurfaceBlock eyebrow="Product Fit" title={report.productFitSummary}>
-          <p className="text-sm leading-6 text-white/60">{personalizeCoachCopy(report.productFit.why)}</p>
+          <p className="text-sm leading-6 text-white/60">{report.productFit.why}</p>
           {report.productFit.customerPreferred ? (
             <InlineNote
               label="Customer preferred"
@@ -525,8 +524,8 @@ function CoachAdviceView({ coachAdvice }: { coachAdvice: CoachAdviceItem[] }) {
           <StatusCard
             tone={item.priority === 'high' ? 'coral' : item.priority === 'medium' ? 'amber' : 'green'}
             eyebrow={item.priority}
-            title={personalizeCoachCopy(item.title)}
-            detail={personalizeCoachCopy(item.detail)}
+            title={item.title}
+            detail={item.detail}
           />
         </motion.div>
       ))}
@@ -544,15 +543,15 @@ function NextVisitTab({ report }: { report: CoachReportListItem['report'] }) {
       </SectionIntro>
 
       <SurfaceBlock eyebrow="Next Visit Signal" title={nextVisitSignal.title} tone={nextVisitSignal.tone}>
-        <p className="text-sm leading-7 text-white/72">{personalizeCoachCopy(nextVisitSignal.summary)}</p>
+        <p className="text-sm leading-7 text-white/72">{nextVisitSignal.summary}</p>
         <div className="mt-4 rounded-[18px] border border-white/8 bg-black/18 px-4 py-4">
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Approach If They Return</p>
-          <p className="mt-2 text-sm leading-7 text-white/72">{personalizeCoachCopy(nextVisitSignal.approach)}</p>
+          <p className="mt-2 text-sm leading-7 text-white/72">{nextVisitSignal.approach}</p>
         </div>
       </SurfaceBlock>
 
       <SurfaceBlock eyebrow="Opening Script" title={report.nextVisitOpener ? 'Ready to use' : 'Need more context'}>
-        <p className="text-sm leading-7 text-white/72">{personalizeCoachCopy(report.nextVisitOpener) || 'No personalized opener was returned for this session yet.'}</p>
+        <p className="text-sm leading-7 text-white/72">{report.nextVisitOpener || 'No personalized opener was returned for this session yet.'}</p>
       </SurfaceBlock>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -652,7 +651,7 @@ function ExtrasTab({
           <div className="mt-1 h-3 overflow-hidden rounded-full bg-white/[0.06]">
             <div className="h-full rounded-full bg-[linear-gradient(90deg,#8fb9ff_0%,#39FF14_100%)]" style={{ width: `${talkRatio?.salesShare || 0}%` }} />
           </div>
-          <p className="mt-3 text-sm leading-6 text-white/60">{talkRatio ? `${personalizeCoachCopy(talkRatio.summary)}.` : 'A fuller transcript is needed to compute the share of talk time.'}</p>
+          <p className="mt-3 text-sm leading-6 text-white/60">{talkRatio ? `${talkRatio.summary}.` : 'A fuller transcript is needed to compute the share of talk time.'}</p>
         </SurfaceBlock>
 
         <SurfaceBlock eyebrow="Customer Sentiment" title={`${report.customerSentiment.start} -> ${report.customerSentiment.end}`}>
@@ -908,8 +907,8 @@ function StatusCard({
     <div className={`rounded-[24px] border border-white/8 border-l-4 bg-white/[0.03] px-4 py-4 ${toneClass}`}>
       <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">{eyebrow}</p>
       <p className="mt-2 font-headline text-lg font-bold text-white">{title}</p>
-      {detail ? <p className="mt-2 text-sm leading-6 text-white/60">{personalizeCoachCopy(detail)}</p> : null}
-      {aside ? <div className="mt-3 rounded-[18px] border border-white/8 bg-black/16 px-3 py-3 text-sm leading-6 text-white/72">{personalizeCoachCopy(aside)}</div> : null}
+      {detail ? <p className="mt-2 text-sm leading-6 text-white/60">{detail}</p> : null}
+      {aside ? <div className="mt-3 rounded-[18px] border border-white/8 bg-black/16 px-3 py-3 text-sm leading-6 text-white/72">{aside}</div> : null}
     </div>
   );
 }
@@ -918,7 +917,7 @@ function ChecklistLine({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
       <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#39FF14]/30 text-[11px] text-[#39FF14]">+</span>
-      <p className="text-sm leading-6 text-white/72">{personalizeCoachCopy(text)}</p>
+      <p className="text-sm leading-6 text-white/72">{text}</p>
     </div>
   );
 }
@@ -929,7 +928,7 @@ function SimpleLine({ text, tone }: { text: string; tone: 'positive' | 'warning'
   return (
     <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
       <span className={`mt-2 h-2.5 w-2.5 rounded-full ${bulletTone}`} />
-      <p className="text-sm leading-6 text-white/72">{personalizeCoachCopy(text)}</p>
+      <p className="text-sm leading-6 text-white/72">{text}</p>
     </div>
   );
 }
@@ -1147,7 +1146,7 @@ function deriveNextVisitSignal(report: CoachReportListItem['report']) {
     return {
       title: 'High chance they engage again',
       summary:
-        'Momentum stayed alive in this conversation. The customer ended warmer than they started, so a return visit or a continued follow-up is very realistic if the salesperson keeps continuity.',
+        'Momentum stayed alive in this conversation. The customer ended warmer than they started, so a return visit or a continued follow-up is very realistic if you keep continuity.',
       approach:
         'Do not restart from zero. Re-enter with memory: mention what they liked, confirm the last agreed step, and move them quickly toward one concrete action such as paperwork, accessories, finance clarity, or delivery confidence.',
       tone: 'positive' as const,
@@ -1158,7 +1157,7 @@ function deriveNextVisitSignal(report: CoachReportListItem['report']) {
     return {
       title: 'Medium chance they return',
       summary:
-        'There is still live buying intent here, but it needs structure. The customer may come back if the salesperson follows up with clarity and removes the remaining uncertainty fast.',
+        'There is still live buying intent here, but it needs structure. The customer may come back if you follow up with clarity and remove the remaining uncertainty fast.',
       approach:
         'If they revisit, lead with the exact concern that slowed the conversation last time. Reconfirm budget, model interest, and decision blockers in the first minute, then narrow the pitch to one best-fit recommendation and one next step.',
       tone: 'warning' as const,
@@ -1168,7 +1167,7 @@ function deriveNextVisitSignal(report: CoachReportListItem['report']) {
   return {
     title: 'Low chance unless the re-entry improves',
     summary:
-      'The relationship does not look fully lost, but the next visit will only happen if the salesperson creates a stronger reason for the customer to return than they had the first time.',
+      'The relationship does not look fully lost, but the next visit will only happen if you create a stronger reason for the customer to return than they had the first time.',
     approach:
       'If they do come back, avoid jumping straight into features. Start by acknowledging what felt incomplete before, ask one sharp probing question to reopen the customer’s real need, and rebuild trust before moving toward a product pitch.',
     tone: 'default' as const,
@@ -1191,7 +1190,7 @@ function computeTalkRatio(turns: TranscriptTurn[]) {
 
   const salesShare = Math.round((totals.sales / totalWords) * 100);
   const customerShare = Math.max(0, 100 - salesShare);
-  const summary = salesShare > 65 ? 'The salesperson dominated the airtime' : salesShare < 45 ? 'The customer did most of the talking' : 'The conversation stayed fairly balanced';
+  const summary = salesShare > 65 ? 'You dominated the airtime' : salesShare < 45 ? 'The customer did most of the talking' : 'The conversation stayed fairly balanced';
   return { salesShare, customerShare, summary };
 }
 

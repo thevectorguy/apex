@@ -6,7 +6,6 @@ import {
   type AssistantContextSnapshot,
   type AssistantPrompt,
 } from '../lib/assistantCoach';
-import { personalizeCoachCopy } from '../lib/personalizeCoachCopy';
 import {
   getCustomerThread,
   listCoachReports,
@@ -79,7 +78,7 @@ export function AIAssistantSheet({
           {
             id: makeMessageId(),
             role: 'assistant',
-            text: personalizeCoachCopy(blueprint.intro),
+            text: blueprint.intro,
           },
         ]);
         setPendingReplyIds([]);
@@ -93,7 +92,7 @@ export function AIAssistantSheet({
           {
             id: makeMessageId(),
             role: 'assistant',
-            text: personalizeCoachCopy(buildAssistantBlueprint(fallbackSnapshot).intro),
+            text: buildAssistantBlueprint(fallbackSnapshot).intro,
           },
         ]);
         setPendingReplyIds([]);
@@ -122,7 +121,7 @@ export function AIAssistantSheet({
 
   function sendPrompt(prompt: AssistantPrompt) {
     setMessages((current) => [...current, { id: makeMessageId(), role: 'user', text: prompt.label }]);
-    queueAssistantReply(personalizeCoachCopy(prompt.response));
+    queueAssistantReply(prompt.response);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -130,7 +129,7 @@ export function AIAssistantSheet({
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    const reply = personalizeCoachCopy(buildAssistantReply(trimmed, snapshot));
+    const reply = buildAssistantReply(trimmed, snapshot);
     setMessages((current) => [...current, { id: makeMessageId(), role: 'user', text: trimmed }]);
     queueAssistantReply(reply);
     setQuery('');
