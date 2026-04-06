@@ -233,6 +233,44 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     onNavigate('my_coach_recommendations');
   }
 
+  const quickTools = [
+    {
+      label: 'Customers',
+      detail: `${threads.length || 0} saved`,
+      icon: 'groups',
+      onClick: () => onNavigate('my_coach_customers'),
+      disabled: false,
+    },
+    {
+      label: 'Reports',
+      detail: 'Coaching summaries',
+      icon: 'description',
+      onClick: openReports,
+      disabled: false,
+    },
+    {
+      label: 'Recommendations',
+      detail: 'Next best moves',
+      icon: 'lightbulb',
+      onClick: openRecommendations,
+      disabled: false,
+    },
+    {
+      label: 'Transcript',
+      detail: activeThread?.hasSubmittedSession ? 'Latest session' : 'Available after a session',
+      icon: 'notes',
+      onClick: openTranscript,
+      disabled: !activeThread?.hasSubmittedSession,
+    },
+    {
+      label: 'Steps',
+      detail: activeThread ? 'Tutorial flow' : 'Pick a customer first',
+      icon: 'list_alt',
+      onClick: openStepsGuide,
+      disabled: !activeThread,
+    },
+  ];
+
   return (
     <main className="pt-24 px-6 pb-32 max-w-[1240px] mx-auto space-y-6">
       <section className="relative overflow-hidden rounded-[28pt] border border-white/8 bg-[linear-gradient(135deg,#0f1522_0%,#162031_44%,#1c1d25_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
@@ -252,15 +290,23 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
               Keep this workspace focused on quick setup. Start a live session the moment a customer thread is ready,
               or upload an existing conversation when you want backend transcription to handle the session.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <div className="flex flex-col gap-2">
-                <ActionButton label="Start Session" icon="mic" onClick={startLiveSession} disabled={!activeThread} tone="primary" />
-                <div ref={uploadMenuRef} className="relative self-start">
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:max-w-[34rem] sm:grid-cols-2">
+                <ActionButton
+                  label="Start Session"
+                  icon="mic"
+                  onClick={startLiveSession}
+                  disabled={!activeThread}
+                  tone="primary"
+                  className="w-full justify-between rounded-[22px] px-5 py-4"
+                />
+                <div ref={uploadMenuRef} className="relative">
                   <ActionButton
                     label={uploading ? 'Preparing Upload...' : 'Upload Session'}
                     icon="upload_file"
                     onClick={openUploadMenu}
                     disabled={!activeThread || uploading}
+                    className="w-full justify-between rounded-[22px] px-5 py-4"
                   />
                   {uploadMenuOpen ? (
                     <div className="absolute bottom-[calc(100%+0.6rem)] left-0 z-20 min-w-[220px] rounded-[22px] border border-white/10 bg-[#141925]/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
@@ -295,16 +341,29 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                   />
                 </div>
               </div>
-              <ActionButton label="Customer List" icon="groups" onClick={() => onNavigate('my_coach_customers')} />
-              <ActionButton label="Show Steps Tutorial" icon="list_alt" onClick={openStepsGuide} disabled={!activeThread} />
-              <ActionButton
-                label="Show Transcript"
-                icon="notes"
-                onClick={openTranscript}
-                disabled={!activeThread?.hasSubmittedSession}
-              />
-              <ActionButton label="Recommendations" icon="lightbulb" onClick={openRecommendations} />
-              <ActionButton label="Reports" icon="description" onClick={openReports} />
+
+              <div className="rounded-[24px] border border-white/8 bg-black/12 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/42">Workspace Tools</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/42 sm:hidden">
+                    Swipe
+                  </span>
+                </div>
+                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {quickTools.map((tool) => (
+                    <QuickToolCard
+                      key={tool.label}
+                      label={tool.label}
+                      detail={tool.detail}
+                      icon={tool.icon}
+                      onClick={tool.onClick}
+                      disabled={tool.disabled}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -414,12 +473,14 @@ function ActionButton({
   onClick,
   disabled = false,
   tone = 'default',
+  className = '',
 }: {
   label: string;
   icon: string;
   onClick: () => void;
   disabled?: boolean;
   tone?: 'default' | 'primary';
+  className?: string;
 }) {
   const toneClasses =
     tone === 'primary'
@@ -431,10 +492,41 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClasses}`}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClasses} ${className}`}
     >
       {label}
       <span className="material-symbols-outlined text-[16px]">{icon}</span>
+    </button>
+  );
+}
+
+function QuickToolCard({
+  label,
+  detail,
+  icon,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  detail: string;
+  icon: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="group min-w-[148px] shrink-0 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 text-left transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/88">{label}</p>
+          <p className="mt-2 text-xs leading-5 text-white/46">{detail}</p>
+        </div>
+        <span className="material-symbols-outlined text-[18px] text-white/42 transition group-hover:text-white/72">{icon}</span>
+      </div>
     </button>
   );
 }
