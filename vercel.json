@@ -3,6 +3,9 @@
     "api/my-coach/[...path].js": {
       "maxDuration": 60
     },
+    "api/product-authority/start.js": {
+      "maxDuration": 60
+    },
     "api/[...path].js": {
       "maxDuration": 60
     }
