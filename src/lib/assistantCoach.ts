@@ -113,7 +113,7 @@ const DASHBOARD_DISCOVERY_PROMPTS: AssistantPrompt[] = [
     label: 'What are the Maruti Baleno features?',
     kind: 'discovery',
     response:
-      'Use a clean Baleno pitch: highlight the premium hatchback stance, spacious cabin, 360 View Camera, head-up display, smart infotainment, strong city comfort, and easy ownership story. Keep the close practical: "If you want a refined city car with premium features and everyday convenience, Baleno is a very easy car to recommend."',
+      'Maruti Baleno highlights include a premium hatchback design, a spacious cabin, a 360 View Camera, a head-up display, smart infotainment, strong city-driving comfort, and an easy everyday ownership story.',
   },
   {
     id: 'dashboard-baleno-city',
