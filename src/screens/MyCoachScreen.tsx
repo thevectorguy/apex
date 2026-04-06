@@ -19,6 +19,28 @@ import {
 import { type Screen } from '../types';
 
 const emptyForm = { customerName: '', phone: '', customerContext: '', preferredLanguage: '', notes: '' };
+const AUDIO_FILE_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.webm', '.mp4', '.mpeg'];
+const AUDIO_FILE_PICKER_TYPES = [
+  {
+    description: 'Audio files',
+    accept: { 'audio/*': AUDIO_FILE_EXTENSIONS },
+  },
+];
+
+type LocalFilePickerHandle = {
+  getFile: () => Promise<File>;
+};
+
+type UploadWindow = Window & {
+  showOpenFilePicker?: (options?: {
+    multiple?: boolean;
+    excludeAcceptAllOption?: boolean;
+    types?: Array<{
+      description?: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<LocalFilePickerHandle[]>;
+};
 
 export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
@@ -154,21 +176,17 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     setUploadMenuOpen((current) => !current);
   }
 
-  function triggerUploadPicker() {
-    if (!activeThread || uploading) return;
-    setUploadMenuOpen(false);
-    uploadInputRef.current?.click();
-  }
-
-  async function handleUploadFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = '';
+  async function stageUploadedFiles(files: File[], options?: { manageUploading?: boolean }) {
+    const manageUploading = options?.manageUploading ?? true;
 
     if (!activeThread?.id || !files.length) {
       return;
     }
 
-    setUploading(true);
+    if (manageUploading) {
+      setUploading(true);
+    }
+
     setError(null);
 
     try {
@@ -197,8 +215,47 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not prepare the selected audio files.');
     } finally {
-      setUploading(false);
+      if (manageUploading) {
+        setUploading(false);
+      }
     }
+  }
+
+  async function triggerLocalFilePicker() {
+    if (!activeThread || uploading) return;
+
+    setUploadMenuOpen(false);
+
+    const uploadWindow = window as UploadWindow;
+    if (uploadWindow.showOpenFilePicker) {
+      try {
+        const handles = await uploadWindow.showOpenFilePicker({
+          multiple: true,
+          types: AUDIO_FILE_PICKER_TYPES,
+        });
+        const files = await Promise.all(handles.map((handle) => handle.getFile()));
+        await stageUploadedFiles(files);
+      } catch (issue) {
+        if (issue instanceof DOMException && issue.name === 'AbortError') {
+          return;
+        }
+        setError(issue instanceof Error ? issue.message : 'Could not open the local file picker.');
+      }
+      return;
+    }
+
+    uploadInputRef.current?.click();
+  }
+
+  async function handleUploadFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!files.length) {
+      return;
+    }
+
+    await stageUploadedFiles(files);
   }
 
   function openStepsGuide() {
@@ -309,10 +366,10 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                     className="w-full justify-between rounded-[22px] px-5 py-4"
                   />
                   {uploadMenuOpen ? (
-                    <div className="absolute bottom-[calc(100%+0.6rem)] left-0 z-20 min-w-[220px] rounded-[22px] border border-white/10 bg-[#141925]/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+                    <div className="absolute bottom-[calc(100%+0.6rem)] left-0 z-20 w-full rounded-[22px] border border-white/10 bg-[#141925]/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
                       <button
                         type="button"
-                        onClick={triggerUploadPicker}
+                        onClick={() => void triggerLocalFilePicker()}
                         className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
                       >
                         <span>Files</span>
@@ -320,15 +377,12 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                       </button>
                       <button
                         type="button"
-                        onClick={triggerUploadPicker}
+                        onClick={() => void triggerLocalFilePicker()}
                         className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
                       >
-                        <span>Drive / Cloud</span>
+                        <span>Drive</span>
                         <span className="material-symbols-outlined text-[18px] text-white/48">cloud_upload</span>
                       </button>
-                      <p className="px-4 pb-2 pt-1 text-[10px] uppercase tracking-[0.16em] text-white/36">
-                        The system picker will show available providers.
-                      </p>
                     </div>
                   ) : null}
                   <input
