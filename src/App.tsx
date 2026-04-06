@@ -107,7 +107,11 @@ export default function App() {
       {!isImmersive && <FloatingActionButton onClick={() => setIsAssistantOpen(true)} />}
       {!isImmersive && <BottomNavBar currentScreen={currentScreen} onNavigate={handleNavigate} />}
 
-      <AIAssistantSheet isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+      <AIAssistantSheet
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        currentScreen={currentScreen}
+      />
     </div>
   );
 }

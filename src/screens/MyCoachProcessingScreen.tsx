@@ -14,7 +14,7 @@ import { type Screen } from '../types';
 
 const PROCESSING_PHRASES = ['Preparing session', 'Cooking insights', 'Scoring SPEED', 'Reviewing objections', 'Drafting next visit'];
 const PROCESSING_TIPS = [
-  'Next-visit prep gets sharper when the salesperson states the customer’s real objection clearly.',
+  'Next-visit prep gets sharper when you state the customer’s real objection clearly.',
   'A clean closing line in the conversation makes the final report more actionable.',
   'If the customer compares two models, mention both so the coach can anchor the recommendation correctly.',
 ];

@@ -11,6 +11,7 @@ import {
   type CustomerThreadSummary,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
+import { SkeletonLine } from '../components/Skeleton';
 
 export function MyCoachCustomersScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
@@ -81,12 +82,14 @@ export function MyCoachCustomersScreen({ onNavigate }: { onNavigate: (screen: Sc
               </p>
             </div>
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/68">
-              {threads.length} saved
+              {loading ? 'Loading...' : `${threads.length} saved`}
             </div>
           </div>
 
           <div className="mt-5 space-y-3">
-            {!loading && !threads.length ? (
+            {loading ? (
+              Array.from({ length: 4 }, (_, index) => <CustomerThreadSkeleton key={`customer-thread-skeleton-${index}`} />)
+            ) : !threads.length ? (
               <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
                 No customer threads yet.
               </div>
@@ -150,5 +153,32 @@ export function MyCoachCustomersScreen({ onNavigate }: { onNavigate: (screen: Sc
         ) : null}
       </div>
     </main>
+  );
+}
+
+function CustomerThreadSkeleton() {
+  return (
+    <div className="rounded-[24pt] border border-white/8 bg-black/12 px-4 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <SkeletonLine className="h-5 w-36 bg-white/[0.08]" />
+            <SkeletonLine className="h-6 w-16 rounded-full bg-white/[0.05]" />
+            <SkeletonLine className="h-6 w-20 rounded-full bg-white/[0.05]" />
+          </div>
+          <SkeletonLine className="mt-4 h-3 w-full bg-white/[0.05]" />
+          <SkeletonLine className="mt-2 h-3 w-5/6 bg-white/[0.04]" />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <SkeletonLine className="h-6 w-20 rounded-full bg-white/[0.04]" />
+            <SkeletonLine className="h-6 w-24 rounded-full bg-white/[0.04]" />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <SkeletonLine className="h-11 w-24 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-11 w-24 rounded-full bg-white/[0.07]" />
+        </div>
+      </div>
+    </div>
   );
 }

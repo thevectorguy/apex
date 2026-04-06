@@ -7,6 +7,7 @@ import { getDb } from './lib/db.js';
 import { isSupabaseConfigured } from './lib/persistence.js';
 import { ensureStorageDirs } from './lib/storage.js';
 import { registerMyCoachRoutes } from './routes/myCoach.js';
+import { registerProductAuthorityRoutes } from './routes/productAuthority.js';
 
 for (const envPath of ['.env.local', '.env']) {
   if (fs.existsSync(envPath)) {
@@ -30,6 +31,7 @@ export function createServer() {
   });
 
   registerMyCoachRoutes(app);
+  registerProductAuthorityRoutes(app);
 
   app.use((err, _req, res, _next) => {
     console.error(err);
