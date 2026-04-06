@@ -108,7 +108,7 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               onClick={() => onNavigate('catalog')}
               className="h-12 rounded-xl px-4 glass-panel border border-outline-variant/10 text-primary font-headline font-semibold hover:border-primary/30 transition-all"
             >
-              Open Catalog
+              Open Products
             </button>
           </div>
 

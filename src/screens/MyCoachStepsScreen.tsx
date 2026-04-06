@@ -191,10 +191,10 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   }
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    // TODO: Re-enable uploaded audio once backend STT is added for Vercel-safe transcript generation.
-    setError('Uploaded audio is temporarily disabled until backend STT is wired.');
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
+
+    setError(null);
 
     const nextClips = await Promise.all(
       files.map(async (file) => ({
@@ -220,23 +220,19 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
       setError('Attach at least one audio clip before analysis.');
       return;
     }
-    const transcriptText = transcriptLines.join(' ').trim();
-    if (!transcriptText) {
-      setError('Record a clip with browser transcript capture before running analysis.');
-      return;
-    }
 
     setSaving(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
+      const transcriptText = transcriptLines.join(' ').trim();
       const result = await submitCoachAudio({
         customerId: detail.id,
         title: sessionTitle.trim() || 'Customer conversation',
         source: deriveSource(clips),
         clips,
-        transcriptText,
+        transcriptText: transcriptText || undefined,
       });
       setClips([]);
       setTranscriptLines([]);
@@ -426,18 +422,18 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                       </button>
                       <button
                         type="button"
-                        disabled
-                        className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface opacity-50"
-                        title="TODO: Enable once backend STT is added."
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={!detail || saving}
+                        className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface disabled:opacity-50"
                       >
-                        Upload audio soon
+                        Upload audio
                       </button>
                       <input
                         ref={fileInputRef}
                         type="file"
                         multiple
                         accept="audio/*"
-                        disabled
+                        disabled={!detail || saving}
                         onChange={(event) => void handleFiles(event)}
                         className="hidden"
                       />
@@ -445,17 +441,17 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                   </div>
 
                   <div className="rounded-[22pt] border border-white/8 bg-black/12 p-4">
-                    <p className="font-headline text-sm font-bold text-on-surface">Browser transcript</p>
+                    <p className="font-headline text-sm font-bold text-on-surface">Live transcript preview</p>
                     <p className="mt-1 text-sm leading-6 text-white/52">
-                      V1 uses browser STT as the transcript source. Uploaded audio stays disabled until backend STT is
-                      added.
+                      Browser speech preview is optional while recording. My Coach now uses backend STT from the saved
+                      audio when you run analysis.
                     </p>
                     <p className="mt-3 text-sm leading-6 text-white/72">
                       {transcriptLines.length
                         ? transcriptLines.slice(-4).join(' ')
                         : recording
                           ? interimTranscript || 'Listening for transcript...'
-                          : 'No transcript captured yet.'}
+                          : 'No live preview yet. Backend STT will generate the final transcript during analysis.'}
                     </p>
                   </div>
 
@@ -464,7 +460,8 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                       <div>
                         <p className="font-headline text-lg font-bold text-on-surface">Draft queue</p>
                         <p className="mt-1 text-sm leading-6 text-white/52">
-                          Recorded clips are analyzed together. Uploads stay disabled in v1 until backend STT is added.
+                          Recorded and uploaded clips are analyzed together, and backend STT builds the session
+                          transcript from the final audio set.
                         </p>
                       </div>
                       <button
@@ -515,7 +512,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                   <button
                     type="button"
                     onClick={() => void handleAnalyze()}
-                    disabled={saving || !clips.length || !detail || !transcriptLines.length}
+                    disabled={saving || !clips.length || !detail}
                     className="w-full rounded-full bg-secondary px-4 py-3.5 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed disabled:opacity-55"
                   >
                     {saving ? 'Analyzing conversation...' : 'Run My Coach analysis'}

@@ -21,7 +21,7 @@ const aiSearches: Array<{
     id: 'urgent',
     label: 'Urgent Notices',
     filter: 'priority',
-    keywords: ['urgent', 'priority', 'action', 'sign-off', 'inventory'],
+    keywords: ['urgent', 'priority', 'action', 'sign-off', 'availability'],
   },
   {
     id: 'training',
@@ -127,12 +127,12 @@ export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: 
     <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto space-y-8">
       <section className="space-y-5">
         <div>
-          <span className="announcements-label text-secondary text-xs uppercase mb-1 block">Head Office</span>
+          <span className="announcements-label text-secondary text-xs uppercase mb-1 block">Communications</span>
           <h1 className="announcements-headline text-5xl font-semibold tracking-tight text-on-surface">Announcements</h1>
         </div>
 
         <p className="announcements-copy text-on-surface-variant text-lg max-w-2xl">
-          Latest announcements, updates, and notices from head office.
+          Latest announcements, updates, and notices from Communications.
         </p>
 
         <div className="relative group">

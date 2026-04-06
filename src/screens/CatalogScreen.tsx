@@ -16,8 +16,8 @@ export function CatalogScreen({ onNavigate }: { onNavigate: (s: Screen) => void 
       <section className="space-y-4">
         <div className="flex justify-between items-end gap-4">
           <div>
-            <span className="font-label text-secondary text-xs uppercase tracking-[0.2em] mb-1 block">Inventory</span>
-            <h1 className="font-headline text-5xl font-bold tracking-tight text-on-surface">Catalog</h1>
+            <span className="font-label text-secondary text-xs uppercase tracking-[0.2em] mb-1 block">Showroom Lineup</span>
+            <h1 className="font-headline text-5xl font-bold tracking-tight text-on-surface">Products</h1>
           </div>
           <button className="w-12 h-12 rounded-xl glass-panel flex items-center justify-center text-primary border border-outline-variant/10 hover:border-primary/30 transition-all">
             <span className="material-symbols-outlined text-2xl">tune</span>
@@ -25,7 +25,7 @@ export function CatalogScreen({ onNavigate }: { onNavigate: (s: Screen) => void 
         </div>
 
         <p className="max-w-2xl text-sm leading-6 text-on-surface-variant">
-          Curated Maruti line-up for live showroom selling, blending NEXA premium walkarounds with Arena volume movers in one clean view.
+          Curated Maruti products for live showroom selling, blending NEXA premium walkarounds with Arena volume movers in one clean view.
         </p>
 
         <div className="relative group">

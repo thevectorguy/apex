@@ -3,6 +3,7 @@ import { Screen } from '../types';
 const SCREEN_PATHS: Record<Screen, string> = {
   dashboard: '/',
   my_coach: '/my-coach',
+  my_coach_recommendations: '/my-coach/recommendations',
   my_coach_recording: '/my-coach/live',
   my_coach_processing: '/my-coach/processing',
   my_coach_reports: '/my-coach/reports',
@@ -31,6 +32,8 @@ export function getScreenFromLocation(locationLike: Pick<Location, 'pathname'> =
       return 'dashboard';
     case '/my-coach':
       return 'my_coach';
+    case '/my-coach/recommendations':
+      return 'my_coach_recommendations';
     case '/my-coach/live':
       return 'my_coach_recording';
     case '/my-coach/processing':

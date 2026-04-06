@@ -12,6 +12,7 @@ import { PitchPracticeScreen } from './screens/PitchPracticeScreen';
 import { LiveScenarioScreen } from './screens/LiveScenarioScreen';
 import { StudioConfigScreen } from './screens/StudioConfigScreen';
 import { MyCoachScreen } from './screens/MyCoachScreen';
+import { MyCoachRecommendationsScreen } from './screens/MyCoachRecommendationsScreen';
 import { MyCoachRecordingScreen } from './screens/MyCoachRecordingScreen';
 import { MyCoachProcessingScreen } from './screens/MyCoachProcessingScreen';
 import { MyCoachReportsScreen } from './screens/MyCoachReportsScreen';
@@ -58,6 +59,7 @@ export default function App() {
     switch (currentScreen) {
       case 'dashboard': return <DashboardScreen onNavigate={handleNavigate} />;
       case 'my_coach': return <MyCoachScreen onNavigate={handleNavigate} />;
+      case 'my_coach_recommendations': return <MyCoachRecommendationsScreen onNavigate={handleNavigate} />;
       case 'my_coach_recording': return <MyCoachRecordingScreen onNavigate={handleNavigate} />;
       case 'my_coach_processing': return <MyCoachProcessingScreen onNavigate={handleNavigate} />;
       case 'my_coach_reports': return <MyCoachReportsScreen onNavigate={handleNavigate} />;

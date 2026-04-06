@@ -326,7 +326,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
               <ArrowLeft className="h-4 w-4" />
             </span>
             <span className="font-label text-[11px] font-semibold uppercase tracking-[0.24em] text-white/72">
-              Catalog
+              Products
             </span>
           </motion.button>
 

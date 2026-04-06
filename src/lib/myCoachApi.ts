@@ -318,7 +318,7 @@ export async function submitCoachAudio(params: {
       clips: params.clips,
       ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
       ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
-      transcriptSource: 'browser_stt',
+      transcriptSource: params.transcriptText || params.transcriptLines?.length ? 'browser_stt' : 'backend_stt',
     }),
   });
 

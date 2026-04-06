@@ -1,9 +1,9 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   clearDraftSessionTitle,
+  clearRememberedStepsFocus,
   clearRememberedReportId,
   clearRememberedSessionId,
-  clearRememberedStepsFocus,
   clearRememberedThreadId,
   createCustomerThread,
   listCustomerThreads,
@@ -12,6 +12,8 @@ import {
   rememberSelectedThreadId,
   rememberStepsFocus,
   readRememberedThreadId,
+  stagePendingLiveSessionSubmission,
+  type AudioClipPayload,
   type CustomerThreadSummary,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
@@ -27,6 +29,10 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   const [form, setForm] = useState(emptyForm);
   const [failedFields, setFailedFields] = useState<string[]>([]);
   const [animatingFields, setAnimatingFields] = useState<string[]>([]);
+  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const uploadMenuRef = useRef<HTMLDivElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const activeThread = selectedThreadId ? threads.find((thread) => thread.id === selectedThreadId) ?? null : null;
 
   useEffect(() => {
@@ -38,6 +44,29 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
       rememberSelectedThreadId(selectedThreadId);
     }
   }, [selectedThreadId]);
+
+  useEffect(() => {
+    if (!uploadMenuOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!uploadMenuRef.current?.contains(event.target as Node)) {
+        setUploadMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setUploadMenuOpen(false);
+      }
+    }
+
+    window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [uploadMenuOpen]);
 
   async function loadThreads() {
     setLoading(true);
@@ -115,6 +144,63 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     onNavigate('my_coach_recording');
   }
 
+  function buildDraftTitle() {
+    if (!activeThread) return 'Customer conversation';
+    return `${activeThread.customerName} ${activeThread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`;
+  }
+
+  function openUploadMenu() {
+    if (!activeThread || uploading) return;
+    setUploadMenuOpen((current) => !current);
+  }
+
+  function triggerUploadPicker() {
+    if (!activeThread || uploading) return;
+    setUploadMenuOpen(false);
+    uploadInputRef.current?.click();
+  }
+
+  async function handleUploadFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!activeThread?.id || !files.length) {
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const clips: AudioClipPayload[] = await Promise.all(
+        files.map(async (file) => ({
+          fileName: file.name,
+          mimeType: file.type || 'audio/webm',
+          base64: await fileLikeToBase64(file),
+          source: 'uploaded',
+        })),
+      );
+
+      rememberSelectedThreadId(activeThread.id);
+      rememberDraftSessionTitle(buildDraftTitle());
+      clearRememberedSessionId();
+      clearRememberedReportId();
+      clearRememberedStepsFocus();
+      rememberFlowOrigin('live_session');
+      stagePendingLiveSessionSubmission({
+        customerId: activeThread.id,
+        title: buildDraftTitle(),
+        source: 'uploaded',
+        clips,
+      });
+      onNavigate('my_coach_processing');
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : 'Could not prepare the selected audio files.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function openStepsGuide() {
     if (activeThread?.id) {
       rememberSelectedThreadId(activeThread.id);
@@ -140,6 +226,13 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     onNavigate('my_coach_reports');
   }
 
+  function openRecommendations() {
+    if (activeThread?.id) {
+      rememberSelectedThreadId(activeThread.id);
+    }
+    onNavigate('my_coach_recommendations');
+  }
+
   return (
     <main className="pt-24 px-6 pb-32 max-w-[1240px] mx-auto space-y-6">
       <section className="relative overflow-hidden rounded-[28pt] border border-white/8 bg-[linear-gradient(135deg,#0f1522_0%,#162031_44%,#1c1d25_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
@@ -157,10 +250,51 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
             <h1 className="mt-4 font-headline text-4xl font-bold tracking-tight text-white md:text-5xl">My Coach</h1>
             <p className="mt-3 text-sm leading-6 text-white/66 md:text-base">
               Keep this workspace focused on quick setup. Start a live session the moment a customer thread is ready,
-              and keep Show Steps only as a tutorial for onboarding or demos.
+              or upload an existing conversation when you want backend transcription to handle the session.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <ActionButton label="Start Session" icon="mic" onClick={startLiveSession} disabled={!activeThread} tone="primary" />
+              <div className="flex flex-col gap-2">
+                <ActionButton label="Start Session" icon="mic" onClick={startLiveSession} disabled={!activeThread} tone="primary" />
+                <div ref={uploadMenuRef} className="relative self-start">
+                  <ActionButton
+                    label={uploading ? 'Preparing Upload...' : 'Upload Session'}
+                    icon="upload_file"
+                    onClick={openUploadMenu}
+                    disabled={!activeThread || uploading}
+                  />
+                  {uploadMenuOpen ? (
+                    <div className="absolute bottom-[calc(100%+0.6rem)] left-0 z-20 min-w-[220px] rounded-[22px] border border-white/10 bg-[#141925]/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+                      <button
+                        type="button"
+                        onClick={triggerUploadPicker}
+                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
+                      >
+                        <span>Files</span>
+                        <span className="material-symbols-outlined text-[18px] text-white/48">folder</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={triggerUploadPicker}
+                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
+                      >
+                        <span>Drive / Cloud</span>
+                        <span className="material-symbols-outlined text-[18px] text-white/48">cloud_upload</span>
+                      </button>
+                      <p className="px-4 pb-2 pt-1 text-[10px] uppercase tracking-[0.16em] text-white/36">
+                        The system picker will show available providers.
+                      </p>
+                    </div>
+                  ) : null}
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    multiple
+                    accept="audio/*"
+                    onChange={(event) => void handleUploadFiles(event)}
+                    className="hidden"
+                  />
+                </div>
+              </div>
               <ActionButton label="Customer List" icon="groups" onClick={() => onNavigate('my_coach_customers')} />
               <ActionButton label="Show Steps Tutorial" icon="list_alt" onClick={openStepsGuide} disabled={!activeThread} />
               <ActionButton
@@ -169,6 +303,7 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                 onClick={openTranscript}
                 disabled={!activeThread?.hasSubmittedSession}
               />
+              <ActionButton label="Recommendations" icon="lightbulb" onClick={openRecommendations} />
               <ActionButton label="Reports" icon="description" onClick={openReports} />
             </div>
           </div>
@@ -262,6 +397,15 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
       {error ? <Banner tone="error" text={error} /> : null}
     </main>
   );
+}
+
+function fileLikeToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] ?? '' : '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 function ActionButton({

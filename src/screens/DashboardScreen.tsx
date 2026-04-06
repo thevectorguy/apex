@@ -16,13 +16,14 @@ const quickActions: Array<{
   cardClass: string;
   iconClass: string;
   pillClass: string;
+  shortEyebrow?: string;
 }> = [
   {
-    eyebrow: 'Catalog',
+    eyebrow: 'Products',
     value: '5',
     unit: 'Models',
     detail: '2 assigned today',
-    hint: 'Browse Maruti inventory',
+    hint: 'Browse Maruti lineup',
     icon: 'directions_car',
     route: 'catalog',
     cardClass: 'from-[#1d1a15] via-[#302716] to-[#14141c]',
@@ -54,10 +55,11 @@ const quickActions: Array<{
     pillClass: 'bg-[#d28b63]/16 text-[#ffc09d]',
   },
   {
-    eyebrow: 'Head Office',
+    eyebrow: 'Communications',
+    shortEyebrow: 'Comms',
     value: '4',
     unit: 'Updates',
-    detail: 'Priority HQ notices',
+    detail: 'Priority updates today',
     hint: 'Open announcements feed',
     icon: 'hub',
     route: 'communications',
@@ -67,17 +69,45 @@ const quickActions: Array<{
   },
 ];
 
-const spotlightAction = {
-  eyebrow: 'My Coach',
-  title: 'Coach every visit, not just the close.',
-  detail: 'Record showroom conversations, stitch repeat visits together, and get a SPEED-based report with exact coaching points before the next callback.',
-  meta: 'Training Master Copy v1',
-  workspaceRoute: 'my_coach' as Screen,
-  reportsRoute: 'my_coach_reports' as Screen,
-};
+const coachCards: Array<{
+  label: string;
+  title: string;
+  detail: string;
+  meta: string;
+  route: Screen;
+  icon: string;
+  cardClass: string;
+  iconClass: string;
+  pillClass: string;
+  compactTitle?: boolean;
+}> = [
+  {
+    label: 'Coach',
+    title: 'My Coach',
+    detail: 'Workspace, reports, and live session flow.',
+    meta: 'Training Master Copy',
+    route: 'my_coach',
+    icon: 'support_agent',
+    cardClass: 'from-[#0f1522] via-[#19263a] to-[#1c2230]',
+    iconClass: 'bg-[#4a9eff]/18 text-[#9bc8ff] border-[#4a9eff]/30',
+    pillClass: 'bg-[#4a9eff]/16 text-[#9bc8ff]',
+  },
+  {
+    label: 'Coach',
+    title: 'My Recommendations',
+    detail: 'Actionable next steps from recent coaching.',
+    meta: 'Actionable Review',
+    route: 'my_coach_recommendations',
+    icon: 'lightbulb',
+    cardClass: 'from-[#17151f] via-[#272132] to-[#1a1c27]',
+    iconClass: 'bg-white/10 text-white/85 border-white/10',
+    pillClass: 'bg-white/10 text-white/80',
+    compactTitle: true,
+  },
+];
 
 export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  const [masterCopyLabel, setMasterCopyLabel] = useState(spotlightAction.meta);
+  const [masterCopyLabel, setMasterCopyLabel] = useState(coachCards[0].meta);
 
   useEffect(() => {
     void getMasterCopyInfo()
@@ -112,72 +142,75 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
         </div>
       </section>
 
-      <section>
-        <motion.section
-          className="group relative w-full overflow-hidden rounded-[28pt] border border-white/8 bg-[linear-gradient(135deg,#0f1522_0%,#19263a_40%,#1c2230_100%)] px-6 py-7 text-left shadow-[0_24px_70px_rgba(0,0,0,0.42)]"
-          whileHover={{ y: -3, scale: 1.005 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(164,201,255,0.28),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(227,194,133,0.18),transparent_34%)]"></div>
-          <div className="absolute -right-8 top-6 h-32 w-32 rounded-full border border-white/10 bg-white/4 blur-2xl"></div>
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+      <section className="grid grid-cols-2 gap-2.5 sm:gap-4">
+        {coachCards.map((card) => (
+          <motion.button
+            key={card.title}
+            type="button"
+            onClick={() => onNavigate(card.route)}
+            className={`group relative min-h-[11.25rem] overflow-hidden rounded-[22pt] border border-white/6 bg-gradient-to-br ${card.cardClass} p-3.5 sm:min-h-[12rem] sm:p-5 text-left shadow-[0_20px_40px_rgba(0,0,0,0.35)]`}
+            whileHover={{ y: -4, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+          >
+            <div className="absolute inset-0 carbon-texture opacity-[0.07]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_36%)] opacity-80"></div>
+            <div className="absolute -right-10 top-5 h-24 w-24 rounded-full bg-[rgba(164,201,255,0.18)] blur-3xl"></div>
 
-          <div className="relative z-10 grid gap-6 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-label text-[10px] font-bold uppercase tracking-[0.26em] text-primary/90">
-                  {spotlightAction.eyebrow}
-                </span>
-                <span className="inline-flex items-center rounded-full border border-secondary/25 bg-secondary/12 px-3 py-1 font-label text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">
-                  {masterCopyLabel}
-                </span>
+            <div className="relative z-10 flex h-full flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-label text-[10px] font-bold uppercase tracking-[0.22em] text-white/54">
+                      {card.label}
+                    </p>
+                    <h3
+                      className={`mt-2 font-headline font-bold leading-[1.05] tracking-tight text-white text-balance ${
+                        card.compactTitle ? 'text-[1.08rem] sm:text-[1.4rem]' : 'text-[1.18rem] sm:text-[1.55rem]'
+                      }`}
+                    >
+                      {card.title}
+                    </h3>
+                  </div>
+
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border backdrop-blur-md sm:h-12 sm:w-12 ${card.iconClass}`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{card.icon}</span>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="font-label text-[10px] uppercase tracking-[0.14em] text-white/46">
+                    {card.title === 'My Coach' ? masterCopyLabel : card.meta}
+                  </p>
+                  <p className="mt-2 text-[12px] leading-5 text-white/70 sm:text-sm sm:leading-6">
+                    {card.detail}
+                  </p>
+                </div>
               </div>
 
-              <div className="max-w-3xl">
-                <h2 className="font-headline text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                  {spotlightAction.title}
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/72 sm:text-base">
-                  {spotlightAction.detail}
+              <div className="flex items-end justify-between gap-2 pt-3">
+                <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] leading-4 text-white/82 sm:text-[12px]">
+                  Open section
                 </p>
-              </div>
-            </div>
-
-	            <div className="flex flex-col items-start gap-4 lg:items-end">
-	              <div className="flex flex-wrap gap-3 lg:justify-end">
-	                <button
-	                  type="button"
-                  onClick={() => onNavigate(spotlightAction.workspaceRoute)}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 font-label text-xs font-bold uppercase tracking-[0.16em] text-on-primary-fixed shadow-[0_16px_32px_rgba(74,158,255,0.25)]"
-                >
-                  Open Workspace
+                <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full sm:h-9 sm:w-9 ${card.pillClass}`}>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate(spotlightAction.reportsRoute)}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2.5 font-label text-xs font-bold uppercase tracking-[0.16em] text-white/84 transition hover:bg-white/12"
-                >
-                  View Reports
-                  <span className="material-symbols-outlined text-[16px]">description</span>
-                </button>
+                </span>
               </div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-white/46 lg:text-right">
-                Open past coaching reports and revisit customer conversations.
-              </p>
             </div>
-          </div>
-        </motion.section>
+          </motion.button>
+        ))}
       </section>
 
       {/* Quick Actions Grid */}
-      <section className="grid grid-cols-2 gap-3 sm:gap-4">
+      <section className="grid grid-cols-2 gap-2.5 sm:gap-4">
         {quickActions.map((action, index) => (
           <motion.button
             key={action.eyebrow}
             type="button"
             onClick={() => onNavigate(action.route)}
-            className={`group relative min-h-[10.5rem] overflow-hidden rounded-[22pt] border border-white/6 bg-gradient-to-br ${action.cardClass} p-4 sm:min-h-[12rem] sm:p-5 text-left shadow-[0_20px_40px_rgba(0,0,0,0.35)]`}
+            className={`group relative min-h-[11rem] overflow-hidden rounded-[22pt] border border-white/6 bg-gradient-to-br ${action.cardClass} p-3.5 sm:min-h-[12rem] sm:p-5 text-left shadow-[0_20px_40px_rgba(0,0,0,0.35)]`}
             whileHover={{ y: -4, scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 360, damping: 26 }}
@@ -190,40 +223,54 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             ></div>
 
             <div className="relative z-10 flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-white/60">
-                    {action.eyebrow}
-                  </span>
-                  <div className="mt-3 flex items-end gap-2">
-                    <h3 className="font-headline text-[2.2rem] font-extrabold leading-none tracking-tight text-white sm:text-[2.45rem]">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <h3
+                    className={`min-w-0 flex-1 font-headline font-bold leading-[1.05] tracking-tight text-white text-balance ${
+                      action.eyebrow.length > 10 ? 'text-[1.1rem] sm:text-[1.45rem]' : 'text-[1.24rem] sm:text-[1.6rem]'
+                    }`}
+                  >
+                    {action.shortEyebrow ? (
+                      <>
+                        <span className="max-[480px]:hidden">{action.eyebrow}</span>
+                        <span className="hidden max-[480px]:inline">{action.shortEyebrow}</span>
+                      </>
+                    ) : (
+                      action.eyebrow
+                    )}
+                  </h3>
+
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border backdrop-blur-md sm:h-12 sm:w-12 ${action.iconClass}`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{action.icon}</span>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-end gap-2">
+                    <p className="font-headline text-[1.35rem] font-semibold leading-none tracking-tight text-white sm:text-[1.55rem]">
                       {action.value}
-                    </h3>
-                    <p className="pb-0.5 font-headline text-lg font-semibold tracking-tight text-white/92 sm:text-xl">
+                    </p>
+                    <p className="pb-0.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-white/72 sm:text-xs">
                       {action.unit}
                     </p>
                   </div>
-                  <p className="mt-1.5 max-w-[9rem] font-label text-[11px] uppercase tracking-[0.14em] text-white/55 sm:max-w-none">
+                  <p className="mt-2 font-label text-[10px] uppercase tracking-[0.14em] leading-4 text-white/52 sm:text-[11px]">
                     {action.detail}
                   </p>
                 </div>
-
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border backdrop-blur-md sm:h-12 sm:w-12 ${action.iconClass}`}
-                >
-                  <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{action.icon}</span>
-                </div>
               </div>
 
-              <div className="flex items-end justify-between gap-3 pt-3">
+              <div className="flex items-end justify-between gap-2 pt-3">
                 <div>
-                  <p className="max-w-[7rem] font-headline text-[13px] font-semibold leading-4 text-white/92 sm:max-w-[8.5rem] sm:text-[15px]">
+                  <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] leading-4 text-white/82 sm:text-[12px]">
                     {action.hint}
                   </p>
                 </div>
 
                 <span
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${action.pillClass}`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full sm:h-9 sm:w-9 ${action.pillClass}`}
                 >
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </span>
@@ -269,9 +316,9 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
         </div>
       </section>
 
-      {/* Assigned Inventory */}
+      {/* Assigned Models */}
       <section className="space-y-4">
-        <h2 className="font-headline text-lg font-bold tracking-tight text-on-surface">Assigned Inventory</h2>
+        <h2 className="font-headline text-lg font-bold tracking-tight text-on-surface">Assigned Models</h2>
         <div className="flex overflow-x-auto hide-scrollbar gap-4 -mx-6 px-6">
           {assignedInventoryVehicles.map((vehicle) => (
             <div
