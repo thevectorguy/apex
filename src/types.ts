@@ -1,6 +1,7 @@
 export type Screen =
   | 'dashboard'
   | 'my_coach'
+  | 'my_coach_recommendations'
   | 'my_coach_recording'
   | 'my_coach_processing'
   | 'my_coach_reports'

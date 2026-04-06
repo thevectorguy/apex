@@ -78,7 +78,7 @@ export function AIAssistantSheet({ isOpen, onClose }: { isOpen: boolean, onClose
                   Top selling points vs standard GT
                 </button>
                 <button className="whitespace-nowrap px-4 py-2 rounded-full border border-primary/30 text-primary font-body text-xs hover:bg-primary/10 transition-colors">
-                  Current inventory status
+                  Current model availability
                 </button>
               </div>
             </div>
