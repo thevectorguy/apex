@@ -17,6 +17,7 @@ import {
   type CustomerThreadSummary,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
+import { SkeletonLine } from '../components/Skeleton';
 
 export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
@@ -50,6 +51,7 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
   const activeSession =
     detail?.sessions.find((session) => session.id === selectedSessionId) ?? detail?.sessions[0] ?? null;
   const transcriptUnavailable = Boolean(activeSession?.report) && !hasUsableTranscript(activeSession?.transcript);
+  const detailLoading = loading || (!error && Boolean(selectedThreadId) && !detail);
 
   async function loadThreads() {
     setLoading(true);
@@ -66,6 +68,7 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
   }
 
   async function loadDetail(threadId: string) {
+    setLoading(true);
     try {
       const nextDetail = await getCustomerThread(threadId);
       setDetail(nextDetail);
@@ -79,6 +82,8 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
       );
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not load transcript history.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -110,7 +115,7 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
           <p className="text-[10px] uppercase tracking-[0.18em] text-primary/90">Show Transcript</p>
           <h1 className="mt-3 font-headline text-4xl font-bold tracking-tight text-white">Conversation Transcript</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/66">
-            This page keeps only the customer, visit selector, and transcript so the salesperson can focus on what was
+            This page keeps only the customer, visit selector, and transcript so you can focus on what was
             actually said without scrolling through the full dashboard.
           </p>
         </section>
@@ -120,10 +125,12 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
             <div className="max-w-2xl">
               <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Customer</p>
               <h2 className="mt-2 font-headline text-2xl font-bold text-on-surface">
-                {detail?.customerName ?? 'Select a customer thread'}
+                {detailLoading ? 'Loading transcript context...' : detail?.customerName ?? 'Select a customer thread'}
               </h2>
               <p className="mt-3 text-sm leading-6 text-white/58">
-                {detail?.summary ?? 'Pick the customer thread you want to inspect. The most recent session opens first.'}
+                {detailLoading
+                  ? 'Fetching customer and session history so the transcript opens on the right conversation.'
+                  : detail?.summary ?? 'Pick the customer thread you want to inspect. The most recent session opens first.'}
               </p>
             </div>
             {activeSession?.report ? (
@@ -139,24 +146,28 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {threads.map((thread) => (
-              <button
-                key={thread.id}
-                type="button"
-                onClick={() => setSelectedThreadId(thread.id)}
-                className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] ${
-                  selectedThreadId === thread.id
-                    ? 'border border-primary/24 bg-primary/12 text-primary'
-                    : 'border border-white/10 bg-white/5 text-white/68'
-                }`}
-              >
-                {thread.customerName}
-              </button>
-            ))}
+            {detailLoading
+              ? Array.from({ length: 4 }, (_, index) => <SkeletonLine key={`thread-pill-${index}`} className="h-9 w-24 rounded-full bg-white/[0.05]" />)
+              : threads.map((thread) => (
+                  <button
+                    key={thread.id}
+                    type="button"
+                    onClick={() => setSelectedThreadId(thread.id)}
+                    className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                      selectedThreadId === thread.id
+                        ? 'border border-primary/24 bg-primary/12 text-primary'
+                        : 'border border-white/10 bg-white/5 text-white/68'
+                    }`}
+                  >
+                    {thread.customerName}
+                  </button>
+                ))}
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {detail?.sessions.length ? (
+            {detailLoading ? (
+              Array.from({ length: 3 }, (_, index) => <SkeletonLine key={`session-pill-${index}`} className="h-14 w-40 rounded-[18pt] bg-white/[0.05]" />)
+            ) : detail?.sessions.length ? (
               detail.sessions.map((session) => (
                 <button
                   key={session.id}
@@ -210,10 +221,8 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
           ) : null}
 
           <div className="mt-5 space-y-3 max-h-[60vh] overflow-y-auto pr-1 hide-scrollbar">
-            {loading ? (
-              <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
-                Loading transcript...
-              </div>
+            {detailLoading ? (
+              Array.from({ length: 5 }, (_, index) => <TranscriptLineSkeleton key={`transcript-line-${index}`} alignRight={index % 2 === 0} />)
             ) : activeSession?.transcript.length ? (
               activeSession.transcript.map((turn) => (
                 <motion.div
@@ -256,5 +265,19 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
         ) : null}
       </div>
     </main>
+  );
+}
+
+function TranscriptLineSkeleton({ alignRight }: { alignRight: boolean }) {
+  return (
+    <div
+      className={`max-w-[92%] rounded-[20pt] border border-white/8 bg-surface-container-high/40 px-4 py-3 ${
+        alignRight ? 'ml-auto' : ''
+      }`}
+    >
+      <SkeletonLine className="h-3 w-24 bg-white/[0.05]" />
+      <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+      <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+    </div>
   );
 }

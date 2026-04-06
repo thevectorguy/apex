@@ -20,6 +20,8 @@ import {
   type TranscriptTurn,
   type TurningPoint,
 } from '../lib/myCoachApi';
+import { personalizeCoachCopy } from '../lib/personalizeCoachCopy';
+import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
 
 const reportSections = [
   { id: 'overview', label: 'Overview' },
@@ -160,7 +162,7 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
         </button>
 
         {loading ? (
-          <EmptyState text="Loading report..." />
+          <ReportDetailSkeleton />
         ) : selectedReport ? (
           <>
             <motion.section
@@ -174,7 +176,7 @@ export function MyCoachReportDetailScreen({ onNavigate }: { onNavigate: (screen:
                     <h1 className="mt-2 font-headline text-[30px] font-bold leading-none text-white sm:text-[38px]">
                       {selectedReport.customerName}
                     </h1>
-                    <p className="mt-3 max-w-[36rem] text-sm leading-6 text-white/62">{selectedReport.report.summary}</p>
+                    <p className="mt-3 max-w-[36rem] text-sm leading-6 text-white/62">{personalizeCoachCopy(selectedReport.report.summary)}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <MetaChip label={selectedReport.sessionTitle} />
                       <MetaChip label={formatReportDate(selectedReport.generatedAt)} />
@@ -295,7 +297,7 @@ function OverviewTab({ report }: { report: CoachReportListItem['report'] }) {
 
       <div className="space-y-4">
         <SurfaceBlock eyebrow="Product Fit" title={report.productFitSummary}>
-          <p className="text-sm leading-6 text-white/60">{report.productFit.why}</p>
+          <p className="text-sm leading-6 text-white/60">{personalizeCoachCopy(report.productFit.why)}</p>
           {report.productFit.customerPreferred ? (
             <InlineNote
               label="Customer preferred"
@@ -523,8 +525,8 @@ function CoachAdviceView({ coachAdvice }: { coachAdvice: CoachAdviceItem[] }) {
           <StatusCard
             tone={item.priority === 'high' ? 'coral' : item.priority === 'medium' ? 'amber' : 'green'}
             eyebrow={item.priority}
-            title={item.title}
-            detail={item.detail}
+            title={personalizeCoachCopy(item.title)}
+            detail={personalizeCoachCopy(item.detail)}
           />
         </motion.div>
       ))}
@@ -538,19 +540,19 @@ function NextVisitTab({ report }: { report: CoachReportListItem['report'] }) {
   return (
     <div className="space-y-6">
       <SectionIntro eyebrow="Next Visit" title="Prepare the re-entry before the customer returns">
-        This tab should answer two things clearly: how likely the customer is to return and how the salesperson should handle that return when it happens.
+        This tab should answer two things clearly: how likely the customer is to return and how you should handle that return when it happens.
       </SectionIntro>
 
       <SurfaceBlock eyebrow="Next Visit Signal" title={nextVisitSignal.title} tone={nextVisitSignal.tone}>
-        <p className="text-sm leading-7 text-white/72">{nextVisitSignal.summary}</p>
+        <p className="text-sm leading-7 text-white/72">{personalizeCoachCopy(nextVisitSignal.summary)}</p>
         <div className="mt-4 rounded-[18px] border border-white/8 bg-black/18 px-4 py-4">
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Approach If They Return</p>
-          <p className="mt-2 text-sm leading-7 text-white/72">{nextVisitSignal.approach}</p>
+          <p className="mt-2 text-sm leading-7 text-white/72">{personalizeCoachCopy(nextVisitSignal.approach)}</p>
         </div>
       </SurfaceBlock>
 
       <SurfaceBlock eyebrow="Opening Script" title={report.nextVisitOpener ? 'Ready to use' : 'Need more context'}>
-        <p className="text-sm leading-7 text-white/72">{report.nextVisitOpener || 'No personalized opener was returned for this session yet.'}</p>
+        <p className="text-sm leading-7 text-white/72">{personalizeCoachCopy(report.nextVisitOpener) || 'No personalized opener was returned for this session yet.'}</p>
       </SurfaceBlock>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -650,7 +652,7 @@ function ExtrasTab({
           <div className="mt-1 h-3 overflow-hidden rounded-full bg-white/[0.06]">
             <div className="h-full rounded-full bg-[linear-gradient(90deg,#8fb9ff_0%,#39FF14_100%)]" style={{ width: `${talkRatio?.salesShare || 0}%` }} />
           </div>
-          <p className="mt-3 text-sm leading-6 text-white/60">{talkRatio ? `${talkRatio.summary}.` : 'A fuller transcript is needed to compute the share of talk time.'}</p>
+          <p className="mt-3 text-sm leading-6 text-white/60">{talkRatio ? `${personalizeCoachCopy(talkRatio.summary)}.` : 'A fuller transcript is needed to compute the share of talk time.'}</p>
         </SurfaceBlock>
 
         <SurfaceBlock eyebrow="Customer Sentiment" title={`${report.customerSentiment.start} -> ${report.customerSentiment.end}`}>
@@ -906,8 +908,8 @@ function StatusCard({
     <div className={`rounded-[24px] border border-white/8 border-l-4 bg-white/[0.03] px-4 py-4 ${toneClass}`}>
       <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">{eyebrow}</p>
       <p className="mt-2 font-headline text-lg font-bold text-white">{title}</p>
-      {detail ? <p className="mt-2 text-sm leading-6 text-white/60">{detail}</p> : null}
-      {aside ? <div className="mt-3 rounded-[18px] border border-white/8 bg-black/16 px-3 py-3 text-sm leading-6 text-white/72">{aside}</div> : null}
+      {detail ? <p className="mt-2 text-sm leading-6 text-white/60">{personalizeCoachCopy(detail)}</p> : null}
+      {aside ? <div className="mt-3 rounded-[18px] border border-white/8 bg-black/16 px-3 py-3 text-sm leading-6 text-white/72">{personalizeCoachCopy(aside)}</div> : null}
     </div>
   );
 }
@@ -916,7 +918,7 @@ function ChecklistLine({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
       <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#39FF14]/30 text-[11px] text-[#39FF14]">+</span>
-      <p className="text-sm leading-6 text-white/72">{text}</p>
+      <p className="text-sm leading-6 text-white/72">{personalizeCoachCopy(text)}</p>
     </div>
   );
 }
@@ -927,7 +929,7 @@ function SimpleLine({ text, tone }: { text: string; tone: 'positive' | 'warning'
   return (
     <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
       <span className={`mt-2 h-2.5 w-2.5 rounded-full ${bulletTone}`} />
-      <p className="text-sm leading-6 text-white/72">{text}</p>
+      <p className="text-sm leading-6 text-white/72">{personalizeCoachCopy(text)}</p>
     </div>
   );
 }
@@ -990,6 +992,86 @@ function Banner({ text, tone }: { text: string; tone: 'error' | 'success' }) {
   return (
     <div className={`fixed bottom-6 left-1/2 z-[80] w-[min(92vw,760px)] -translate-x-1/2 rounded-full px-5 py-3 text-sm shadow-[0_20px_60px_rgba(0,0,0,0.35)] ${toneClasses}`}>
       {text}
+    </div>
+  );
+}
+
+function ReportDetailSkeleton() {
+  return (
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(140deg,rgba(17,28,42,0.96)_0%,rgba(9,14,21,0.94)_48%,rgba(6,9,14,0.98)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.35)]">
+        <div className="border-b border-white/8 px-5 py-5 sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <SkeletonLine className="h-3 w-28 bg-white/[0.08]" />
+              <SkeletonLine className="mt-4 h-10 w-52 bg-white/[0.08]" />
+              <SkeletonLine className="mt-4 h-4 w-full bg-white/[0.05]" />
+              <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+              <div className="mt-4 flex flex-wrap gap-2">
+                <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
+                <SkeletonLine className="h-7 w-24 rounded-full bg-white/[0.05]" />
+                <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
+              </div>
+            </div>
+            <SkeletonLine className="hidden h-11 w-32 rounded-full bg-white/[0.07] sm:block" />
+          </div>
+        </div>
+
+        <div className="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_290px]">
+          <div className="space-y-4">
+            <div className="rounded-[26px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <SkeletonLine className="h-3 w-24 bg-white/[0.06]" />
+              <SkeletonLine className="mt-3 h-7 w-44 bg-white/[0.08]" />
+              <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+              <SkeletonLine className="mt-2 h-4 w-5/6 bg-white/[0.04]" />
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <SkeletonCircle className="h-[92px] w-[92px] border-white/8 bg-white/[0.06]" />
+              <div className="space-y-2">
+                <SkeletonLine className="h-3 w-20 bg-white/[0.05]" />
+                <SkeletonLine className="h-6 w-24 bg-white/[0.08]" />
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div key={`detail-metric-${index}`} className="rounded-[20px] border border-white/8 bg-black/18 px-3 py-3">
+                  <SkeletonLine className="h-6 w-10 bg-white/[0.08]" />
+                  <SkeletonLine className="mt-2 h-3 w-16 bg-white/[0.05]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-x-auto hide-scrollbar pb-1">
+        <div className="flex min-w-max gap-2">
+          {Array.from({ length: 6 }, (_, index) => (
+            <SkeletonLine key={`detail-pill-${index}`} className="h-10 w-24 rounded-full bg-white/[0.05]" />
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,18,26,0.96)_0%,rgba(7,10,14,0.96)_100%)] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.32)] sm:p-6">
+        <SkeletonLine className="h-3 w-24 bg-white/[0.08]" />
+        <SkeletonLine className="mt-4 h-8 w-72 bg-white/[0.08]" />
+        <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 2 }, (_, index) => (
+            <div key={`detail-block-${index}`} className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <SkeletonLine className="h-3 w-24 bg-white/[0.06]" />
+              <SkeletonLine className="mt-3 h-6 w-32 bg-white/[0.08]" />
+              <SkeletonLine className="mt-4 h-4 w-full bg-white/[0.05]" />
+              <SkeletonLine className="mt-2 h-4 w-5/6 bg-white/[0.04]" />
+              <SkeletonLine className="mt-2 h-4 w-2/3 bg-white/[0.04]" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

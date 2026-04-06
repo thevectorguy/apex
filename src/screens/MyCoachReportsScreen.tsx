@@ -10,6 +10,7 @@ import {
   rememberSelectedThreadId,
   type CoachReportListItem,
 } from '../lib/myCoachApi';
+import { SkeletonLine, SkeletonCircle } from '../components/Skeleton';
 
 export function MyCoachReportsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [reports, setReports] = useState<CoachReportListItem[]>([]);
@@ -83,16 +84,18 @@ export function MyCoachReportsScreen({ onNavigate }: { onNavigate: (screen: Scre
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: 'Reports', value: String(totalReports) },
-              { label: 'Sessions', value: String(sessionsCovered) },
-              { label: 'Needs review', value: String(needsAttention) },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
-                <p className="font-headline text-2xl font-bold text-white">{item.value}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
-              </div>
-            ))}
+            {loading
+              ? Array.from({ length: 3 }, (_, index) => <LibraryMetricSkeleton key={`report-metric-${index}`} />)
+              : [
+                  { label: 'Reports', value: String(totalReports) },
+                  { label: 'Sessions', value: String(sessionsCovered) },
+                  { label: 'Needs review', value: String(needsAttention) },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
+                    <p className="font-headline text-2xl font-bold text-white">{item.value}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
+                  </div>
+                ))}
           </div>
         </div>
       </section>
@@ -115,7 +118,9 @@ export function MyCoachReportsScreen({ onNavigate }: { onNavigate: (screen: Scre
         </div>
 
         <div className="mt-4 space-y-3">
-          {!loading && !reports.length ? (
+          {loading ? (
+            Array.from({ length: 4 }, (_, index) => <ReportRowSkeleton key={`report-row-${index}`} />)
+          ) : !reports.length ? (
             <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm leading-6 text-white/48">
               No reports yet. Generate the first one from the My Coach workflow.
             </div>
@@ -164,4 +169,36 @@ function formatReportDate(dateString: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(dateString));
+}
+
+function LibraryMetricSkeleton() {
+  return (
+    <div className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
+      <SkeletonLine className="h-7 w-16 bg-white/[0.08]" />
+      <SkeletonLine className="mt-3 h-3 w-20 bg-white/[0.05]" />
+    </div>
+  );
+}
+
+function ReportRowSkeleton() {
+  return (
+    <div className="w-full rounded-[22pt] border border-white/8 bg-white/4 px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <SkeletonLine className="h-5 w-36 bg-white/[0.08]" />
+          <SkeletonLine className="mt-2 h-3 w-28 bg-white/[0.05]" />
+        </div>
+        <div className="rounded-[16pt] border border-secondary/10 bg-secondary/5 px-3 py-2">
+          <SkeletonLine className="h-5 w-10 bg-white/[0.08]" />
+          <SkeletonLine className="mt-2 h-3 w-8 bg-white/[0.05]" />
+        </div>
+      </div>
+      <SkeletonLine className="mt-4 h-3 w-full bg-white/[0.05]" />
+      <SkeletonLine className="mt-2 h-3 w-4/5 bg-white/[0.04]" />
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <SkeletonLine className="h-3 w-20 bg-white/[0.04]" />
+        <SkeletonCircle className="h-6 w-6 border-white/8 bg-white/[0.04]" />
+      </div>
+    </div>
+  );
 }

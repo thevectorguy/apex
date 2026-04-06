@@ -1,4 +1,4 @@
-export type InventoryVehicleId = 'fronx' | 'baleno' | 'brezza' | 'dzire' | 'ertiga';
+export type InventoryVehicleId = 'fronx' | 'baleno' | 'brezza' | 'dzire' | 'ertiga' | 'invicto';
 
 export type InventoryVehicle = {
   id: InventoryVehicleId;
@@ -60,6 +60,22 @@ export const marutiCatalogVehicles: InventoryVehicle[] = [
     editionLabel: 'Showroom Favorite',
     brochureTitle: 'Brezza ZXi+ 6AT',
     image: '/images/inventory/brezza.jpg',
+    inventoryStatus: 'In Stock',
+  },
+  {
+    id: 'invicto',
+    modelName: 'Invicto',
+    variantName: 'Alpha+ 7-Seater e-CVT',
+    priceLabel: 'Rs 28.61 L',
+    fuelLabel: 'Strong Hybrid',
+    engineLabel: '2.0L Intelligent Electric Hybrid',
+    transmissionLabel: 'e-CVT',
+    bodyStyle: '3-Row UV',
+    network: 'NEXA',
+    editionLabel: 'League Extraordinary',
+    brochureTitle: 'Invicto Alpha+ 7-Seater e-CVT',
+    image:
+      'https://www.nexaexperience.com/adobe/assets/urn:aaid:aem:4be11301-09e7-4df0-8f6d-1e43f729e629/as/InvictoFrontTilted-335x185.png?width=2000&id=1&preferwebp=true',
     inventoryStatus: 'In Stock',
   },
   {

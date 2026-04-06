@@ -17,6 +17,7 @@ import {
   type CustomerThreadSummary,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
+import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
 
 const emptyForm = { customerName: '', phone: '', customerContext: '', preferredLanguage: '', notes: '' };
 const AUDIO_FILE_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.webm', '.mp4', '.mpeg'];
@@ -353,7 +354,7 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                   label="Start Session"
                   icon="mic"
                   onClick={startLiveSession}
-                  disabled={!activeThread}
+                  disabled={loading || !activeThread}
                   tone="primary"
                   className="w-full justify-between rounded-[22px] px-5 py-4"
                 />
@@ -362,7 +363,7 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                     label={uploading ? 'Preparing Upload...' : 'Upload Session'}
                     icon="upload_file"
                     onClick={openUploadMenu}
-                    disabled={!activeThread || uploading}
+                    disabled={loading || !activeThread || uploading}
                     className="w-full justify-between rounded-[22px] px-5 py-4"
                   />
                   {uploadMenuOpen ? (
@@ -406,31 +407,35 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
                   </span>
                 </div>
                 <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {quickTools.map((tool) => (
-                    <QuickToolCard
-                      key={tool.label}
-                      label={tool.label}
-                      detail={tool.detail}
-                      icon={tool.icon}
-                      onClick={tool.onClick}
-                      disabled={tool.disabled}
-                    />
-                  ))}
+                  {loading
+                    ? Array.from({ length: quickTools.length }, (_, index) => <QuickToolCardSkeleton key={`quick-tool-skeleton-${index}`} />)
+                    : quickTools.map((tool) => (
+                        <QuickToolCard
+                          key={tool.label}
+                          label={tool.label}
+                          detail={tool.detail}
+                          icon={tool.icon}
+                          onClick={tool.onClick}
+                          disabled={tool.disabled}
+                        />
+                      ))}
                 </div>
               </div>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: 'Active customer', value: activeThread?.customerName ?? 'None' },
-              { label: 'Saved customers', value: String(threads.length) },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
-                <p className="font-headline text-sm font-bold text-white">{item.value}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
-              </div>
-            ))}
+            {loading
+              ? Array.from({ length: 2 }, (_, index) => <HeroMetricSkeleton key={`hero-metric-skeleton-${index}`} />)
+              : [
+                  { label: 'Active customer', value: activeThread?.customerName ?? 'None' },
+                  { label: 'Saved customers', value: String(threads.length) },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
+                    <p className="font-headline text-sm font-bold text-white">{item.value}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
+                  </div>
+                ))}
           </div>
         </div>
       </section>
@@ -582,6 +587,30 @@ function QuickToolCard({
         <span className="material-symbols-outlined text-[18px] text-white/42 transition group-hover:text-white/72">{icon}</span>
       </div>
     </button>
+  );
+}
+
+function HeroMetricSkeleton() {
+  return (
+    <div className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
+      <SkeletonLine className="h-5 w-28 bg-white/[0.08]" />
+      <SkeletonLine className="mt-3 h-3 w-20 bg-white/[0.05]" />
+    </div>
+  );
+}
+
+function QuickToolCardSkeleton() {
+  return (
+    <div className="min-w-[148px] shrink-0 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <SkeletonLine className="h-3 w-16 bg-white/[0.1]" />
+          <SkeletonLine className="mt-3 h-3 w-24 bg-white/[0.06]" />
+          <SkeletonLine className="mt-2 h-3 w-20 bg-white/[0.05]" />
+        </div>
+        <SkeletonCircle className="h-[18px] w-[18px] border-white/8 bg-white/[0.05]" />
+      </div>
+    </div>
   );
 }
 

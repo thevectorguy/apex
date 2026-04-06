@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Check, Mail, MessageSquareText, Phone, UserRound, X } from 'lucide-react';
 import { Screen } from '../types';
 import { marutiBrochures, type BrochureAsset } from '../data/brochures';
+import { writeSearchParam } from '../lib/appRouter';
 
 type BrochureForm = {
   name: string;
@@ -94,6 +95,11 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
     }, 3600);
   };
 
+  const openVehicleDetails = (brochure: BrochureAsset) => {
+    onNavigate('studio_config');
+    writeSearchParam('vehicle', brochure.id);
+  };
+
   return (
     <>
       <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto space-y-6">
@@ -142,7 +148,14 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                   <p className="mt-2 text-sm text-on-surface-variant">{brochure.format}</p>
                 </div>
 
-                <div className="flex justify-start md:justify-end">
+                <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => openVehicleDetails(brochure)}
+                    className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/16"
+                  >
+                    View Details
+                  </button>
                   <button
                     type="button"
                     onClick={() => openBrochureModal(brochure)}

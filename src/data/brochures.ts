@@ -48,6 +48,13 @@ const brochureMeta = {
     action: 'Large-family follow-ups',
     audience: 'Seven-seat shoppers and chauffeur-driven families',
   },
+  invicto: {
+    type: 'Strong Hybrid Flagship',
+    format: 'PDF + premium hybrid walkthrough',
+    freshness: 'Updated from NEXA lineup',
+    action: 'Luxury family buyers',
+    audience: 'Three-row premium shoppers comparing hybrids',
+  },
 } as const;
 
 export const marutiBrochures: BrochureAsset[] = marutiCatalogVehicles.map((vehicle) => ({

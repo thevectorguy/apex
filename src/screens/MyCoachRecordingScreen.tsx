@@ -13,6 +13,7 @@ import {
   type CustomerThreadDetail,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
+import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
 
 type LiveCaptureState = 'idle' | 'recording' | 'paused' | 'submitting';
 type PreviewStatus = 'idle' | 'listening' | 'live' | 'unsupported' | 'blocked' | 'error';
@@ -585,11 +586,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         </header>
 
         {loading ? (
-          <section className="flex min-h-0 flex-1 items-center justify-center">
-            <div className="rounded-[28px] border border-white/8 bg-white/4 px-6 py-8 text-sm text-white/60 backdrop-blur-xl">
-              Loading customer session...
-            </div>
-          </section>
+          <RecordingScreenSkeleton />
         ) : detail ? (
           <>
             <section className="relative mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
@@ -884,4 +881,35 @@ function fileLikeToBase64(file: Blob): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+function RecordingScreenSkeleton() {
+  return (
+    <section className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+      <div className="shrink-0">
+        <SkeletonLine className="h-10 w-44 bg-white/[0.08]" />
+        <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <SkeletonLine className="h-7 w-24 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-7 w-20 rounded-full bg-white/[0.05]" />
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-3">
+        <SkeletonCircle className="h-[11.5rem] w-[11.5rem] border-white/10 bg-white/[0.05]" />
+        <div className="mt-5 flex w-full max-w-[220px] items-end justify-center gap-1">
+          {Array.from({ length: 18 }, (_, index) => (
+            <SkeletonLine
+              key={`recording-meter-${index}`}
+              className={`w-1 rounded-full bg-white/[0.05] ${index % 3 === 0 ? 'h-8' : index % 2 === 0 ? 'h-5' : 'h-10'}`}
+            />
+          ))}
+        </div>
+        <SkeletonLine className="mt-5 h-4 w-56 bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-52 bg-white/[0.04]" />
+      </div>
+    </section>
+  );
 }

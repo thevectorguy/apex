@@ -14,6 +14,8 @@ import {
   rememberSelectedThreadId,
   type CoachReportListItem,
 } from '../lib/myCoachApi';
+import { personalizeCoachCopy } from '../lib/personalizeCoachCopy';
+import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
 
 type NuggetTone = 'positive' | 'warning' | 'neutral';
 
@@ -100,7 +102,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
       </button>
 
       {loading ? (
-        <Panel className="px-6 py-12 text-center text-sm leading-6 text-white/54">Loading recommendations...</Panel>
+        <RecommendationsSkeleton />
       ) : selectedReport ? (
         <>
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -159,16 +161,16 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
             >
               <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Primary Directive</p>
               <h2 className="mt-3 font-headline text-2xl font-bold text-on-surface">
-                {directives[0] || 'Lead with one clear recommendation and one clear next step.'}
+                {personalizeCoachCopy(directives[0] || 'Lead with one clear recommendation and one clear next step.')}
               </h2>
-              <p className="mt-3 text-sm leading-6 text-white/62">{selectedReport.report.summary}</p>
+              <p className="mt-3 text-sm leading-6 text-white/62">{personalizeCoachCopy(selectedReport.report.summary)}</p>
 
               {visitSignal ? (
                 <div className={`mt-5 rounded-[24px] border px-4 py-4 ${signalToneClass(visitSignal.tone)}`}>
                   <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">Next Visit Signal</p>
                   <h3 className="mt-2 font-headline text-xl font-bold text-white">{visitSignal.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/68">{visitSignal.summary}</p>
-                  <p className="mt-3 text-sm leading-6 text-white/84">{visitSignal.direction}</p>
+                  <p className="mt-2 text-sm leading-6 text-white/68">{personalizeCoachCopy(visitSignal.summary)}</p>
+                  <p className="mt-3 text-sm leading-6 text-white/84">{personalizeCoachCopy(visitSignal.direction)}</p>
                 </div>
               ) : null}
             </motion.section>
@@ -483,15 +485,15 @@ function RecommendationsOverviewSection({
         <div className="mt-5 space-y-4">
           <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Report Summary</p>
-            <p className="mt-3 text-sm leading-6 text-white/68">{summary}</p>
+            <p className="mt-3 text-sm leading-6 text-white/68">{personalizeCoachCopy(summary)}</p>
           </div>
 
           {visitSignal ? (
             <div className={`rounded-[24px] border px-4 py-4 ${signalToneClass(visitSignal.tone)}`}>
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">Next Visit Signal</p>
               <h3 className="mt-2 font-headline text-xl font-bold text-white">{visitSignal.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-white/68">{visitSignal.summary}</p>
-              <p className="mt-3 text-sm leading-6 text-white/84">{visitSignal.direction}</p>
+              <p className="mt-2 text-sm leading-6 text-white/68">{personalizeCoachCopy(visitSignal.summary)}</p>
+              <p className="mt-3 text-sm leading-6 text-white/84">{personalizeCoachCopy(visitSignal.direction)}</p>
             </div>
           ) : null}
         </div>
@@ -625,9 +627,9 @@ function RecommendationsLearningSection({
               </div>
               <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-primary/90">Learning Directive</p>
               <h3 className="mt-2 font-headline text-2xl font-bold tracking-tight text-white">{video.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/60">{video.summary}</p>
+              <p className="mt-3 text-sm leading-6 text-white/60">{personalizeCoachCopy(video.summary)}</p>
               <div className="mt-4 rounded-[20px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-6 text-white/74">
-                {video.directive}
+                {personalizeCoachCopy(video.directive)}
               </div>
               <div className="mt-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-white/44">
                 <span>Open training feed</span>
@@ -653,7 +655,7 @@ function NuggetCard({ nugget }: { nugget: Nugget }) {
     <div className={`h-full rounded-[24px] border px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] ${toneClass}`}>
       <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">{nugget.eyebrow}</p>
       <h3 className="mt-3 font-headline text-xl font-bold text-white">{nugget.title}</h3>
-      <p className="mt-3 text-sm leading-6 text-white/68">{nugget.detail}</p>
+      <p className="mt-3 text-sm leading-6 text-white/68">{personalizeCoachCopy(nugget.detail)}</p>
     </div>
   );
 }
@@ -686,7 +688,7 @@ function LineItem({ text, tone }: { text: string; tone: 'positive' | 'warning' }
   return (
     <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
       <span className={`mt-2 h-2.5 w-2.5 rounded-full ${tone === 'positive' ? 'bg-[#39FF14]' : 'bg-[#FFB800]'}`} />
-      <p className="text-sm leading-6 text-white/72">{text}</p>
+      <p className="text-sm leading-6 text-white/72">{personalizeCoachCopy(text)}</p>
     </div>
   );
 }
@@ -697,7 +699,7 @@ function DirectiveRow({ index, text }: { index: number; text: string }) {
       <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-secondary/24 bg-secondary/12 font-headline text-sm font-bold text-secondary">
         {index}
       </span>
-      <p className="pt-0.5 text-sm leading-6 text-white/74">{text}</p>
+      <p className="pt-0.5 text-sm leading-6 text-white/74">{personalizeCoachCopy(text)}</p>
     </div>
   );
 }
@@ -721,4 +723,78 @@ function MetaChip({ label, subtle = false }: { label: string; subtle?: boolean }
 
 function MutedText({ text }: { text: string }) {
   return <div className="rounded-[20px] border border-dashed border-white/10 px-4 py-5 text-sm leading-6 text-white/48">{text}</div>;
+}
+
+function RecommendationsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Panel className="px-6 py-7">
+          <SkeletonLine className="h-3 w-32 bg-white/[0.08]" />
+          <SkeletonLine className="mt-5 h-10 w-4/5 bg-white/[0.08]" />
+          <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+          <SkeletonLine className="mt-2 h-4 w-3/4 bg-white/[0.04]" />
+          <div className="mt-5 flex flex-wrap gap-2">
+            <SkeletonLine className="h-7 w-24 rounded-full bg-white/[0.05]" />
+            <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
+            <SkeletonLine className="h-7 w-20 rounded-full bg-white/[0.05]" />
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={`recommendations-stat-${index}`} className="rounded-[20px] border border-white/8 bg-black/18 px-4 py-3">
+                <SkeletonLine className="h-7 w-14 bg-white/[0.08]" />
+                <SkeletonLine className="mt-3 h-3 w-16 bg-white/[0.05]" />
+              </div>
+            ))}
+          </div>
+          <SkeletonLine className="mt-6 h-11 w-40 rounded-full bg-white/[0.07]" />
+        </Panel>
+
+        <Panel className="p-5">
+          <SkeletonLine className="h-3 w-28 bg-white/[0.08]" />
+          <SkeletonLine className="mt-5 h-8 w-5/6 bg-white/[0.08]" />
+          <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+          <SkeletonLine className="mt-2 h-4 w-3/4 bg-white/[0.04]" />
+          <div className="mt-5 rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <SkeletonLine className="h-3 w-24 bg-white/[0.06]" />
+            <SkeletonLine className="mt-3 h-6 w-2/3 bg-white/[0.08]" />
+            <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+            <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+          </div>
+        </Panel>
+      </section>
+
+      <section className="overflow-x-auto hide-scrollbar pb-1">
+        <div className="flex min-w-max gap-2">
+          {Array.from({ length: 4 }, (_, index) => (
+            <SkeletonLine key={`recommendation-pill-${index}`} className="h-10 w-28 rounded-full bg-white/[0.05]" />
+          ))}
+        </div>
+      </section>
+
+      <Panel>
+        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          {Array.from({ length: 2 }, (_, panelIndex) => (
+            <div key={`recommendation-panel-${panelIndex}`} className="space-y-4">
+              <SkeletonLine className="h-3 w-24 bg-white/[0.08]" />
+              <SkeletonLine className="h-8 w-3/4 bg-white/[0.08]" />
+              <SkeletonLine className="h-4 w-full bg-white/[0.05]" />
+              <SkeletonLine className="h-4 w-4/5 bg-white/[0.04]" />
+              <div className="space-y-3">
+                {Array.from({ length: 3 }, (_, rowIndex) => (
+                  <div key={`recommendation-row-${panelIndex}-${rowIndex}`} className="flex items-start gap-4 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <SkeletonCircle className="h-8 w-8 border-white/8 bg-white/[0.05]" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <SkeletonLine className="h-4 w-full bg-white/[0.05]" />
+                      <SkeletonLine className="h-4 w-3/4 bg-white/[0.04]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
 }

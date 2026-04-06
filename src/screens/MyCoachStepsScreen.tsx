@@ -19,6 +19,7 @@ import {
   type MyCoachStepFocus,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
+import { SkeletonLine } from '../components/Skeleton';
 
 type BrowserSpeechRecognition = {
   continuous: boolean;
@@ -112,6 +113,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   const activeSession =
     detail?.sessions.find((session) => session.id === selectedSessionId) ?? detail?.sessions[0] ?? null;
   const recentSessions = detail?.sessions ?? [];
+  const detailLoading = loading || (!error && Boolean(selectedThreadId) && !detail);
 
   async function loadThreads() {
     setLoading(true);
@@ -127,6 +129,7 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
   }
 
   async function loadDetail(threadId: string) {
+    setLoading(true);
     try {
       const nextDetail = await getCustomerThread(threadId);
       setDetail(nextDetail);
@@ -140,6 +143,8 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
       );
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not load the selected customer workflow.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -527,10 +532,8 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
                 </p>
 
                 <div className="mt-4 space-y-3">
-                  {loading ? (
-                    <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
-                      Loading customer history...
-                    </div>
+                  {detailLoading ? (
+                    Array.from({ length: 3 }, (_, index) => <WorkflowHistorySkeleton key={`workflow-history-${index}`} />)
                   ) : recentSessions.length ? (
                     recentSessions.map((session) => (
                       <div
@@ -583,17 +586,17 @@ export function MyCoachStepsScreen({ onNavigate }: { onNavigate: (screen: Screen
             )}
           </>
         ) : (
-          <section className="rounded-[26pt] border border-dashed border-white/10 bg-surface-container-low/70 px-5 py-10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">My Coach Steps</p>
-            <p className="mt-3 font-headline text-2xl font-bold text-on-surface">
-              {loading ? 'Loading workflow...' : 'No customer selected'}
-            </p>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/56">
-              {loading
-                ? 'Getting the current customer so this page can stay focused on the two workflow steps.'
-                : 'Select or create a customer on the My Coach screen first, then open Show Steps when you are ready to walk through the flow.'}
-            </p>
-          </section>
+          detailLoading ? (
+            <WorkflowScreenSkeleton />
+          ) : (
+            <section className="rounded-[26pt] border border-dashed border-white/10 bg-surface-container-low/70 px-5 py-10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">My Coach Steps</p>
+              <p className="mt-3 font-headline text-2xl font-bold text-on-surface">No customer selected</p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/56">
+                Select or create a customer on the My Coach screen first, then open Show Steps when you are ready to walk through the flow.
+              </p>
+            </section>
+          )
         )}
 
         {error ? (
@@ -650,6 +653,56 @@ function deriveSource(clips: AudioClipPayload[]): 'recorded' | 'uploaded' | 'mix
   const hasUploaded = clips.some((clip) => clip.source === 'uploaded');
   if (hasRecorded && hasUploaded) return 'mixed';
   return hasRecorded ? 'recorded' : 'uploaded';
+}
+
+function WorkflowScreenSkeleton() {
+  return (
+    <div className="space-y-6">
+      <section className="flex items-center justify-between gap-4">
+        <div>
+          <SkeletonLine className="h-3 w-16 bg-white/[0.06]" />
+          <SkeletonLine className="mt-3 h-9 w-32 bg-white/[0.08]" />
+        </div>
+        <div className="flex items-center gap-2">
+          <SkeletonLine className="h-11 w-11 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-9 w-16 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-11 w-11 rounded-full bg-white/[0.05]" />
+        </div>
+      </section>
+
+      <section className="rounded-[26pt] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+        <SkeletonLine className="h-3 w-32 bg-white/[0.06]" />
+        <SkeletonLine className="mt-3 h-9 w-40 bg-white/[0.08]" />
+        <SkeletonLine className="mt-4 h-4 w-full bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+        <div className="mt-6 space-y-4 rounded-[24pt] border border-white/8 bg-black/14 p-4">
+          <SkeletonLine className="h-12 w-full rounded-2xl bg-white/[0.05]" />
+          <div className="grid gap-3 lg:grid-cols-2">
+            <SkeletonLine className="h-11 w-full rounded-full bg-white/[0.06]" />
+            <SkeletonLine className="h-11 w-full rounded-full bg-white/[0.05]" />
+          </div>
+          <div className="rounded-[22pt] border border-white/8 bg-black/12 p-4">
+            <SkeletonLine className="h-4 w-40 bg-white/[0.06]" />
+            <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
+            <SkeletonLine className="mt-2 h-4 w-5/6 bg-white/[0.04]" />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function WorkflowHistorySkeleton() {
+  return (
+    <div className="rounded-[20pt] border border-white/8 bg-surface-container-high/45 px-4 py-4">
+      <SkeletonLine className="h-4 w-40 bg-white/[0.06]" />
+      <SkeletonLine className="mt-2 h-3 w-28 bg-white/[0.05]" />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <SkeletonLine className="h-9 w-28 rounded-full bg-white/[0.05]" />
+        <SkeletonLine className="h-9 w-28 rounded-full bg-white/[0.05]" />
+      </div>
+    </div>
+  );
 }
 
 function fileLikeToBase64(file: Blob): Promise<string> {

@@ -61,99 +61,6 @@ const wheelOptions: WheelOption[] = [
 
 const SHEET_COLLAPSED_PEEK = 180;
 
-function sanitizePdfText(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[^\x20-\x7E]/g, '')
-    .replace(/\\/g, '\\\\')
-    .replace(/\(/g, '\\(')
-    .replace(/\)/g, '\\)');
-}
-
-function createDemoBrochurePdf({
-  customerName,
-  customerEmail,
-  phone,
-  paintName,
-  wheelName,
-  salesNote,
-  brochureTitle,
-}: {
-  customerName: string;
-  customerEmail: string;
-  phone: string;
-  paintName: string;
-  wheelName: string;
-  salesNote: string;
-  brochureTitle: string;
-}) {
-  const lines = [
-    `${brochureTitle} brochure`,
-    `Prepared for ${customerName || 'Walk-in guest'}`,
-    `Email: ${customerEmail}`,
-    phone ? `Phone: ${phone}` : 'Phone: showroom follow-up pending',
-    `Exterior paint: ${paintName}`,
-    `Wheel package: ${wheelName}`,
-    salesNote ? `Note: ${salesNote}` : 'Note: Sample brochure prepared in studio mode.',
-  ].map((line) => sanitizePdfText(line).slice(0, 108));
-
-  const streamParts = ['BT', '/F1 30 Tf', '72 724 Td', `(${lines[0]}) Tj`, '/F1 16 Tf'];
-  lines.slice(1).forEach((line, index) => {
-    streamParts.push(index === 0 ? '0 -42 Td' : '0 -26 Td');
-    streamParts.push(`(${line}) Tj`);
-  });
-  streamParts.push('ET');
-
-  const stream = streamParts.join('\n');
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-  ];
-
-  let pdf = '%PDF-1.4\n';
-  const offsets = [0];
-
-  objects.forEach((objectBody, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${objectBody}\nendobj\n`;
-  });
-
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach((offset) => {
-    pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
-  });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return new Blob([pdf], { type: 'application/pdf' });
-}
-
-function writeBrochureHoldingPage(targetWindow: Window, brochureTitle: string) {
-  try {
-    targetWindow.document.open();
-    targetWindow.document.write(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Preparing ${brochureTitle} brochure</title>
-  </head>
-  <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#070709;color:#f5f7fb;font-family:Inter,Arial,sans-serif;">
-    <div style="max-width:420px;padding:40px 32px;border:1px solid rgba(255,255,255,0.08);border-radius:28px;background:linear-gradient(145deg,rgba(28,28,34,0.92),rgba(12,12,16,0.96));box-shadow:0 30px 80px rgba(0,0,0,0.45);">
-      <p style="margin:0;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(245,247,251,0.48);">Studio Preview</p>
-      <h1 style="margin:18px 0 8px;font-size:32px;line-height:1.05;">Preparing the ${brochureTitle} brochure</h1>
-      <p style="margin:0;color:rgba(245,247,251,0.68);line-height:1.6;">Return to the configurator to enter the lead's details. The sample PDF will load here automatically.</p>
-    </div>
-  </body>
-</html>`);
-    targetWindow.document.close();
-  } catch {
-    // The preview tab is best-effort for demo flow only.
-  }
-}
-
 export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
   const requestedVehicle = readSearchParam('vehicle') as InventoryVehicleId | null;
   const vehicleKey: InventoryVehicleId = requestedVehicle && requestedVehicle in inventoryVehicleById ? requestedVehicle : 'brezza';
@@ -175,8 +82,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
   const sheetRef = useRef<HTMLElement | null>(null);
   const sheetHandleDraggedRef = useRef(false);
   const sheetDragControls = useDragControls();
-  const brochureWindowRef = useRef<Window | null>(null);
-  const brochureUrlRef = useRef<string | null>(null);
 
   const activeColor = colors.find((color) => color.hex === paintColor) ?? colors[0];
   const activeWheel = wheelOptions.find((wheel) => wheel.id === selectedWheel) ?? wheelOptions[0];
@@ -219,9 +124,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
 
   useEffect(() => {
     return () => {
-      if (brochureUrlRef.current) {
-        URL.revokeObjectURL(brochureUrlRef.current);
-      }
       document.body.style.overflow = '';
     };
   }, []);
@@ -231,20 +133,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
   };
 
   const handleOpenBrochureModal = () => {
-    if (typeof window !== 'undefined') {
-      const previewWindow =
-        brochureWindowRef.current && !brochureWindowRef.current.closed
-          ? brochureWindowRef.current
-          : window.open('', 'inventory-brochure-demo');
-
-      if (previewWindow) {
-        brochureWindowRef.current = previewWindow;
-        writeBrochureHoldingPage(previewWindow, vehicle.brochureTitle);
-        previewWindow.blur();
-        window.focus();
-      }
-    }
-
     setBrochureStatus('idle');
     setIsBrochureModalOpen(true);
     setSheetState('expanded');
@@ -263,37 +151,6 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
   const handleSendBrochure = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBrochureStatus('sending');
-
-    const brochureBlob = createDemoBrochurePdf({
-      customerName: brochureForm.name,
-      customerEmail: brochureForm.email,
-      phone: brochureForm.phone,
-      paintName: activeColor.name,
-      wheelName: activeWheel.name,
-      salesNote: brochureForm.note,
-      brochureTitle: vehicle.brochureTitle,
-    });
-
-    if (brochureUrlRef.current) {
-      URL.revokeObjectURL(brochureUrlRef.current);
-    }
-
-    const brochureUrl = URL.createObjectURL(brochureBlob);
-    brochureUrlRef.current = brochureUrl;
-
-    const previewWindow =
-      brochureWindowRef.current && !brochureWindowRef.current.closed
-        ? brochureWindowRef.current
-        : window.open('', 'inventory-brochure-demo');
-
-    if (previewWindow) {
-      brochureWindowRef.current = previewWindow;
-      previewWindow.location.href = brochureUrl;
-      previewWindow.blur();
-      window.focus();
-    } else {
-      window.open(brochureUrl, '_blank');
-    }
 
     window.setTimeout(() => {
       setBrochureStatus('sent');
@@ -623,7 +480,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                     <p className="font-label text-[10px] uppercase tracking-[0.24em] text-white/42">Brochure Handoff</p>
                     <h2 className="mt-2 font-headline text-xl font-bold leading-tight text-white sm:text-2xl">Send the {vehicle.brochureTitle} brochure</h2>
                     <p className="mt-2 text-sm leading-6 text-white/60">
-                      Capture the customer details now. A sample PDF preview will open in a background tab for the showroom demo as soon as you confirm.
+                      Capture the customer details here and keep the brochure handoff inside this modal.
                     </p>
                   </div>
 
@@ -659,7 +516,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                         </div>
                         <h3 className="mt-4 font-headline text-lg font-semibold text-white sm:text-xl">Brochure queued</h3>
                         <p className="mt-2 text-sm leading-6 text-white/62">
-                          {brochureForm.name}'s sample PDF is opening in the preview tab now. This stays demo-safe while still showing the end-to-end premium handoff.
+                          {brochureForm.name}'s brochure handoff has been captured. You can continue from here without opening another screen.
                         </p>
                       </motion.div>
                     ) : (
@@ -737,7 +594,7 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                             <div>
                               <p className="font-headline text-sm font-semibold text-white">Demo-ready workflow</p>
                               <p className="mt-1 text-sm leading-6 text-white/58">
-                                This generates a polished sample PDF using the selected paint and wheel so you can show the managers a complete brochure handoff.
+                                This keeps the brochure flow focused on collecting the lead details and confirming the handoff right here.
                               </p>
                             </div>
                           </div>
@@ -761,14 +618,14 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                             >
                               <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.18)_48%,transparent_74%)] opacity-70" />
                               <span className="relative flex items-center gap-2">
-                                {brochureStatus === 'sending' ? (
-                                  <span className="h-4 w-4 rounded-full border-2 border-white/25 border-t-white animate-spin" />
-                                ) : (
-                                  <Mail className="h-4 w-4" />
-                                )}
-                                <span>{brochureStatus === 'sending' ? 'Preparing brochure...' : 'Send brochure'}</span>
-                              </span>
-                            </motion.button>
+                              {brochureStatus === 'sending' ? (
+                                <span className="h-4 w-4 rounded-full border-2 border-white/25 border-t-white animate-spin" />
+                              ) : (
+                                <Mail className="h-4 w-4" />
+                              )}
+                              <span>{brochureStatus === 'sending' ? 'Sending brochure...' : 'Send brochure'}</span>
+                            </span>
+                          </motion.button>
                           </div>
                         </div>
                       </motion.form>

@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Screen } from '../types';
 import { writeSearchParam } from '../lib/appRouter';
-import { pitchPracticeVehicles, type InventoryVehicleId } from '../data/marutiVehicles';
 
 export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicleId>('brezza');
   const [selectedPersona, setSelectedPersona] = useState<'skeptic' | 'tech_enthusiast' | 'budget_buyer'>('skeptic');
 
   function startSimulation() {
     onNavigate('live_scenario');
-    writeSearchParam('vehicle', selectedVehicle);
+    writeSearchParam('vehicle', 'brezza');
     writeSearchParam('persona', selectedPersona);
   }
 
@@ -24,33 +22,8 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
           </div>
         </div>
         <p className="font-body text-on-surface-variant text-lg">
-          Hone your sales pitch with our AI-driven customer simulator. Select a vehicle and scenario to begin.
+          Hone your sales pitch with our AI-driven customer simulator. Choose a customer persona to begin.
         </p>
-      </section>
-
-      {/* Vehicle Selection */}
-      <section className="mb-10">
-        <h2 className="font-headline text-xl font-semibold text-on-surface mb-4">Select Vehicle</h2>
-        <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4">
-          {pitchPracticeVehicles.map((vehicle) => (
-            <button
-              key={vehicle.id}
-              type="button"
-              onClick={() => setSelectedVehicle(vehicle.id)}
-              className={`flex-shrink-0 w-48 p-4 rounded-2xl text-left transition-all ${
-                selectedVehicle === vehicle.id
-                  ? 'bg-surface-container-high border-2 border-primary'
-                  : 'bg-surface-container border border-outline-variant/10 opacity-70 hover:bg-surface-container-high hover:opacity-100'
-              }`}
-            >
-              <div className="w-full h-24 rounded-xl bg-surface-container-highest mb-3 overflow-hidden">
-                <img src={vehicle.image} alt={vehicle.modelName} className="w-full h-full object-cover" />
-              </div>
-              <h3 className="font-headline font-bold text-on-surface">{vehicle.modelName}</h3>
-              <p className="font-label text-xs text-secondary mt-1">{vehicle.variantName}</p>
-            </button>
-          ))}
-        </div>
       </section>
 
       {/* Scenario Selection */}
