@@ -2,8 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Check, Mail, MessageSquareText, Phone, UserRound, X } from 'lucide-react';
 import { Screen } from '../types';
-import { marutiBrochures, type BrochureAsset } from '../data/brochures';
 import { writeSearchParam } from '../lib/appRouter';
+import { listBrochures } from '../lib/brochureApi';
+import { isAbortError } from '../lib/contentApi';
+import { shareBrochure } from '../lib/leadsApi';
+import type { BrochureAsset } from '../lib/contentTypes';
 
 type BrochureForm = {
   name: string;
@@ -12,35 +15,24 @@ type BrochureForm = {
   note: string;
 };
 
-function buildBrochureMailto(brochure: BrochureAsset, form: BrochureForm) {
-  const subject = encodeURIComponent(`${brochure.name} brochure from DILOS`);
-  const body = encodeURIComponent(
-    [
-      `Hi ${form.name || 'there'},`,
-      `Sharing the ${brochure.name} brochure from our showroom conversation.`,
-      form.phone ? `Phone: ${form.phone}` : '',
-      form.note ? `Sales note: ${form.note}` : '',
-      'Regards,',
-      'DILOS Showroom Team',
-    ]
-      .filter(Boolean)
-      .join('\n\n'),
-  );
-
-  return `mailto:${encodeURIComponent(form.email)}?subject=${subject}&body=${body}`;
-}
-
 export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const [brochures, setBrochures] = useState<BrochureAsset[]>([]);
   const [selectedBrochure, setSelectedBrochure] = useState<BrochureAsset | null>(null);
   const [brochureStatus, setBrochureStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [isClosing, setIsClosing] = useState(false);
   const [lastBrochureLead, setLastBrochureLead] = useState<{ name: string; brochure: string } | null>(null);
+  const [isLoadingBrochures, setIsLoadingBrochures] = useState(true);
+  const [contentNotice, setContentNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [handoffNotice, setHandoffNotice] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [brochureForm, setBrochureForm] = useState<BrochureForm>({
     name: '',
     email: '',
     phone: '',
     note: '',
   });
+  const notices = [contentNotice, handoffNotice].filter(Boolean) as string[];
 
   useEffect(() => {
     if (!selectedBrochure) {
@@ -55,14 +47,40 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
     };
   }, [selectedBrochure]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void listBrochures({ signal: controller.signal })
+      .then((result) => {
+        setBrochures(result.items);
+        setContentNotice(result.notice || null);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (isAbortError(error)) {
+          return;
+        }
+        setLoadError(error instanceof Error ? error.message : 'Unable to load the brochure library right now.');
+      })
+      .finally(() => {
+        setIsLoadingBrochures(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
   const openBrochureModal = (brochure: BrochureAsset) => {
     setSelectedBrochure(brochure);
     setBrochureStatus('idle');
+    setSubmissionError(null);
     setIsClosing(false);
   };
 
   const closeBrochureModal = () => {
     setIsClosing(true);
+    setSubmissionError(null);
     window.setTimeout(() => {
       setSelectedBrochure(null);
       setBrochureStatus('idle');
@@ -75,29 +93,44 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
     setBrochureForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSendBrochure = (event: FormEvent<HTMLFormElement>) => {
+  const handleSendBrochure = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedBrochure) return;
 
     setBrochureStatus('sending');
-    window.location.href = buildBrochureMailto(selectedBrochure, brochureForm);
+    setSubmissionError(null);
 
-    window.setTimeout(() => {
+    try {
+      const result = await shareBrochure({
+        brochureId: selectedBrochure.id,
+        brochureName: selectedBrochure.name,
+        vehicleId: selectedBrochure.vehicleId || selectedBrochure.id,
+        vehicleLabel: selectedBrochure.name,
+        customerName: brochureForm.name,
+        email: brochureForm.email,
+        phone: brochureForm.phone,
+        note: brochureForm.note,
+      });
+
       setBrochureStatus('sent');
       setLastBrochureLead({
-        name: brochureForm.name,
-        brochure: selectedBrochure.name,
+        name: result.item.lead.customerName,
+        brochure: result.item.lead.brochureName || selectedBrochure.name,
       });
-    }, 220);
+      setHandoffNotice(result.source === 'fallback' ? result.notice || 'Brochure handoff used fallback processing.' : result.notice || null);
 
-    window.setTimeout(() => {
-      closeBrochureModal();
-    }, 3600);
+      window.setTimeout(() => {
+        closeBrochureModal();
+      }, 3600);
+    } catch (error) {
+      setBrochureStatus('idle');
+      setSubmissionError(error instanceof Error ? error.message : 'Unable to send the brochure right now.');
+    }
   };
 
   const openVehicleDetails = (brochure: BrochureAsset) => {
     onNavigate('studio_config');
-    writeSearchParam('vehicle', brochure.id);
+    writeSearchParam('vehicle', brochure.vehicleId || brochure.id);
   };
 
   return (
@@ -122,51 +155,77 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2">
               <Mail className="h-3.5 w-3.5 shrink-0 text-secondary" />
               <span className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-white/68">
-                Email sent to {lastBrochureLead.name} - {lastBrochureLead.brochure}
+                Handoff queued for {lastBrochureLead.name} - {lastBrochureLead.brochure}
               </span>
+            </div>
+          )}
+
+          {notices.map((notice) => (
+            <div key={notice} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
+              {notice}
+            </div>
+          ))}
+
+          {loadError && (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {loadError}
             </div>
           )}
         </section>
 
         <section className="space-y-4">
-          {marutiBrochures.map((brochure) => (
-            <article
-              key={brochure.id}
-              className="group overflow-hidden rounded-[24pt] border border-outline-variant/10 bg-[linear-gradient(145deg,rgba(31,31,37,0.96),rgba(22,22,28,0.96))] p-4 shadow-[0_22px_44px_rgba(0,0,0,0.24)]"
-            >
-              <div className="grid gap-4 md:grid-cols-[14rem_1fr_auto] md:items-center">
-                <div className="h-36 overflow-hidden rounded-[18pt] bg-surface-container-highest">
-                  <img
-                    src={brochure.image}
-                    alt={brochure.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
+          {isLoadingBrochures ? (
+            <div className="rounded-[24pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+              Loading brochure library...
+            </div>
+          ) : brochures.length > 0 ? (
+            brochures.map((brochure) => (
+              <article
+                key={brochure.id}
+                className="group overflow-hidden rounded-[24pt] border border-outline-variant/10 bg-[linear-gradient(145deg,rgba(31,31,37,0.96),rgba(22,22,28,0.96))] p-4 shadow-[0_22px_44px_rgba(0,0,0,0.24)]"
+              >
+                <div className="grid gap-4 md:grid-cols-[14rem_1fr_auto] md:items-center">
+                  <div className="h-36 overflow-hidden rounded-[18pt] bg-surface-container-highest">
+                    <img
+                      src={brochure.image}
+                      alt={brochure.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
 
-                <div className="min-w-0">
-                  <h2 className="font-headline text-2xl font-bold tracking-tight text-on-surface">{brochure.name}</h2>
-                  <p className="mt-2 text-sm text-on-surface-variant">{brochure.format}</p>
-                </div>
+                  <div className="min-w-0">
+                    <h2 className="font-headline text-2xl font-bold tracking-tight text-on-surface">{brochure.name}</h2>
+                    <p className="mt-2 text-sm text-on-surface-variant">{brochure.format}</p>
+                  </div>
 
-                <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => openVehicleDetails(brochure)}
-                    className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/16"
-                  >
-                    View Details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openBrochureModal(brochure)}
-                    className="rounded-xl bg-secondary/12 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-secondary hover:bg-secondary/20 transition-colors"
-                  >
-                    Email
-                  </button>
+                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => openVehicleDetails(brochure)}
+                      className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/16"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openBrochureModal(brochure)}
+                      className="rounded-xl bg-secondary/12 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-secondary hover:bg-secondary/20 transition-colors"
+                    >
+                      Email
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          ) : loadError ? (
+            <div className="rounded-[24pt] border border-rose-400/20 bg-rose-400/10 p-6 text-sm text-rose-100">
+              Brochure data could not be loaded. Please try again in a moment.
+            </div>
+          ) : (
+            <div className="rounded-[24pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+              No brochures are available yet.
+            </div>
+          )}
         </section>
       </main>
 
@@ -221,7 +280,7 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                           <Check className="h-5 w-5" />
                         </div>
                         <h3 className="mt-4 font-headline text-lg font-semibold text-white sm:text-xl">
-                          Email sent to {brochureForm.name}
+                          Handoff queued for {brochureForm.name}
                         </h3>
                       </motion.div>
                     ) : (
@@ -233,6 +292,12 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                         onSubmit={handleSendBrochure}
                         className="mt-5 space-y-3.5 sm:mt-6 sm:space-y-4"
                       >
+                        {submissionError && (
+                          <div className="rounded-[1.2rem] border border-error/20 bg-error-container/80 px-4 py-3 text-sm text-on-error-container">
+                            {submissionError}
+                          </div>
+                        )}
+
                         <label className="block">
                           <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Customer Name</span>
                           <div className="relative">
@@ -305,7 +370,7 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                               ) : (
                                 <Mail className="h-4 w-4" />
                               )}
-                              <span>{brochureStatus === 'sending' ? 'Opening draft...' : 'Email brochure'}</span>
+                              <span>{brochureStatus === 'sending' ? 'Sending brochure...' : 'Send brochure'}</span>
                             </span>
                           </motion.button>
                         </div>

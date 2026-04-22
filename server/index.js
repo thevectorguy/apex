@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
-import { getDb } from './lib/db.js';
-import { isSupabaseConfigured } from './lib/persistence.js';
-import { ensureStorageDirs } from './lib/storage.js';
+import { getMongoHealth } from './lib/mongo.js';
+import { getS3Health } from './lib/s3.js';
+import { registerContentRoutes } from './routes/content.js';
+import { registerDashboardRoutes } from './routes/dashboard.js';
+import { registerLeadRoutes } from './routes/leads.js';
 import { registerMyCoachRoutes } from './routes/myCoach.js';
 import { registerProductAuthorityRoutes } from './routes/productAuthority.js';
 
@@ -16,29 +18,37 @@ for (const envPath of ['.env.local', '.env']) {
 }
 
 export function createServer() {
-  if (!isSupabaseConfigured()) {
-    ensureStorageDirs();
-    getDb();
-  }
-
   const app = express();
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(corsLite);
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, service: 'my-coach-backend' });
+  app.get('/api/health', async (_req, res) => {
+    const [mongo, s3] = await Promise.all([getMongoHealth(), getS3Health()]);
+    res.json({
+      ok: true,
+      service: 'my-coach-backend',
+      storage: {
+        mongo,
+        s3,
+      },
+    });
   });
 
+  registerContentRoutes(app);
+  registerLeadRoutes(app);
+  registerDashboardRoutes(app);
   registerMyCoachRoutes(app);
   registerProductAuthorityRoutes(app);
 
   app.use((err, _req, res, _next) => {
     console.error(err);
-    res.status(500).json({
+    const statusCode = Number(err?.statusCode) || 500;
+    res.status(statusCode).json({
       ok: false,
-      error: 'Internal Server Error',
+      error: statusCode >= 500 ? 'Internal Server Error' : 'Request Error',
       message: err instanceof Error ? err.message : String(err),
+      details: err?.details || undefined,
     });
   });
 

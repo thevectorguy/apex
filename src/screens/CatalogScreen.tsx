@@ -1,16 +1,49 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Screen } from '../types';
-import { marutiCatalogVehicles, type InventoryVehicle, type InventoryVehicleId } from '../data/marutiVehicles';
+import { listCatalogVehicles } from '../lib/catalogApi';
+import { isAbortError } from '../lib/contentApi';
+import type { CatalogVehicle } from '../lib/contentTypes';
 
-const featuredVehicle = marutiCatalogVehicles[0];
-const secondaryVehicles = marutiCatalogVehicles.filter((vehicle) => ['baleno', 'invicto'].includes(vehicle.id));
 const featuredVehicleImage = '/images/inventory/fronx-cutout.png';
-const cutoutVehicleIds: InventoryVehicleId[] = ['fronx', 'invicto'];
+const cutoutVehicleIds = new Set(['fronx', 'invicto']);
 const productAuthorityStartPath = '/api/product-authority/start';
+const catalogFilters = ['all', 'NEXA', 'Arena', 'automatic', 'family'] as const;
+
+type CatalogFilter = (typeof catalogFilters)[number];
 
 export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Screen) => void }) {
   const [isStartingPractice, setIsStartingPractice] = useState(false);
   const [practiceError, setPracticeError] = useState<string | null>(null);
+  const [vehicles, setVehicles] = useState<CatalogVehicle[]>([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [contentNotice, setContentNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<CatalogFilter>('all');
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void listCatalogVehicles({ signal: controller.signal })
+      .then((result) => {
+        setVehicles(result.items);
+        setContentNotice(result.notice || null);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (isAbortError(error)) {
+          return;
+        }
+        setLoadError(error instanceof Error ? error.message : 'Unable to load the product lineup right now.');
+      })
+      .finally(() => {
+        setIsLoadingVehicles(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   async function startProductAuthorityPractice() {
     if (isStartingPractice) return;
@@ -39,20 +72,20 @@ export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Scr
     }
   }
 
-  function getVehicleImage(vehicle: InventoryVehicle) {
+  function getVehicleImage(vehicle: CatalogVehicle) {
     return vehicle.id === 'fronx' ? featuredVehicleImage : vehicle.image;
   }
 
-  function getVehicleImageClasses(vehicle: InventoryVehicle, isFeatured: boolean) {
+  function getVehicleImageClasses(vehicle: CatalogVehicle, isFeatured: boolean) {
     if (vehicle.id === 'fronx' && isFeatured) {
       return 'object-contain object-top px-3 pb-2 pt-0 scale-[1.08] -translate-y-2 md:scale-[1.12] md:-translate-y-3';
     }
 
-    return cutoutVehicleIds.includes(vehicle.id) ? 'object-contain object-center px-4 py-4' : 'object-cover';
+    return cutoutVehicleIds.has(vehicle.id) ? 'object-contain object-center px-4 py-4' : 'object-cover';
   }
 
-  function renderVehicleCard(vehicle: InventoryVehicle, options?: { featured?: boolean; className?: string }) {
-    const isCutoutVehicle = cutoutVehicleIds.includes(vehicle.id);
+  function renderVehicleCard(vehicle: CatalogVehicle, options?: { featured?: boolean; className?: string }) {
+    const isCutoutVehicle = cutoutVehicleIds.has(vehicle.id);
     const isFeatured = options?.featured ?? false;
 
     return (
@@ -143,6 +176,49 @@ export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Scr
     );
   }
 
+  const queryTerms = searchQuery
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((term) => term.length > 1);
+
+  const visibleVehicles = vehicles.filter((vehicle) => {
+    const matchesFilter =
+      activeFilter === 'all' ||
+      (activeFilter === 'NEXA' && vehicle.network === 'NEXA') ||
+      (activeFilter === 'Arena' && vehicle.network === 'Arena') ||
+      (activeFilter === 'automatic' && isAutomaticVehicle(vehicle)) ||
+      (activeFilter === 'family' && isFamilyReadyVehicle(vehicle));
+
+    if (!matchesFilter) {
+      return false;
+    }
+
+    if (queryTerms.length === 0) {
+      return true;
+    }
+
+    const haystack = [
+      vehicle.modelName,
+      vehicle.variantName,
+      vehicle.network,
+      vehicle.bodyStyle,
+      vehicle.editionLabel,
+      vehicle.brochureTitle,
+      ...(vehicle.tags || []),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return queryTerms.some((term) => haystack.includes(term));
+  });
+
+  const featuredVehicle =
+    visibleVehicles.find((vehicle) => vehicle.isFeatured) ||
+    visibleVehicles.find((vehicle) => vehicle.id === 'fronx') ||
+    visibleVehicles[0] ||
+    null;
+  const secondaryVehicles = visibleVehicles.filter((vehicle) => vehicle.id !== featuredVehicle?.id);
+
   return (
     <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto space-y-8">
       <section className="space-y-4">
@@ -166,10 +242,24 @@ export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Scr
           </p>
         )}
 
+        {contentNotice && (
+          <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
+            {contentNotice}
+          </p>
+        )}
+
+        {loadError && (
+          <p className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            {loadError}
+          </p>
+        )}
+
         <div className="relative group">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-xl">search</span>
           <input
             type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search Maruti variants, networks, and body styles..."
             className="w-full bg-surface-container-low border-none border-b-2 border-transparent focus:border-primary focus:ring-0 rounded-2xl py-4 pl-12 pr-4 font-body text-on-surface placeholder:text-outline/50 transition-all"
           />
@@ -177,28 +267,74 @@ export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Scr
       </section>
 
       <nav className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-        <button className="px-6 py-2.5 rounded-full bg-gradient-to-r from-secondary-container to-secondary text-on-secondary-fixed font-medium text-sm whitespace-nowrap shadow-[0_0_15px_rgba(227,194,133,0.3)]">
-          All Models
-        </button>
-        <button className="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">
-          NEXA
-        </button>
-        <button className="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">
-          Arena
-        </button>
-        <button className="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">
-          Automatic
-        </button>
-        <button className="px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10">
-          Family Ready
-        </button>
+        {catalogFilters.map((filter) => {
+          const isActive = activeFilter === filter;
+          const label =
+            filter === 'all'
+              ? 'All Models'
+              : filter === 'automatic'
+                ? 'Automatic'
+                : filter === 'family'
+                  ? 'Family Ready'
+                  : filter;
+
+          return (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setActiveFilter(filter)}
+              className={
+                isActive
+                  ? 'px-6 py-2.5 rounded-full bg-gradient-to-r from-secondary-container to-secondary text-on-secondary-fixed font-medium text-sm whitespace-nowrap shadow-[0_0_15px_rgba(227,194,133,0.3)]'
+                  : 'px-6 py-2.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium text-sm whitespace-nowrap transition-colors border border-outline-variant/10'
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
       </nav>
 
-      <section>{renderVehicleCard(featuredVehicle, { featured: true })}</section>
+      {isLoadingVehicles ? (
+        <section className="rounded-[26pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+          Loading product lineup...
+        </section>
+      ) : featuredVehicle ? (
+        <>
+          <section>{renderVehicleCard(featuredVehicle, { featured: true })}</section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {secondaryVehicles.map((vehicle) => renderVehicleCard(vehicle))}
-      </section>
+          {secondaryVehicles.length > 0 && (
+            <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {secondaryVehicles.map((vehicle) => renderVehicleCard(vehicle))}
+            </section>
+          )}
+        </>
+      ) : loadError ? (
+        <section className="rounded-[26pt] border border-rose-400/20 bg-rose-400/10 p-6 text-sm text-rose-100">
+          Catalog data could not be loaded. Please try again in a moment.
+        </section>
+      ) : (
+        <section className="rounded-[26pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+          No vehicles match this search yet.
+        </section>
+      )}
     </main>
   );
+}
+
+function isAutomaticVehicle(vehicle: CatalogVehicle) {
+  return /(at|ags|amt|cvt)/i.test(vehicle.transmissionLabel);
+}
+
+function isFamilyReadyVehicle(vehicle: CatalogVehicle) {
+  const familyBodyStyles = new Set(['suv', 'mpv', '3-row uv']);
+  if (familyBodyStyles.has(vehicle.bodyStyle.toLowerCase())) {
+    return true;
+  }
+
+  if (vehicle.editionLabel.toLowerCase().includes('family')) {
+    return true;
+  }
+
+  return (vehicle.tags || []).some((tag) => tag.toLowerCase().includes('family'));
 }

@@ -18,6 +18,7 @@ import { Screen } from '../types';
 import { CarModel } from '../components/CarModel';
 import { readSearchParam } from '../lib/appRouter';
 import { inventoryVehicleById, type InventoryVehicleId } from '../data/marutiVehicles';
+import { shareBrochure } from '../lib/leadsApi';
 
 type WheelOption = {
   id: string;
@@ -72,6 +73,8 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
   const [isBrochureModalOpen, setIsBrochureModalOpen] = useState(false);
   const [brochureStatus, setBrochureStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [lastBrochureLead, setLastBrochureLead] = useState<{ name: string; email: string } | null>(null);
+  const [handoffNotice, setHandoffNotice] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [brochureForm, setBrochureForm] = useState<BrochureForm>({
     name: '',
@@ -134,12 +137,14 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
 
   const handleOpenBrochureModal = () => {
     setBrochureStatus('idle');
+    setSubmissionError(null);
     setIsBrochureModalOpen(true);
     setSheetState('expanded');
   };
 
   const handleCloseBrochureModal = () => {
     setBrochureStatus('idle');
+    setSubmissionError(null);
     setIsBrochureModalOpen(false);
   };
 
@@ -148,20 +153,36 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
     window.setTimeout(() => setIsSaved(false), 1800);
   };
 
-  const handleSendBrochure = (event: FormEvent<HTMLFormElement>) => {
+  const handleSendBrochure = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBrochureStatus('sending');
+    setSubmissionError(null);
 
-    window.setTimeout(() => {
+    try {
+      const result = await shareBrochure({
+        brochureId: vehicle.id,
+        brochureName: vehicle.brochureTitle,
+        vehicleId: vehicle.id,
+        vehicleLabel: `${vehicle.modelName} ${vehicle.variantName}`.trim(),
+        customerName: brochureForm.name,
+        email: brochureForm.email,
+        phone: brochureForm.phone,
+        note: brochureForm.note,
+      });
+
       setBrochureStatus('sent');
-      setLastBrochureLead({ name: brochureForm.name, email: brochureForm.email });
-    }, 320);
+      setLastBrochureLead({ name: result.item.lead.customerName, email: result.item.lead.email || brochureForm.email });
+      setHandoffNotice(result.source === 'fallback' ? result.notice || 'Brochure handoff used fallback processing.' : result.notice || null);
 
-    window.setTimeout(() => {
-      setIsBrochureModalOpen(false);
+      window.setTimeout(() => {
+        setIsBrochureModalOpen(false);
+        setBrochureStatus('idle');
+        setBrochureForm({ name: '', email: '', phone: '', note: '' });
+      }, 1800);
+    } catch (error) {
       setBrochureStatus('idle');
-      setBrochureForm({ name: '', email: '', phone: '', note: '' });
-    }, 1800);
+      setSubmissionError(error instanceof Error ? error.message : 'Unable to send the brochure right now.');
+    }
   };
 
   return (
@@ -448,6 +469,12 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                   </span>
                 </div>
               )}
+
+              {handoffNotice && (
+                <div className="mt-3 rounded-[18pt] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/68">
+                  {handoffNotice}
+                </div>
+              )}
             </motion.div>
           </div>
         </motion.section>
@@ -528,6 +555,12 @@ export function StudioConfigScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                         onSubmit={handleSendBrochure}
                         className="mt-5 space-y-3.5 sm:mt-6 sm:space-y-4"
                       >
+                        {submissionError && (
+                          <div className="rounded-[1.2rem] border border-error/20 bg-error-container/80 px-4 py-3 text-sm text-on-error-container">
+                            {submissionError}
+                          </div>
+                        )}
+
                         <label className="block">
                           <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Customer Name</span>
                           <div className="relative">

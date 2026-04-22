@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Screen } from '../types';
-import { announcements, type AnnouncementSegment } from '../data/announcements';
+import { isAbortError } from '../lib/contentApi';
+import { listAnnouncements } from '../lib/communicationsApi';
+import type { Announcement, AnnouncementSegment } from '../lib/contentTypes';
 
 type AnnouncementFilter = 'all' | AnnouncementSegment;
 
@@ -52,9 +54,37 @@ function AISearchGlyph({ className = 'h-5 w-5' }: { className?: string }) {
 }
 
 export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Screen) => void }) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
+  const [contentNotice, setContentNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<AnnouncementFilter>('all');
   const [activeSearchId, setActiveSearchId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void listAnnouncements({ signal: controller.signal })
+      .then((result) => {
+        setAnnouncements(result.items);
+        setContentNotice(result.notice || null);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (isAbortError(error)) {
+          return;
+        }
+        setLoadError(error instanceof Error ? error.message : 'Unable to load announcements right now.');
+      })
+      .finally(() => {
+        setIsLoadingAnnouncements(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   const activeSearch = aiSearches.find((item) => item.id === activeSearchId) ?? null;
   const queryTerms = searchQuery
@@ -134,6 +164,18 @@ export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: 
         <p className="announcements-copy text-on-surface-variant text-lg max-w-2xl">
           Latest announcements, updates, and notices from Communications.
         </p>
+
+        {contentNotice && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
+            {contentNotice}
+          </div>
+        )}
+
+        {loadError && (
+          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            {loadError}
+          </div>
+        )}
 
         <div className="relative group">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline">
@@ -280,6 +322,15 @@ export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: 
             </div>
           </section>
         </>
+      ) : isLoadingAnnouncements ? (
+        <section className="rounded-[24pt] border border-outline-variant/10 bg-surface-container px-6 py-10 text-center">
+          <p className="announcements-headline text-2xl font-semibold text-on-surface">Loading announcements...</p>
+        </section>
+      ) : loadError ? (
+        <section className="rounded-[24pt] border border-rose-400/20 bg-rose-400/10 px-6 py-10 text-center">
+          <p className="announcements-headline text-2xl font-semibold text-rose-100">Announcements could not be loaded</p>
+          <p className="mt-2 announcements-copy text-rose-100/80">Please try again in a moment.</p>
+        </section>
       ) : (
         <section className="rounded-[24pt] border border-outline-variant/10 bg-surface-container px-6 py-10 text-center">
           <p className="announcements-headline text-2xl font-semibold text-on-surface">No announcements found</p>

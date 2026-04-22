@@ -32,13 +32,13 @@ const MIN_TRANSCRIPT_WORDS = 20;
 const MIN_WORDS_PER_SECOND = 0.4;
 
 export function registerMyCoachRoutes(app) {
-  app.get('/api/my-coach/health', (_req, res) => {
+  app.get('/api/my-coach/health', async (_req, res) => {
     res.json({
       ok: true,
       service: 'my-coach',
       version: MASTER_COPY_VERSION,
       hash: MASTER_COPY_HASH,
-      persistence: getPersistenceStatus(),
+      persistence: await getPersistenceStatus(),
     });
   });
 
