@@ -6,7 +6,7 @@ export function BottomNavBar({ currentScreen, onNavigate }: { currentScreen: Scr
     { id: 'catalog', icon: 'directions_car' },
     { id: 'studio_config', icon: 'view_in_ar' },
     { id: 'communications', icon: 'chat_bubble' },
-    { id: 'pitch_practice', icon: 'person' },
+    { id: 'profile', icon: 'person' },
   ] as const;
 
   return (

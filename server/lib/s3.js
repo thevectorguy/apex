@@ -36,11 +36,13 @@ export async function getS3Health() {
 
 export async function uploadMyCoachAudioObject({ audioId, customerId, sessionId, filename, mimeType, buffer }) {
   if (!isS3Configured()) {
-    throw new Error('AWS S3 is not configured. Set AWS_REGION and AWS_S3_BUCKET for My Coach audio uploads.');
+    throw new Error(
+      'AWS S3 is not configured. Set AWS_REGION and AWS_S3_BUCKET_NAME_OUT (or AWS_S3_BUCKET) for My Coach audio uploads.',
+    );
   }
 
   const config = getS3Config();
-  const key = `my-coach/${customerId}/${sessionId}/${audioId}-${filename}`;
+  const key = buildAudioObjectKey(config.audioPath, customerId, sessionId, audioId, filename);
 
   await getS3Client().send(
     new PutObjectCommand({
@@ -106,4 +108,9 @@ function getS3Client() {
   }
 
   return s3Client;
+}
+
+function buildAudioObjectKey(audioPath, customerId, sessionId, audioId, filename) {
+  const parts = [audioPath, customerId, sessionId, `${audioId}-${filename}`].filter(Boolean);
+  return parts.join('/');
 }

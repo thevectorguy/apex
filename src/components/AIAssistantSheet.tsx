@@ -14,6 +14,7 @@ import {
   readRememberedThreadId,
 } from '../lib/myCoachApi';
 import type { Screen } from '../types';
+import { useApp } from '../contexts/AppContext';
 
 type ChatMessage = {
   id: string;
@@ -30,12 +31,14 @@ export function AIAssistantSheet({
   onClose: () => void;
   currentScreen: Screen;
 }) {
+  const { bootstrap } = useApp();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [snapshot, setSnapshot] = useState<AssistantContextSnapshot>({
     screen: currentScreen,
     thread: null,
     reportItem: null,
+    bootstrap,
   });
   const [loadingContext, setLoadingContext] = useState(false);
   const [pendingReplyIds, setPendingReplyIds] = useState<string[]>([]);
@@ -69,7 +72,7 @@ export function AIAssistantSheet({
     clearQueuedReplies();
     setLoadingContext(true);
 
-    void loadAssistantContext(currentScreen)
+    void loadAssistantContext(currentScreen, bootstrap)
       .then((nextSnapshot) => {
         if (cancelled) return;
         setSnapshot(nextSnapshot);
@@ -86,7 +89,7 @@ export function AIAssistantSheet({
       })
       .catch(() => {
         if (cancelled) return;
-        const fallbackSnapshot: AssistantContextSnapshot = { screen: currentScreen, thread: null, reportItem: null };
+        const fallbackSnapshot: AssistantContextSnapshot = { screen: currentScreen, thread: null, reportItem: null, bootstrap };
         setSnapshot(fallbackSnapshot);
         setMessages([
           {
@@ -106,7 +109,7 @@ export function AIAssistantSheet({
     return () => {
       cancelled = true;
     };
-  }, [currentScreen, isOpen, refreshKey]);
+  }, [bootstrap, currentScreen, isOpen, refreshKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -365,7 +368,7 @@ function PromptLane({
   );
 }
 
-async function loadAssistantContext(screen: Screen): Promise<AssistantContextSnapshot> {
+async function loadAssistantContext(screen: Screen, bootstrap: AssistantContextSnapshot['bootstrap']): Promise<AssistantContextSnapshot> {
   const rememberedThreadId = readRememberedThreadId();
   const rememberedReportId = readRememberedReportId();
   const rememberedSessionId = readRememberedSessionId();
@@ -390,6 +393,7 @@ async function loadAssistantContext(screen: Screen): Promise<AssistantContextSna
     screen,
     thread,
     reportItem,
+    bootstrap,
   };
 }
 

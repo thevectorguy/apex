@@ -10,8 +10,6 @@
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "server": "node server/index.js",
-    "migrate:sqlite-to-mongo": "node scripts/migrate-sqlite-to-mongo.js",
-    "migrate:supabase-to-mongo": "node scripts/migrate-supabase-to-mongo.js",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },

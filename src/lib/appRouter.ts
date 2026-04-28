@@ -1,13 +1,17 @@
 import { Screen } from '../types';
+import { buildAppPath, stripAppBasePath } from './runtimeConfig';
 
 const SCREEN_PATHS: Record<Screen, string> = {
   dashboard: '/',
+  profile: '/profile',
   my_coach: '/my-coach',
   my_coach_recommendations: '/my-coach/recommendations',
   my_coach_recording: '/my-coach/live',
   my_coach_processing: '/my-coach/processing',
   my_coach_reports: '/my-coach/reports',
   my_coach_report_detail: '/my-coach/report',
+  my_coach_report_section: '/my-coach/report/section',
+  my_coach_report_speed: '/my-coach/report/speed',
   my_coach_customers: '/my-coach/customers',
   my_coach_steps: '/my-coach/steps',
   my_coach_transcript: '/my-coach/transcript',
@@ -24,12 +28,14 @@ export const ROUTE_QUERY_KEYS = ['threadId', 'sessionId', 'reportId', 'flow', 's
 export type RouteQueryKey = (typeof ROUTE_QUERY_KEYS)[number];
 
 export function getScreenFromLocation(locationLike: Pick<Location, 'pathname'> = window.location): Screen {
-  const pathname = normalizePath(locationLike.pathname);
+  const pathname = normalizePath(stripAppBasePath(locationLike.pathname));
 
   switch (pathname) {
     case '/':
     case '/dashboard':
       return 'dashboard';
+    case '/profile':
+      return 'profile';
     case '/my-coach':
       return 'my_coach';
     case '/my-coach/recommendations':
@@ -42,6 +48,10 @@ export function getScreenFromLocation(locationLike: Pick<Location, 'pathname'> =
       return 'my_coach_reports';
     case '/my-coach/report':
       return 'my_coach_report_detail';
+    case '/my-coach/report/section':
+      return 'my_coach_report_section';
+    case '/my-coach/report/speed':
+      return 'my_coach_report_speed';
     case '/my-coach/customers':
       return 'my_coach_customers';
     case '/my-coach/steps':
@@ -71,7 +81,7 @@ export function navigateToScreen(screen: Screen, options?: { replace?: boolean; 
   const replace = options?.replace ?? false;
   const preserveSearch = options?.preserveSearch ?? true;
   const nextUrl = new URL(window.location.href);
-  nextUrl.pathname = SCREEN_PATHS[screen];
+  nextUrl.pathname = buildAppPath(SCREEN_PATHS[screen]);
 
   if (!preserveSearch) {
     nextUrl.search = '';

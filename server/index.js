@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { getMongoHealth } from './lib/mongo.js';
 import { getS3Health } from './lib/s3.js';
+import { registerAppRoutes } from './routes/app.js';
 import { registerContentRoutes } from './routes/content.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerLeadRoutes } from './routes/leads.js';
@@ -35,6 +36,7 @@ export function createServer() {
     });
   });
 
+  registerAppRoutes(app);
   registerContentRoutes(app);
   registerLeadRoutes(app);
   registerDashboardRoutes(app);

@@ -1,3 +1,6 @@
+import { getValidAccessToken } from './auth';
+import { buildApiUrl } from './runtimeConfig';
+
 export type ContentSource = 'api' | 'fallback';
 
 export type LoadedContent<T> = {
@@ -19,11 +22,13 @@ export async function requestContentJson<T>(path: string, signal?: AbortSignal):
 }
 
 export async function requestContentJsonWithInit<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const accessToken = await getValidAccessToken();
+  const response = await fetch(buildApiUrl(path), {
     method: init?.method,
     headers: {
       accept: 'application/json',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(init?.headers ?? {}),
     },
     body: init?.body,

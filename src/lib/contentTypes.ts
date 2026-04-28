@@ -85,10 +85,10 @@ export type DashboardSalesPerformance = {
 };
 
 export type DashboardHome = {
-  greetingName: string;
+  greetingName?: string;
   dateLabel: string;
   shiftLabel: string;
-  salesPerformance: DashboardSalesPerformance;
+  salesPerformance?: DashboardSalesPerformance;
   metrics: DashboardMetric[];
   announcements: Announcement[];
   assignedVehicles: CatalogVehicle[];

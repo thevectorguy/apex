@@ -4,6 +4,20 @@ function readOptionalBoolean(name, fallback = false) {
   return value === '1' || value === 'true' || value === 'yes' || value === 'on';
 }
 
+function readFirstDefinedEnv(...names) {
+  for (const name of names) {
+    const value = String(process.env[name] ?? '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizeS3Prefix(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^\/+|\/+$/g, '');
+}
+
 export function getMongoConfig() {
   return {
     uri: String(process.env.MONGODB_URI || '').trim(),
@@ -18,12 +32,13 @@ export function isMongoConfigured() {
 
 export function getS3Config() {
   return {
-    region: String(process.env.AWS_REGION || '').trim(),
-    bucket: String(process.env.AWS_S3_BUCKET || '').trim(),
-    accessKeyId: String(process.env.AWS_ACCESS_KEY_ID || '').trim(),
-    secretAccessKey: String(process.env.AWS_SECRET_ACCESS_KEY || '').trim(),
-    sessionToken: String(process.env.AWS_SESSION_TOKEN || '').trim(),
-    endpoint: String(process.env.AWS_S3_ENDPOINT || '').trim(),
+    region: readFirstDefinedEnv('AWS_REGION'),
+    bucket: readFirstDefinedEnv('AWS_S3_BUCKET_NAME_OUT', 'AWS_S3_BUCKET'),
+    accessKeyId: readFirstDefinedEnv('AWS_S3_ACCESS_KEY', 'AWS_ACCESS_KEY_ID'),
+    secretAccessKey: readFirstDefinedEnv('AWS_S3_SECRET_KEY', 'AWS_SECRET_ACCESS_KEY'),
+    sessionToken: readFirstDefinedEnv('AWS_SESSION_TOKEN'),
+    endpoint: readFirstDefinedEnv('AWS_S3_ENDPOINT'),
+    audioPath: normalizeS3Prefix(readFirstDefinedEnv('AWS_AUDIO_PATH', 'AWS_S3_AUDIO_PATH')),
     forcePathStyle: readOptionalBoolean('AWS_S3_FORCE_PATH_STYLE', false),
   };
 }

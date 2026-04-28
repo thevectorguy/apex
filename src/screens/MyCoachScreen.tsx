@@ -1,32 +1,35 @@
-import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearDraftSessionTitle,
-  clearRememberedStepsFocus,
   clearRememberedReportId,
   clearRememberedSessionId,
-  clearRememberedThreadId,
+  clearRememberedStepsFocus,
   createCustomerThread,
   listCustomerThreads,
-  rememberFlowOrigin,
   rememberDraftSessionTitle,
+  rememberFlowOrigin,
+  rememberSelectedReportId,
+  rememberSelectedSessionId,
   rememberSelectedThreadId,
   rememberStepsFocus,
-  readRememberedThreadId,
   stagePendingLiveSessionSubmission,
+  submitManualConversation,
   type AudioClipPayload,
   type CustomerThreadSummary,
+  type ManualConversationInput,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
-import { SkeletonCircle, SkeletonLine } from '../components/Skeleton';
+import { useApp } from '../contexts/AppContext';
 
-const emptyForm = { customerName: '', phone: '', customerContext: '', preferredLanguage: '', notes: '' };
-const AUDIO_FILE_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.webm', '.mp4', '.mpeg'];
-const AUDIO_FILE_PICKER_TYPES = [
-  {
-    description: 'Audio files',
-    accept: { 'audio/*': AUDIO_FILE_EXTENSIONS },
-  },
-];
+const emptyThreadForm = { customerName: '', phone: '', customerContext: '', preferredLanguage: '', notes: '' };
+const emptyManualForm: ManualConversationInput = {
+  customerName: '',
+  carDiscussed: '',
+  whatWentWell: '',
+  objectionsRaised: '',
+  outcome: 'Follow-up',
+  notes: '',
+};
 
 type LocalFilePickerHandle = {
   getFile: () => Promise<File>;
@@ -42,54 +45,47 @@ type UploadWindow = Window & {
     }>;
   }) => Promise<LocalFilePickerHandle[]>;
 };
+type SessionLaunchMode = 'recorded' | 'uploaded';
 
 export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  const { bootstrap } = useApp();
   const [threads, setThreads] = useState<CustomerThreadSummary[]>([]);
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(readRememberedThreadId());
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [failedFields, setFailedFields] = useState<string[]>([]);
-  const [animatingFields, setAnimatingFields] = useState<string[]>([]);
-  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+  const [savingThread, setSavingThread] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const uploadMenuRef = useRef<HTMLDivElement | null>(null);
+  const [submittingManual, setSubmittingManual] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [threadForm, setThreadForm] = useState(emptyThreadForm);
+  const [manualForm, setManualForm] = useState(emptyManualForm);
+  const [sessionSheetMode, setSessionSheetMode] = useState<SessionLaunchMode | null>(null);
+  const [manualSheetOpen, setManualSheetOpen] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const activeThread = selectedThreadId ? threads.find((thread) => thread.id === selectedThreadId) ?? null : null;
+  const pendingUploadThreadRef = useRef<CustomerThreadSummary | null>(null);
 
   useEffect(() => {
     void loadThreads();
   }, []);
 
   useEffect(() => {
-    if (selectedThreadId) {
-      rememberSelectedThreadId(selectedThreadId);
-    }
-  }, [selectedThreadId]);
+    if (!successMessage) return;
+    const timeoutId = window.setTimeout(() => setSuccessMessage(null), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [successMessage]);
+
+  const activeThread = useMemo(
+    () => threads.find((thread) => thread.id === selectedThreadId) ?? threads[0] ?? null,
+    [selectedThreadId, threads],
+  );
+  const readiness = bootstrap?.readiness;
+  const readinessCars = readiness?.models ?? [];
 
   useEffect(() => {
-    if (!uploadMenuOpen) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!uploadMenuRef.current?.contains(event.target as Node)) {
-        setUploadMenuOpen(false);
-      }
+    if (!manualForm.carDiscussed && readinessCars[0]?.modelName) {
+      setManualForm((current) => ({ ...current, carDiscussed: readinessCars[0]?.modelName || '' }));
     }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setUploadMenuOpen(false);
-      }
-    }
-
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('keydown', handleEscape);
-    return () => {
-      window.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, [uploadMenuOpen]);
+  }, [manualForm.carDiscussed, readinessCars]);
 
   async function loadThreads() {
     setLoading(true);
@@ -97,17 +93,7 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
     try {
       const data = await listCustomerThreads();
       setThreads(data);
-      const rememberedThreadId = readRememberedThreadId();
-      const resolvedThreadId =
-        [selectedThreadId, rememberedThreadId].find((candidate) => candidate && data.some((thread) => thread.id === candidate)) ??
-        data[0]?.id ??
-        null;
-
-      if (!resolvedThreadId) {
-        clearRememberedThreadId();
-      }
-
-      setSelectedThreadId(resolvedThreadId);
+      setSelectedThreadId((current) => current && data.some((thread) => thread.id === current) ? current : data[0]?.id ?? null);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not load My Coach.');
     } finally {
@@ -117,77 +103,138 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
 
   async function handleCreateThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    
-    const newFailedFields: string[] = [];
-    if (!form.customerName.trim()) newFailedFields.push('customerName');
-    if (!form.phone.trim()) newFailedFields.push('phone');
-    if (!form.customerContext.trim()) newFailedFields.push('customerContext');
-
-    if (newFailedFields.length > 0) {
-      setFailedFields(newFailedFields);
-      setAnimatingFields(newFailedFields);
-      setTimeout(() => setAnimatingFields([]), 600);
+    if (!threadForm.customerName.trim() || !threadForm.customerContext.trim()) {
+      setError('Customer name and need summary are required.');
       return;
     }
-    setFailedFields([]);
 
-    setSaving(true);
+    setSavingThread(true);
     setError(null);
 
     try {
-      const created = await createCustomerThread(form);
+      const created = await createCustomerThread(threadForm);
       setThreads((current) => [created, ...current.filter((thread) => thread.id !== created.id)]);
-      setForm(emptyForm);
       setSelectedThreadId(created.id);
-      rememberSelectedThreadId(created.id);
-      clearRememberedSessionId();
-      clearRememberedReportId();
-      clearDraftSessionTitle();
-      rememberFlowOrigin('live_session');
-      onNavigate('my_coach_recording');
+      setThreadForm(emptyThreadForm);
+      setSuccessMessage('Customer thread created.');
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not create the customer thread.');
     } finally {
-      setSaving(false);
+      setSavingThread(false);
     }
   }
 
-  function startLiveSession() {
-    // TODO: Detect unfinished local capture state and offer "Resume draft session"
-    // before starting a fresh visit for the remembered customer thread.
-    if (activeThread?.id) {
-      rememberSelectedThreadId(activeThread.id);
-      rememberDraftSessionTitle(
-        `${activeThread.customerName} ${activeThread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`,
-      );
+  async function handleStartNewCustomer() {
+    setError(null);
+    try {
+      const created = await createCustomerThread({
+        customerName: 'Walk-in Customer',
+        phone: '',
+        customerContext: 'New showroom walk-in conversation',
+        notes: 'Created from Start Session quick action.',
+      });
+
+      setThreads((current) => [created, ...current.filter((thread) => thread.id !== created.id)]);
+      setSelectedThreadId(created.id);
+      rememberSelectedThreadId(created.id);
+      rememberDraftSessionTitle('Walk-in customer first visit');
+      clearRememberedSessionId();
+      clearRememberedReportId();
+      rememberFlowOrigin('live_session');
+      setSessionSheetMode(null);
+      onNavigate('my_coach_recording');
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : 'Could not start a new customer session.');
     }
-    clearRememberedSessionId();
-    clearRememberedReportId();
-    rememberFlowOrigin('live_session');
-    onNavigate('my_coach_recording');
   }
 
-  function buildDraftTitle() {
-    if (!activeThread) return 'Customer conversation';
-    return `${activeThread.customerName} ${activeThread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`;
-  }
-
-  function openUploadMenu() {
-    if (!activeThread || uploading) return;
-    setUploadMenuOpen((current) => !current);
-  }
-
-  async function stageUploadedFiles(files: File[], options?: { manageUploading?: boolean }) {
-    const manageUploading = options?.manageUploading ?? true;
-
-    if (!activeThread?.id || !files.length) {
+  function handleContinueSession() {
+    if (!activeThread) {
+      setError('Choose a customer or start a new one first.');
       return;
     }
 
-    if (manageUploading) {
-      setUploading(true);
+    rememberSelectedThreadId(activeThread.id);
+    rememberDraftSessionTitle(
+      `${activeThread.customerName} ${activeThread.hasSubmittedSession ? 'follow-up visit' : 'first visit'}`,
+    );
+    clearRememberedSessionId();
+    clearRememberedReportId();
+    rememberFlowOrigin('live_session');
+    setSessionSheetMode(null);
+    onNavigate('my_coach_recording');
+  }
+
+  async function handleUploadNewCustomer() {
+    setError(null);
+    try {
+      const created = await createCustomerThread({
+        customerName: 'Walk-in Customer',
+        phone: '',
+        customerContext: 'Uploaded showroom conversation',
+        notes: 'Created from Upload Session.',
+      });
+
+      setThreads((current) => [created, ...current.filter((thread) => thread.id !== created.id)]);
+      setSelectedThreadId(created.id);
+      setSessionSheetMode(null);
+      await triggerLocalFilePicker(created);
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : 'Could not start a new uploaded customer session.');
+    }
+  }
+
+  async function handleUploadExistingCustomer() {
+    if (!activeThread) {
+      setError('Choose a customer or start a new one first.');
+      return;
     }
 
+    setSessionSheetMode(null);
+    await triggerLocalFilePicker(activeThread);
+  }
+
+  async function handleManualSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!manualForm.customerName.trim() || !manualForm.carDiscussed.trim() || !manualForm.whatWentWell.trim()) {
+      setError('Customer name, car discussed, and key moments are required.');
+      return;
+    }
+
+    setSubmittingManual(true);
+    setError(null);
+
+    try {
+      const result = await submitManualConversation(manualForm);
+      rememberFlowOrigin('report_library');
+      rememberSelectedThreadId(result.thread.id);
+      rememberSelectedSessionId(result.session.id);
+      rememberSelectedReportId(result.report.id);
+      setThreads((current) => [result.thread, ...current.filter((thread) => thread.id !== result.thread.id)]);
+      setSelectedThreadId(result.thread.id);
+      setManualSheetOpen(false);
+      setManualForm(emptyManualForm);
+      setSuccessMessage('Manual conversation logged.');
+      onNavigate('my_coach_report_detail');
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : 'Could not create the manual conversation report.');
+    } finally {
+      setSubmittingManual(false);
+    }
+  }
+
+  async function stageUploadedFiles(files: File[], threadOverride?: CustomerThreadSummary | null) {
+    if (!files.length) {
+      pendingUploadThreadRef.current = null;
+      return;
+    }
+    const targetThread = threadOverride ?? pendingUploadThreadRef.current ?? activeThread;
+    if (!targetThread) {
+      setError('Choose a customer before uploading audio.');
+      return;
+    }
+
+    setUploading(true);
     setError(null);
 
     try {
@@ -200,46 +247,45 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
         })),
       );
 
-      rememberSelectedThreadId(activeThread.id);
-      rememberDraftSessionTitle(buildDraftTitle());
+      setSelectedThreadId(targetThread.id);
+      rememberSelectedThreadId(targetThread.id);
+      rememberDraftSessionTitle(`${targetThread.customerName} uploaded session`);
       clearRememberedSessionId();
       clearRememberedReportId();
-      clearRememberedStepsFocus();
       rememberFlowOrigin('live_session');
       stagePendingLiveSessionSubmission({
-        customerId: activeThread.id,
-        title: buildDraftTitle(),
+        customerId: targetThread.id,
+        title: `${targetThread.customerName} uploaded session`,
         source: 'uploaded',
         clips,
       });
+      pendingUploadThreadRef.current = null;
       onNavigate('my_coach_processing');
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not prepare the selected audio files.');
     } finally {
-      if (manageUploading) {
-        setUploading(false);
-      }
+      setUploading(false);
     }
   }
 
-  async function triggerLocalFilePicker() {
-    if (!activeThread || uploading) return;
-
-    setUploadMenuOpen(false);
-
+  async function triggerLocalFilePicker(targetThread: CustomerThreadSummary) {
+    if (uploading) return;
     const uploadWindow = window as UploadWindow;
+    pendingUploadThreadRef.current = targetThread;
+    setSelectedThreadId(targetThread.id);
+    rememberSelectedThreadId(targetThread.id);
+
     if (uploadWindow.showOpenFilePicker) {
       try {
         const handles = await uploadWindow.showOpenFilePicker({
           multiple: true,
-          types: AUDIO_FILE_PICKER_TYPES,
+          types: [{ description: 'Audio files', accept: { 'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.webm', '.mp4'] } }],
         });
         const files = await Promise.all(handles.map((handle) => handle.getFile()));
-        await stageUploadedFiles(files);
+        await stageUploadedFiles(files, targetThread);
       } catch (issue) {
-        if (issue instanceof DOMException && issue.name === 'AbortError') {
-          return;
-        }
+        pendingUploadThreadRef.current = null;
+        if (issue instanceof DOMException && issue.name === 'AbortError') return;
         setError(issue instanceof Error ? issue.message : 'Could not open the local file picker.');
       }
       return;
@@ -251,11 +297,6 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   async function handleUploadFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-
-    if (!files.length) {
-      return;
-    }
-
     await stageUploadedFiles(files);
   }
 
@@ -330,170 +371,116 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
   ];
 
   return (
-    <main className="pt-24 px-6 pb-32 max-w-[1240px] mx-auto space-y-6">
+    <main className="mx-auto max-w-[1240px] space-y-6 px-6 pb-32 pt-24">
       <section className="relative overflow-hidden rounded-[28pt] border border-white/8 bg-[linear-gradient(135deg,#0f1522_0%,#162031_44%,#1c1d25_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(164,201,255,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(227,194,133,0.14),transparent_35%)]"></div>
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <button
-              type="button"
-              onClick={() => onNavigate('dashboard')}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-white/72"
-            >
-              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-              Dashboard
-            </button>
-            <h1 className="mt-4 font-headline text-4xl font-bold tracking-tight text-white md:text-5xl">My Coach</h1>
-            <p className="mt-3 text-sm leading-6 text-white/66 md:text-base">
-              Keep this workspace focused on quick setup. Start a live session the moment a customer thread is ready,
-              or upload an existing conversation when you want backend transcription to handle the session.
-            </p>
-            <div className="mt-5 space-y-4">
-              <div className="grid gap-3 sm:max-w-[34rem] sm:grid-cols-2">
-                <ActionButton
-                  label="Start Session"
-                  icon="mic"
-                  onClick={startLiveSession}
-                  disabled={loading || !activeThread}
-                  tone="primary"
-                  className="w-full justify-between rounded-[22px] px-5 py-4"
-                />
-                <div ref={uploadMenuRef} className="relative">
-                  <ActionButton
-                    label={uploading ? 'Preparing Upload...' : 'Upload Session'}
-                    icon="upload_file"
-                    onClick={openUploadMenu}
-                    disabled={loading || !activeThread || uploading}
-                    className="w-full justify-between rounded-[22px] px-5 py-4"
-                  />
-                  {uploadMenuOpen ? (
-                    <div className="absolute bottom-[calc(100%+0.6rem)] left-0 z-20 w-full rounded-[22px] border border-white/10 bg-[#141925]/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
-                      <button
-                        type="button"
-                        onClick={() => void triggerLocalFilePicker()}
-                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
-                      >
-                        <span>Files</span>
-                        <span className="material-symbols-outlined text-[18px] text-white/48">folder</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void triggerLocalFilePicker()}
-                        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm text-white transition hover:bg-white/6"
-                      >
-                        <span>Drive</span>
-                        <span className="material-symbols-outlined text-[18px] text-white/48">cloud_upload</span>
-                      </button>
-                    </div>
-                  ) : null}
-                  <input
-                    ref={uploadInputRef}
-                    type="file"
-                    multiple
-                    accept="audio/*"
-                    onChange={(event) => void handleUploadFiles(event)}
-                    className="hidden"
-                  />
-                </div>
-              </div>
+        <div className="relative z-10">
+          <button
+            type="button"
+            onClick={() => onNavigate('dashboard')}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-white/72"
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            Dashboard
+          </button>
 
-              <div className="rounded-[24px] border border-white/8 bg-black/12 p-3">
-                <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/42">Workspace Tools</p>
-                  </div>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/42 sm:hidden">
-                    Swipe
-                  </span>
-                </div>
-                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {loading
-                    ? Array.from({ length: quickTools.length }, (_, index) => <QuickToolCardSkeleton key={`quick-tool-skeleton-${index}`} />)
-                    : quickTools.map((tool) => (
-                        <QuickToolCard
-                          key={tool.label}
-                          label={tool.label}
-                          detail={tool.detail}
-                          icon={tool.icon}
-                          onClick={tool.onClick}
-                          disabled={tool.disabled}
-                        />
-                      ))}
-                </div>
-              </div>
-            </div>
+          <h1 className="mt-4 font-headline text-4xl font-bold tracking-tight text-white md:text-5xl">My Coach</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/66 md:text-base">
+            Capture stronger showroom conversations, turn them into usable coaching, and keep your readiness moving with the right evidence.
+          </p>
+
+          <div className="mt-5 grid gap-3">
+            <ActionButton label="Start Session" icon="mic" onClick={() => setSessionSheetMode('recorded')} tone="primary" />
+            <ActionButton
+              label={uploading ? 'Preparing Upload…' : 'Upload Session'}
+              icon="upload_file"
+              onClick={() => setSessionSheetMode('uploaded')}
+            />
+            <ActionButton label="Add Conversation Points" icon="edit_square" onClick={() => setManualSheetOpen(true)} />
+            <input ref={uploadInputRef} type="file" multiple accept="audio/*" onChange={(event) => void handleUploadFiles(event)} className="hidden" />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {loading
-              ? Array.from({ length: 2 }, (_, index) => <HeroMetricSkeleton key={`hero-metric-skeleton-${index}`} />)
-              : [
-                  { label: 'Active customer', value: activeThread?.customerName ?? 'None' },
-                  { label: 'Saved customers', value: String(threads.length) },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
-                    <p className="font-headline text-sm font-bold text-white">{item.value}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
-                  </div>
-                ))}
+          <div className="mt-5 space-y-4">
+            <div className="rounded-[24px] border border-white/8 bg-black/12 p-3">
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/42">Workspace Tools</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/42 sm:hidden">
+                  Swipe
+                </span>
+              </div>
+              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {loading
+                  ? Array.from({ length: quickTools.length }, (_, index) => <QuickToolCardSkeleton key={`quick-tool-skeleton-${index}`} />)
+                  : quickTools.map((tool) => (
+                      <QuickToolCard
+                        key={tool.label}
+                        label={tool.label}
+                        detail={tool.detail}
+                        icon={tool.icon}
+                        onClick={tool.onClick}
+                        disabled={tool.disabled}
+                      />
+                    ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {loading
+                ? Array.from({ length: 2 }, (_, index) => <HeroMetricSkeleton key={`hero-metric-skeleton-${index}`} />)
+                : [
+                    { label: 'Active customer', value: activeThread?.customerName ?? 'None' },
+                    { label: 'Saved customers', value: String(threads.length) },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
+                      <p className="font-headline text-sm font-bold text-white">{item.value}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{item.label}</p>
+                    </div>
+                  ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section className="rounded-[26pt] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Create Customer Thread</p>
-            <h2 className="mt-2 font-headline text-3xl font-bold text-on-surface">Create, then drop straight into the visit</h2>
-            <p className="mt-3 text-sm leading-6 text-white/62">
-              Keep the intake lean here. As soon as the thread is created, the flow moves to the new immersive
-              recording screen.
-            </p>
-          </div>
+        <div className="max-w-2xl">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Create Customer Thread</p>
+          <h2 className="mt-2 font-headline text-3xl font-bold text-on-surface">Create, then drop straight into the visit</h2>
+          <p className="mt-3 text-sm leading-6 text-white/62">
+            Keep intake lean. Create a thread when you already know the customer, or use Start Session when you need to capture a fresh walk-in first.
+          </p>
         </div>
 
         <form onSubmit={handleCreateThread} className="mt-5 space-y-3">
           <div className="grid gap-3 lg:grid-cols-2">
             <input
-              value={form.customerName}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, customerName: event.target.value }));
-                if (failedFields.includes('customerName')) setFailedFields((current) => current.filter((f) => f !== 'customerName'));
-              }}
+              value={threadForm.customerName}
+              onChange={(event) => setThreadForm((current) => ({ ...current, customerName: event.target.value }))}
               placeholder="Customer name"
-              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
-                failedFields.includes('customerName') ? 'border-error/80' : 'border-white/8'
-              } ${animatingFields.includes('customerName') ? 'animate-shake' : ''}`}
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
             />
             <input
-              value={form.phone}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, phone: event.target.value }));
-                if (failedFields.includes('phone')) setFailedFields((current) => current.filter((f) => f !== 'phone'));
-              }}
-              placeholder="Phone number"
-              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
-                failedFields.includes('phone') ? 'border-error/80' : 'border-white/8'
-              } ${animatingFields.includes('phone') ? 'animate-shake' : ''}`}
+              value={threadForm.phone}
+              onChange={(event) => setThreadForm((current) => ({ ...current, phone: event.target.value }))}
+              placeholder="Phone number (optional)"
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
             />
             <input
-              value={form.customerContext}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, customerContext: event.target.value }));
-                if (failedFields.includes('customerContext')) setFailedFields((current) => current.filter((f) => f !== 'customerContext'));
-              }}
+              value={threadForm.customerContext}
+              onChange={(event) => setThreadForm((current) => ({ ...current, customerContext: event.target.value }))}
               placeholder="Need summary or customer context"
-              className={`w-full rounded-2xl border bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none transition-colors ${
-                failedFields.includes('customerContext') ? 'border-error/80' : 'border-white/8'
-              } ${animatingFields.includes('customerContext') ? 'animate-shake' : ''}`}
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
             />
-            <LanguagePickerSheet
-              value={form.preferredLanguage}
-              onChange={(val) => setForm((current) => ({ ...current, preferredLanguage: val }))}
+            <input
+              value={threadForm.preferredLanguage}
+              onChange={(event) => setThreadForm((current) => ({ ...current, preferredLanguage: event.target.value }))}
+              placeholder="Language (optional)"
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
             />
             <textarea
-              value={form.notes}
-              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+              value={threadForm.notes}
+              onChange={(event) => setThreadForm((current) => ({ ...current, notes: event.target.value }))}
               placeholder="Optional visit notes"
               rows={3}
               className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none lg:col-span-2"
@@ -503,43 +490,122 @@ export function MyCoachScreen({ onNavigate }: { onNavigate: (screen: Screen) => 
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={saving}
+              disabled={savingThread}
               className="rounded-full bg-primary px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-primary-fixed disabled:opacity-60"
             >
-              {saving ? 'Creating thread...' : 'Create thread and start session'}
+              {savingThread ? 'Creating thread…' : 'Create thread'}
             </button>
           </div>
         </form>
       </section>
 
-      {error ? <Banner tone="error" text={error} /> : null}
+      {sessionSheetMode ? (
+        <Sheet title="Who is this session for?" onClose={() => setSessionSheetMode(null)}>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => void (sessionSheetMode === 'uploaded' ? handleUploadNewCustomer() : handleStartNewCustomer())}
+              className="w-full rounded-[22px] border border-white/10 bg-white/[0.05] p-4 text-left"
+            >
+              <p className="font-headline text-xl font-bold text-white">New Customer</p>
+              <p className="mt-2 text-sm leading-6 text-white/62">
+                {sessionSheetMode === 'uploaded'
+                  ? 'Create a fresh thread, then attach the saved audio files for that visit.'
+                  : 'Start a fresh showroom conversation and capture the customer context from the visit.'}
+              </p>
+            </button>
+            {activeThread ? (
+              <button
+                type="button"
+                onClick={() => void (sessionSheetMode === 'uploaded' ? handleUploadExistingCustomer() : handleContinueSession())}
+                className="w-full rounded-[22px] border border-[#8fb9ff]/24 bg-[#8fb9ff]/10 p-4 text-left"
+              >
+                <p className="font-headline text-xl font-bold text-white">Continue with {activeThread.customerName}</p>
+                <p className="mt-2 text-sm leading-6 text-white/62">
+                  {sessionSheetMode === 'uploaded'
+                    ? 'Attach the saved audio to the current customer thread so the upload stays linked to their history.'
+                    : 'Resume in the context of the latest customer thread and keep the session linked to their history.'}
+                </p>
+              </button>
+            ) : null}
+          </div>
+        </Sheet>
+      ) : null}
+
+      {manualSheetOpen ? (
+        <Sheet title="Add Conversation Points" onClose={() => setManualSheetOpen(false)}>
+          <form onSubmit={handleManualSubmit} className="space-y-3">
+            <input
+              value={manualForm.customerName}
+              onChange={(event) => setManualForm((current) => ({ ...current, customerName: event.target.value }))}
+              placeholder="Customer name"
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+            />
+            <select
+              value={manualForm.carDiscussed}
+              onChange={(event) => setManualForm((current) => ({ ...current, carDiscussed: event.target.value }))}
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface focus:border-primary/40 focus:outline-none"
+            >
+              {readinessCars.map((car) => (
+                <option key={car.id} value={car.modelName}>{car.modelName}</option>
+              ))}
+            </select>
+            <textarea
+              value={manualForm.whatWentWell}
+              onChange={(event) => setManualForm((current) => ({ ...current, whatWentWell: event.target.value }))}
+              placeholder="What went well"
+              rows={3}
+              className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+            />
+            <textarea
+              value={manualForm.objectionsRaised}
+              onChange={(event) => setManualForm((current) => ({ ...current, objectionsRaised: event.target.value }))}
+              placeholder="Objections raised"
+              rows={3}
+              className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+            />
+            <select
+              value={manualForm.outcome}
+              onChange={(event) => setManualForm((current) => ({ ...current, outcome: event.target.value as ManualConversationInput['outcome'] }))}
+              className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface focus:border-primary/40 focus:outline-none"
+            >
+              {['Test drive', 'Quote given', 'Follow-up', 'Walked away', 'Undecided'].map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <textarea
+              value={manualForm.notes}
+              onChange={(event) => setManualForm((current) => ({ ...current, notes: event.target.value }))}
+              placeholder="Any other notes"
+              rows={3}
+              className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={submittingManual}
+              className="w-full rounded-full bg-primary px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-primary-fixed disabled:opacity-60"
+            >
+              {submittingManual ? 'Generating report…' : 'Create manual report'}
+            </button>
+          </form>
+        </Sheet>
+      ) : null}
+
+      {error ? <Banner tone="error" text={error} /> : successMessage ? <Banner tone="success" text={successMessage} /> : null}
     </main>
   );
-}
-
-function fileLikeToBase64(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] ?? '' : '');
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 function ActionButton({
   label,
   icon,
   onClick,
-  disabled = false,
   tone = 'default',
-  className = '',
 }: {
   label: string;
   icon: string;
   onClick: () => void;
-  disabled?: boolean;
   tone?: 'default' | 'primary';
-  className?: string;
 }) {
   const toneClasses =
     tone === 'primary'
@@ -550,11 +616,10 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClasses} ${className}`}
+      className={`inline-flex items-center justify-between gap-2 rounded-[22px] border px-5 py-4 text-xs font-bold uppercase tracking-[0.16em] transition ${toneClasses}`}
     >
       {label}
-      <span className="material-symbols-outlined text-[16px]">{icon}</span>
+      <span className="material-symbols-outlined text-[18px]">{icon}</span>
     </button>
   );
 }
@@ -593,8 +658,8 @@ function QuickToolCard({
 function HeroMetricSkeleton() {
   return (
     <div className="rounded-[18pt] border border-white/8 bg-black/18 px-4 py-4">
-      <SkeletonLine className="h-5 w-28 bg-white/[0.08]" />
-      <SkeletonLine className="mt-3 h-3 w-20 bg-white/[0.05]" />
+      <div className="h-5 w-28 rounded bg-white/[0.08]"></div>
+      <div className="mt-3 h-3 w-20 rounded bg-white/[0.05]"></div>
     </div>
   );
 }
@@ -604,14 +669,41 @@ function QuickToolCardSkeleton() {
     <div className="min-w-[148px] shrink-0 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <SkeletonLine className="h-3 w-16 bg-white/[0.1]" />
-          <SkeletonLine className="mt-3 h-3 w-24 bg-white/[0.06]" />
-          <SkeletonLine className="mt-2 h-3 w-20 bg-white/[0.05]" />
+          <div className="h-3 w-16 rounded bg-white/[0.1]"></div>
+          <div className="mt-3 h-3 w-24 rounded bg-white/[0.06]"></div>
+          <div className="mt-2 h-3 w-20 rounded bg-white/[0.05]"></div>
         </div>
-        <SkeletonCircle className="h-[18px] w-[18px] border-white/8 bg-white/[0.05]" />
+        <div className="h-[18px] w-[18px] rounded-full border border-white/8 bg-white/[0.05]"></div>
       </div>
     </div>
   );
+}
+
+function Sheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[80] flex flex-col justify-end">
+      <button type="button" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-label="Close sheet" />
+      <div className="relative z-10 rounded-t-[30px] border border-white/10 bg-[#171b24] p-5 shadow-[0_-24px_80px_rgba(0,0,0,0.48)]">
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/14"></div>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="font-headline text-2xl font-bold text-white">{title}</h2>
+          <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/74">
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function fileLikeToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] ?? '' : '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 function Banner({ text, tone }: { text: string; tone: 'error' | 'success' }) {
@@ -622,137 +714,9 @@ function Banner({ text, tone }: { text: string; tone: 'error' | 'success' }) {
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 z-[80] w-[min(92vw,720px)] -translate-x-1/2 rounded-full px-5 py-3 text-sm shadow-[0_20px_60px_rgba(0,0,0,0.35)] ${toneClasses}`}
+      className={`fixed bottom-6 left-1/2 z-[90] w-[min(92vw,720px)] -translate-x-1/2 rounded-full px-5 py-3 text-sm shadow-[0_20px_60px_rgba(0,0,0,0.35)] ${toneClasses}`}
     >
       {text}
     </div>
-  );
-}
-
-function LanguagePickerSheet({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  function handleClose() {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsOpen(false);
-      setIsClosing(false);
-    }, 400);
-  }
-
-  const languages = [
-    { label: 'English', value: 'English' },
-    { label: 'Hindi', value: 'Hindi' },
-    { label: 'Marathi', value: 'Marathi' },
-    { label: 'Gujarati', value: 'Gujarati' },
-    { label: 'Tamil', value: 'Tamil' },
-    { label: 'Telugu', value: 'Telugu' },
-    { label: 'Kannada', value: 'Kannada' },
-    { label: 'Malayalam', value: 'Malayalam' },
-    { label: 'Bengali', value: 'Bengali' },
-    { label: 'Punjabi', value: 'Punjabi' },
-    { label: 'Odia', value: 'Odia' },
-  ];
-
-  return (
-    <div className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm focus:border-primary/40 focus:outline-none"
-      >
-        <span className={`text-left truncate ${value ? 'text-on-surface' : 'text-white/32'}`}>
-          {value || 'Language'}
-        </span>
-        <span className="material-symbols-outlined shrink-0 text-[18px] text-white/40">expand_more</span>
-      </button>
-
-      {(isOpen || isClosing) && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
-          <button
-            type="button"
-            className={`absolute inset-0 w-full h-full cursor-default transition-opacity duration-[400ms] ease-out bg-black/40 backdrop-blur-[2px] ${
-              isClosing ? 'opacity-0' : 'animate-fade-in-backdrop opacity-100'
-            }`}
-            onClick={handleClose}
-            aria-label="Close"
-          />
-          <div className={`relative z-10 pb-6 md:pb-8 transition-transform duration-[400ms] ease-[cubic-bezier(0.2,0.8,0.4,1)] ${
-            isClosing ? 'translate-y-full' : 'translate-y-0 animate-slide-up-bottom'
-          }`}>
-            <div className="mx-4 mb-3 overflow-hidden rounded-3xl border border-white/10 bg-[#1c1d25]/85 backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-              <div className="border-b border-white/10 px-5 py-4">
-                <p className="text-center text-[13px] font-semibold uppercase tracking-[0.12em] text-white/50">
-                  Select Language
-                </p>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto overscroll-contain">
-                <LanguageOption
-                  label="Language (Any)"
-                  isSelected={value === ''}
-                  onClick={() => {
-                    onChange('');
-                    handleClose();
-                  }}
-                />
-                {languages.map((lang) => (
-                  <LanguageOption
-                    key={lang.value}
-                    label={lang.label}
-                    isSelected={value === lang.value}
-                    onClick={() => {
-                      onChange(lang.value);
-                      handleClose();
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="mx-4 overflow-hidden rounded-[22px] border border-white/10 bg-[#1c1d25]/85 backdrop-blur-2xl shadow-2xl">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="w-full px-6 py-4 text-center text-[17px] font-semibold text-primary transition-colors hover:bg-white/5 active:bg-white/10"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LanguageOption({
-  label,
-  isSelected,
-  onClick,
-}: {
-  label: string;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center justify-between border-b border-white/5 px-6 py-4 text-left transition-colors last:border-0 hover:bg-white/5 active:bg-white/10 ${
-        isSelected ? 'bg-primary/5 text-primary' : 'text-white/85'
-      }`}
-    >
-      <span className="text-[17px] font-medium tracking-tight">{label}</span>
-      {isSelected && (
-        <span className="material-symbols-outlined text-[22px] text-primary">check</span>
-      )}
-    </button>
   );
 }

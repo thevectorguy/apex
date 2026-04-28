@@ -1,10 +1,12 @@
 import type { Screen } from '../types';
+import type { AppBootstrap } from './appTypes';
 import type { CoachReportListItem, CustomerThreadDetail, ObjectionReviewItem, QuestionCoverageItem } from './myCoachApi';
 
 export type AssistantContextSnapshot = {
   screen: Screen;
   thread: CustomerThreadDetail | null;
   reportItem: CoachReportListItem | null;
+  bootstrap: AppBootstrap | null;
 };
 
 export type AssistantPrompt = {
@@ -171,12 +173,15 @@ const DASHBOARD_OBJECTION_PROMPTS: AssistantPrompt[] = [
 
 const SCREEN_LABELS: Record<Screen, string> = {
   dashboard: 'Dashboard',
+  profile: 'Profile',
   my_coach: 'My Coach',
   my_coach_recommendations: 'Recommendations',
   my_coach_recording: 'Live Session',
   my_coach_processing: 'Processing',
   my_coach_reports: 'Report Library',
   my_coach_report_detail: 'Report Detail',
+  my_coach_report_section: 'Report Section',
+  my_coach_report_speed: 'Speed Breakdown',
   my_coach_customers: 'Customers',
   my_coach_steps: 'Coach Steps',
   my_coach_transcript: 'Transcript',
@@ -192,9 +197,13 @@ export function buildAssistantBlueprint(snapshot: AssistantContextSnapshot): Ass
   if (snapshot.screen === 'dashboard') {
     return {
       intro:
-        'Hi, what would you like to ask today? I can help with model features, quick comparisons, and objection handling.',
+        `Hi${snapshot.bootstrap?.me.firstName ? ` ${snapshot.bootstrap.me.firstName}` : ''}, what would you like to ask today? ${
+          snapshot.bootstrap?.assistant.currentFocus ? `Current focus: ${snapshot.bootstrap.assistant.currentFocus}. ` : ''
+        }I can help with model features, quick comparisons, and objection handling.`,
       fallback:
-        'Ask for model features, a simple comparison angle, or an objection response and I will shape it into a short sales-ready answer.',
+        `Ask for model features, a simple comparison angle, or an objection response and I will shape it into a short sales-ready answer.${
+          snapshot.bootstrap?.readiness ? ` Your readiness score is ${snapshot.bootstrap.readiness.score}.` : ''
+        }`,
       discoveryTitle: 'Common Questions',
       objectionTitle: 'Likely Customer Objections',
       discoveryPrompts: DASHBOARD_DISCOVERY_PROMPTS,

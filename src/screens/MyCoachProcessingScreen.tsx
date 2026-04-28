@@ -1,14 +1,22 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
+  analyzeCoachSession,
   clearPendingLiveSessionSubmission,
+  createCoachSessionDraft,
+  getCoachSessionDetail,
+  getCustomerThread,
   getTranscriptUnavailableMessage,
+  hasUsableTranscript,
   readPendingLiveSessionSubmission,
   rememberFlowOrigin,
   rememberSelectedReportId,
   rememberSelectedSessionId,
   rememberSelectedThreadId,
-  submitCoachAudio,
+  updateCustomerThread,
+  uploadCoachAudioToSession,
+  type CreateCustomerInput,
+  type PendingLiveSessionSubmission,
 } from '../lib/myCoachApi';
 import { type Screen } from '../types';
 
@@ -18,14 +26,25 @@ const PROCESSING_TIPS = [
   'A clean closing line in the conversation makes the final report more actionable.',
   'If the customer compares two models, mention both so the coach can anchor the recommendation correctly.',
 ];
-
 const TRANSCRIPT_UNAVAILABLE_MESSAGE = getTranscriptUnavailableMessage();
+const EMPTY_CONFIRM_FORM: CreateCustomerInput = {
+  customerName: '',
+  phone: '',
+  customerContext: '',
+  preferredLanguage: '',
+  notes: '',
+};
+
+type ProcessingPhase = 'preparing' | 'confirm' | 'analyzing' | 'idle';
 
 export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
-  const [running, setRunning] = useState(true);
+  const [phase, setPhase] = useState<ProcessingPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
+  const [confirmForm, setConfirmForm] = useState<CreateCustomerInput>(EMPTY_CONFIRM_FORM);
+  const [preparedSessionId, setPreparedSessionId] = useState<string | null>(null);
+  const [pendingSubmission] = useState<PendingLiveSessionSubmission | null>(() => readPendingLiveSessionSubmission());
   const cancelledRef = useRef(false);
   const processingStartedRef = useRef(false);
 
@@ -46,33 +65,96 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
   useEffect(() => {
     if (processingStartedRef.current) return;
     processingStartedRef.current = true;
-    void runProcessing();
+    void runPreparation();
     return () => {
       cancelledRef.current = true;
     };
   }, []);
 
-  async function runProcessing() {
-    const pending = readPendingLiveSessionSubmission();
-    if (!pending) {
-      setRunning(false);
+  async function runPreparation() {
+    if (!pendingSubmission) {
+      setPhase('idle');
       setError('No live session is ready to process. Start a new session from My Coach first.');
       return;
     }
 
-    setRunning(true);
+    setPhase('preparing');
     setError(null);
     cancelledRef.current = false;
 
     try {
-      const delay = new Promise((resolve) => window.setTimeout(resolve, 2600));
-      const [result] = await Promise.all([submitCoachAudio(pending), delay]);
+      const detailPromise = getCustomerThread(pendingSubmission.customerId).catch(() => null);
+      const session = await createCoachSessionDraft({
+        customerId: pendingSubmission.customerId,
+        title: pendingSubmission.title,
+      });
+
+      if (cancelledRef.current) return;
+
+      const delay = new Promise((resolve) => window.setTimeout(resolve, 1800));
+      await Promise.all([
+        uploadCoachAudioToSession(session.id, {
+          clips: pendingSubmission.clips,
+          transcriptText: pendingSubmission.transcriptText,
+          transcriptLines: pendingSubmission.transcriptLines,
+        }),
+        delay,
+      ]);
+
+      if (cancelledRef.current) return;
+
+      const [detail, sessionDetail] = await Promise.all([detailPromise, getCoachSessionDetail(session.id)]);
+      if (cancelledRef.current) return;
+
+      setPreparedSessionId(session.id);
+
+      if (!hasUsableTranscript(sessionDetail.session.transcript)) {
+        setPhase('idle');
+        setError(TRANSCRIPT_UNAVAILABLE_MESSAGE);
+        return;
+      }
+
+      setConfirmForm({
+        customerName: detail?.customerName || sessionDetail.customer?.customerName || 'Walk-in Customer',
+        phone: normalizeEditableValue(detail?.phone || sessionDetail.customer?.phone || ''),
+        customerContext: detail?.customerContext || sessionDetail.customer?.customerContext || '',
+        preferredLanguage: detail?.preferredLanguage || '',
+        notes: detail?.threadNotes || '',
+      });
+      setPhase('confirm');
+    } catch (issue) {
+      if (cancelledRef.current) return;
+      setPhase('idle');
+      setError(issue instanceof Error ? issue.message : 'Could not process this live session.');
+    }
+  }
+
+  async function handleConfirmSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pendingSubmission || !preparedSessionId) {
+      setPhase('idle');
+      setError('The prepared session is missing. Start again from My Coach.');
+      return;
+    }
+    if (!confirmForm.customerName.trim() || !confirmForm.customerContext.trim()) {
+      setError('Customer name and need summary are required before analysis.');
+      return;
+    }
+
+    setPhase('analyzing');
+    setError(null);
+    cancelledRef.current = false;
+
+    try {
+      await updateCustomerThread(pendingSubmission.customerId, confirmForm);
+      const delay = new Promise((resolve) => window.setTimeout(resolve, 1400));
+      const [result] = await Promise.all([analyzeCoachSession(preparedSessionId), delay]);
       if (cancelledRef.current) return;
       if (!result.report?.id) {
         throw new Error('The session finished without a report.');
       }
 
-      rememberSelectedThreadId(pending.customerId);
+      rememberSelectedThreadId(pendingSubmission.customerId);
       rememberSelectedSessionId(result.session.id);
       rememberSelectedReportId(result.report.id);
       rememberFlowOrigin('live_session');
@@ -80,16 +162,15 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
       onNavigate('my_coach_report_detail');
     } catch (issue) {
       if (cancelledRef.current) return;
-      setRunning(false);
-      setError(issue instanceof Error ? issue.message : 'Could not process this live session.');
+      setPhase('confirm');
+      setError(issue instanceof Error ? issue.message : 'Could not run the final My Coach analysis.');
     }
   }
 
   function handleRetryCapture() {
-    const pending = readPendingLiveSessionSubmission();
     cancelledRef.current = true;
-    if (pending) {
-      rememberSelectedThreadId(pending.customerId);
+    if (pendingSubmission) {
+      rememberSelectedThreadId(pendingSubmission.customerId);
       rememberFlowOrigin('live_session');
     }
     clearPendingLiveSessionSubmission();
@@ -102,7 +183,21 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
     onNavigate('my_coach');
   }
 
+  const isBusy = phase === 'preparing' || phase === 'analyzing';
   const transcriptNeedsRecapture = error === TRANSCRIPT_UNAVAILABLE_MESSAGE;
+  const uploadNeedsReplacement = transcriptNeedsRecapture && pendingSubmission?.source === 'uploaded';
+  const heading =
+    phase === 'confirm'
+      ? 'Confirm customer details'
+      : phase === 'analyzing'
+        ? 'Running final analysis'
+        : PROCESSING_PHRASES[phraseIndex];
+  const description =
+    phase === 'confirm'
+      ? 'The audio is uploaded and the transcript is ready. Confirm the customer thread before My Coach sends this session to the LLM.'
+      : phase === 'analyzing'
+        ? 'The transcript and customer context are locked in now. Stay here for a moment while the final report is generated.'
+        : 'The live session is being stitched into one coaching view now. Stay here for a moment while the report gets ready.';
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#080b11] text-white">
@@ -139,49 +234,61 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
 
           <AnimatePresence mode="wait">
             <motion.h1
-              key={phraseIndex}
+              key={heading}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -18 }}
               className="mt-8 font-headline text-4xl font-bold tracking-tight text-white sm:text-5xl"
             >
-              {PROCESSING_PHRASES[phraseIndex]}
+              {heading}
             </motion.h1>
           </AnimatePresence>
 
-          <p className="mt-4 text-sm leading-7 text-white/62">
-            The live session is being stitched into one coaching view now. Stay here for a moment while the report gets ready.
-          </p>
+          <p className="mt-4 text-sm leading-7 text-white/62">{description}</p>
 
           <div className="mt-8 rounded-[28px] border border-white/10 bg-black/18 px-5 py-5 text-left">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-secondary">While you wait</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-secondary">
+              {phase === 'confirm' ? 'Before the LLM call' : 'While you wait'}
+            </p>
             <AnimatePresence mode="wait">
               <motion.p
-                key={tipIndex}
+                key={phase === 'confirm' ? 'confirm-tip' : tipIndex}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 className="mt-3 text-sm leading-7 text-white/68"
               >
-                {PROCESSING_TIPS[tipIndex]}
+                {phase === 'confirm'
+                  ? 'This checkpoint happens before the LLM analysis so corrected name, context, language, and notes feed into the final coaching report.'
+                  : PROCESSING_TIPS[tipIndex]}
               </motion.p>
             </AnimatePresence>
           </div>
 
-          {error ? (
+          {error && phase !== 'confirm' ? (
             <div className="mt-8 rounded-[28px] border border-error/26 bg-error-container/92 px-5 py-4 text-left text-sm leading-6 text-on-error-container">
               {error}
             </div>
           ) : null}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            {error ? (
+            {phase === 'idle' && error ? (
               <button
                 type="button"
-                onClick={transcriptNeedsRecapture ? handleRetryCapture : () => void runProcessing()}
+                onClick={
+                  transcriptNeedsRecapture
+                    ? uploadNeedsReplacement
+                      ? handleBack
+                      : handleRetryCapture
+                    : () => void runPreparation()
+                }
                 className="rounded-full bg-secondary px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed"
               >
-                {transcriptNeedsRecapture ? 'Retry capture' : 'Retry processing'}
+                {uploadNeedsReplacement
+                  ? 'Try another upload'
+                  : transcriptNeedsRecapture
+                    ? 'Retry capture'
+                    : 'Retry processing'}
               </button>
             ) : null}
             <button
@@ -189,11 +296,111 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
               onClick={handleBack}
               className="rounded-full border border-white/10 bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/72"
             >
-              {running ? 'Back to My Coach' : 'Return to My Coach'}
+              {isBusy ? 'Back to My Coach' : 'Return to My Coach'}
             </button>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {phase === 'confirm' ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-end bg-black/58 px-3 pb-3 pt-16 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 28 }}
+              className="mx-auto w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#12161f]/96 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary">Confirm Before Analysis</p>
+                  <h2 className="mt-2 font-headline text-2xl font-bold text-white">Review the customer thread</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="rounded-full border border-white/10 bg-white/6 p-2 text-white/70"
+                  aria-label="Close modal"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-white/58">
+                If the customer’s name was not spoken clearly, or the transcript missed it, fix the thread here before My Coach generates the final report.
+              </p>
+
+              {error ? (
+                <div className="mt-4 rounded-[22px] border border-error/26 bg-error-container/92 px-4 py-3 text-sm leading-6 text-on-error-container">
+                  {error}
+                </div>
+              ) : null}
+
+              <form onSubmit={(event) => void handleConfirmSubmit(event)} className="mt-5 space-y-3">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <input
+                    value={confirmForm.customerName}
+                    onChange={(event) => setConfirmForm((current) => ({ ...current, customerName: event.target.value }))}
+                    placeholder="Customer name"
+                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                  />
+                  <input
+                    value={confirmForm.phone}
+                    onChange={(event) => setConfirmForm((current) => ({ ...current, phone: event.target.value }))}
+                    placeholder="Phone number (optional)"
+                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                  />
+                  <input
+                    value={confirmForm.customerContext}
+                    onChange={(event) => setConfirmForm((current) => ({ ...current, customerContext: event.target.value }))}
+                    placeholder="Need summary or customer context"
+                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                  />
+                  <input
+                    value={confirmForm.preferredLanguage}
+                    onChange={(event) => setConfirmForm((current) => ({ ...current, preferredLanguage: event.target.value }))}
+                    placeholder="Language (optional)"
+                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                  />
+                  <textarea
+                    value={confirmForm.notes}
+                    onChange={(event) => setConfirmForm((current) => ({ ...current, notes: event.target.value }))}
+                    placeholder="Optional visit notes"
+                    rows={3}
+                    className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none lg:col-span-2"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="rounded-full border border-white/10 bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white/74"
+                  >
+                    Back to My Coach
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-primary px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-primary-fixed"
+                  >
+                    Run My Coach analysis
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </main>
   );
+}
+
+function normalizeEditableValue(value: string) {
+  const normalized = String(value || '').trim();
+  return normalized === 'Not captured' ? '' : normalized;
 }

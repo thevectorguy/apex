@@ -1,4 +1,6 @@
 import { readRouteQueryParam, writeRouteQueryParam } from './appRouter';
+import { getValidAccessToken } from './auth';
+import { buildApiUrl } from './runtimeConfig';
 
 export type CustomerThreadSummary = {
   id: string;
@@ -142,6 +144,8 @@ export type CoachSessionSummary = {
 export type CustomerThreadDetail = CustomerThreadSummary & {
   summary: string;
   notes: string[];
+  preferredLanguage: string;
+  threadNotes: string;
   sessions: CoachSessionSummary[];
 };
 
@@ -164,6 +168,15 @@ export type CreateCustomerInput = {
   customerContext: string;
   notes?: string;
   preferredLanguage?: string;
+};
+
+export type ManualConversationInput = {
+  customerName: string;
+  carDiscussed: string;
+  whatWentWell: string;
+  objectionsRaised: string;
+  outcome: 'Test drive' | 'Quote given' | 'Follow-up' | 'Walked away' | 'Undecided';
+  notes?: string;
 };
 
 export type AudioClipPayload = {
@@ -191,6 +204,8 @@ export type PendingLiveSessionSubmission = {
   title: string;
   source: 'recorded' | 'uploaded' | 'mixed';
   clips: AudioClipPayload[];
+  transcriptText?: string;
+  transcriptLines?: TranscriptTurn[];
 };
 
 export type MasterCopyInfo = {
@@ -205,12 +220,14 @@ const TRANSCRIPT_UNAVAILABLE_MESSAGE =
   'Audio was captured, but My Coach could not build a reliable transcript for this session.';
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const accessToken = await getValidAccessToken();
+  const response = await fetch(buildApiUrl(`${API_BASE}${path}`), {
+    ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(init?.headers ?? {}),
     },
-    ...init,
   });
 
   if (!response.ok) {
@@ -268,6 +285,8 @@ export async function getCustomerThread(customerId: string) {
     ...summary,
     summary: payload.customer.notes || 'Customer thread is ready for a coaching session.',
     notes: ensureStringArray(payload.customer.metadata.notes),
+    preferredLanguage: ensureString(payload.customer.metadata.preferredLanguage),
+    threadNotes: ensureString(payload.customer.notes),
     sessions,
   } satisfies CustomerThreadDetail;
 }
@@ -294,13 +313,29 @@ export async function createCustomerThread(input: CreateCustomerInput) {
   return mapCustomerSummary(payload.customer);
 }
 
-export async function submitCoachAudio(params: {
+export async function updateCustomerThread(customerId: string, input: CreateCustomerInput) {
+  const preferredLanguage = input.preferredLanguage?.trim();
+  const payload = await requestJson<{ customer: BackendCustomer }>(`/customers/${customerId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: input.customerName,
+      phone: input.phone,
+      notes: input.notes ?? '',
+      metadata: {
+        customerContext: input.customerContext,
+        vehicleIntent: input.customerContext,
+        notes: input.notes ? [input.notes] : [],
+        preferredLanguage: preferredLanguage || '',
+      },
+    }),
+  });
+
+  return mapCustomerSummary(payload.customer);
+}
+
+export async function createCoachSessionDraft(params: {
   customerId: string;
   title?: string;
-  source: 'recorded' | 'uploaded' | 'mixed';
-  clips: AudioClipPayload[];
-  transcriptText?: string;
-  transcriptLines?: TranscriptTurn[];
 }) {
   const sessionPayload = await requestJson<{ session: BackendSession }>('/sessions', {
     method: 'POST',
@@ -312,13 +347,92 @@ export async function submitCoachAudio(params: {
     }),
   });
 
-  await requestJson(`/sessions/${sessionPayload.session.id}/audio`, {
+  return mapSession(sessionPayload.session, {
+    clipCount: 0,
+  });
+}
+
+export async function uploadCoachAudioToSession(
+  sessionId: string,
+  params: {
+    clips: AudioClipPayload[];
+    transcriptText?: string;
+    transcriptLines?: TranscriptTurn[];
+  },
+) {
+  await requestJson(`/sessions/${sessionId}/audio`, {
     method: 'POST',
     body: JSON.stringify({
       clips: params.clips,
       ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
       ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
       transcriptSource: params.transcriptText || params.transcriptLines?.length ? 'browser_stt' : 'backend_stt',
+    }),
+  });
+}
+
+export async function getCoachSessionDetail(sessionId: string) {
+  const payload = await requestJson<{
+    customer: BackendCustomer | null;
+    session: BackendSession;
+    audioAssets: BackendAudioAsset[];
+    report: BackendReportEnvelope | null;
+  }>(`/sessions/${sessionId}`);
+
+  return {
+    customer: payload.customer ? mapCustomerSummary(payload.customer) : null,
+    session: mapSession(payload.session, {
+      clipCount: payload.audioAssets.length,
+      report: payload.report ? mapReport(payload.report.report) : undefined,
+    }),
+  };
+}
+
+export async function analyzeCoachSession(sessionId: string) {
+  const analysis = await requestJson<{
+    session: BackendSession;
+    report: BackendReportEnvelope;
+    reportData: BackendReport;
+  }>(`/sessions/${sessionId}/analyze`, {
+    method: 'POST',
+  });
+
+  return {
+    session: mapSession(analysis.session, {
+      clipCount: 0,
+      report: mapReport(analysis.reportData),
+    }),
+    report: mapReportEnvelope(analysis.report),
+  };
+}
+
+export async function submitManualConversation(input: ManualConversationInput) {
+  const thread = await createCustomerThread({
+    customerName: input.customerName,
+    phone: '',
+    customerContext: `${input.carDiscussed} · ${input.outcome}`,
+    notes: buildManualConversationNotes(input),
+  });
+
+  const sessionPayload = await requestJson<{ session: BackendSession }>('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      customerId: thread.id,
+      title: `${input.customerName} manual conversation`,
+      mode: 'manual',
+      status: 'draft',
+    }),
+  });
+
+  const transcript = buildManualTranscript(input);
+  const transcriptText = transcript.map((turn) => turn.text).join(' ');
+
+  await requestJson<{ session: BackendSession }>(`/sessions/${sessionPayload.session.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      mode: 'manual',
+      transcriptText,
+      transcript,
     }),
   });
 
@@ -331,11 +445,42 @@ export async function submitCoachAudio(params: {
   });
 
   return {
+    thread,
     session: mapSession(analysis.session, {
-      clipCount: params.clips.length,
+      clipCount: 0,
       report: mapReport(analysis.reportData),
     }),
-    report: mapReport(analysis.reportData),
+    report: mapReportEnvelope(analysis.report),
+  };
+}
+
+export async function submitCoachAudio(params: {
+  customerId: string;
+  title?: string;
+  source: 'recorded' | 'uploaded' | 'mixed';
+  clips: AudioClipPayload[];
+  transcriptText?: string;
+  transcriptLines?: TranscriptTurn[];
+}) {
+  const session = await createCoachSessionDraft({
+    customerId: params.customerId,
+    title: params.title,
+  });
+
+  await uploadCoachAudioToSession(session.id, {
+    clips: params.clips,
+    transcriptText: params.transcriptText,
+    transcriptLines: params.transcriptLines,
+  });
+
+  const analysis = await analyzeCoachSession(session.id);
+
+  return {
+    session: {
+      ...analysis.session,
+      clipCount: params.clips.length,
+    },
+    report: analysis.report.report,
   };
 }
 
@@ -899,6 +1044,48 @@ function relativeLabel(dateString: string) {
   if (minutes < 60) return `${minutes} min ago`;
   if (minutes < 1440) return `${Math.round(minutes / 60)} hr ago`;
   return `${Math.round(minutes / 1440)} day ago`;
+}
+
+function buildManualConversationNotes(input: ManualConversationInput) {
+  return [
+    `Car discussed: ${input.carDiscussed}`,
+    `What went well: ${input.whatWentWell}`,
+    `Objections raised: ${input.objectionsRaised}`,
+    `Outcome: ${input.outcome}`,
+    input.notes ? `Notes: ${input.notes}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildManualTranscript(input: ManualConversationInput) {
+  const turns = [
+    {
+      id: `manual-${Date.now()}-1`,
+      speaker: 'salesperson',
+      text: `I discussed the ${input.carDiscussed} with ${input.customerName}. What went well in the conversation: ${input.whatWentWell}.`,
+      start: 0,
+    },
+    {
+      id: `manual-${Date.now()}-2`,
+      speaker: 'customer',
+      text: `The customer raised these objections or concerns: ${input.objectionsRaised || 'No major objections were captured during the visit.'}`,
+      start: 18,
+    },
+    {
+      id: `manual-${Date.now()}-3`,
+      speaker: 'salesperson',
+      text: `The visit ended with this outcome: ${input.outcome}. Additional notes from the salesperson: ${input.notes || 'No extra notes were added.'}`,
+      start: 34,
+    },
+  ];
+
+  return turns.map((turn, index) => ({
+    ...turn,
+    end: turn.start + 12,
+    confidence: 0.72,
+    speaker: index === 1 ? 'customer' : 'salesperson',
+  }));
 }
 
 type BackendCustomer = {

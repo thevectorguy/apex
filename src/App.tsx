@@ -17,10 +17,14 @@ import { MyCoachRecordingScreen } from './screens/MyCoachRecordingScreen';
 import { MyCoachProcessingScreen } from './screens/MyCoachProcessingScreen';
 import { MyCoachReportsScreen } from './screens/MyCoachReportsScreen';
 import { MyCoachReportDetailScreen } from './screens/MyCoachReportDetailScreen';
+import { MyCoachReportSectionScreen } from './screens/MyCoachReportSectionScreen';
+import { MyCoachReportSpeedScreen } from './screens/MyCoachReportSpeedScreen';
 import { MyCoachCustomersScreen } from './screens/MyCoachCustomersScreen';
 import { MyCoachStepsScreen } from './screens/MyCoachStepsScreen';
 import { MyCoachTranscriptScreen } from './screens/MyCoachTranscriptScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { AIAssistantSheet } from './components/AIAssistantSheet';
+import { AppSidebar } from './components/AppSidebar';
 import { getScreenFromLocation, navigateToScreen } from './lib/appRouter';
 
 const pageVariants = {
@@ -34,11 +38,15 @@ export default function App() {
     typeof window === 'undefined' ? 'dashboard' : getScreenFromLocation(window.location),
   );
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
-    const syncRoute = () => setCurrentScreen(getScreenFromLocation(window.location));
+    const syncRoute = () => {
+      setCurrentScreen(getScreenFromLocation(window.location));
+      setIsSidebarOpen(false);
+    };
     window.addEventListener('popstate', syncRoute);
     window.addEventListener('app:navigation', syncRoute);
 
@@ -53,17 +61,21 @@ export default function App() {
       screen.startsWith('my_coach') || screen === 'studio_config' || screen === 'live_scenario';
     navigateToScreen(screen, { preserveSearch });
     setCurrentScreen(screen);
+    setIsSidebarOpen(false);
   }
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard': return <DashboardScreen onNavigate={handleNavigate} />;
+      case 'profile': return <ProfileScreen onNavigate={handleNavigate} />;
       case 'my_coach': return <MyCoachScreen onNavigate={handleNavigate} />;
       case 'my_coach_recommendations': return <MyCoachRecommendationsScreen onNavigate={handleNavigate} />;
       case 'my_coach_recording': return <MyCoachRecordingScreen onNavigate={handleNavigate} />;
       case 'my_coach_processing': return <MyCoachProcessingScreen onNavigate={handleNavigate} />;
       case 'my_coach_reports': return <MyCoachReportsScreen onNavigate={handleNavigate} />;
       case 'my_coach_report_detail': return <MyCoachReportDetailScreen onNavigate={handleNavigate} />;
+      case 'my_coach_report_section': return <MyCoachReportSectionScreen onNavigate={handleNavigate} />;
+      case 'my_coach_report_speed': return <MyCoachReportSpeedScreen onNavigate={handleNavigate} />;
       case 'my_coach_customers': return <MyCoachCustomersScreen onNavigate={handleNavigate} />;
       case 'my_coach_steps': return <MyCoachStepsScreen onNavigate={handleNavigate} />;
       case 'my_coach_transcript': return <MyCoachTranscriptScreen onNavigate={handleNavigate} />;
@@ -84,12 +96,30 @@ export default function App() {
     currentScreen === 'my_coach_recording' ||
     currentScreen === 'my_coach_processing' ||
     currentScreen === 'my_coach_report_detail' ||
+    currentScreen === 'my_coach_report_section' ||
+    currentScreen === 'my_coach_report_speed' ||
     currentScreen === 'my_coach_steps' ||
     currentScreen === 'my_coach_transcript';
+  const showSidebarTrigger = !isImmersive && currentScreen !== 'dashboard';
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body selection:bg-primary/30 overflow-x-hidden relative">
-      {!isImmersive && <TopAppBar />}
+      {!isImmersive && (
+        <TopAppBar
+          onNavigate={handleNavigate}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+          showMenuButton={showSidebarTrigger}
+        />
+      )}
+
+      {!isImmersive && (
+        <AppSidebar
+          currentScreen={currentScreen}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onNavigate={handleNavigate}
+        />
+      )}
       
       <AnimatePresence mode="wait">
         <motion.div

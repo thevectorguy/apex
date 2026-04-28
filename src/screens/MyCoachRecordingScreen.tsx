@@ -504,6 +504,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
           source,
           durationMs,
         })),
+        ...(transcriptText ? { transcriptText } : {}),
       });
       rememberSelectedThreadId(detail.id);
       rememberFlowOrigin('live_session');

@@ -3,10 +3,10 @@ import { Screen } from '../types';
 import { listCatalogVehicles } from '../lib/catalogApi';
 import { isAbortError } from '../lib/contentApi';
 import type { CatalogVehicle } from '../lib/contentTypes';
+import { buildProductAuthorityHomeUrl } from '../lib/runtimeConfig';
 
 const featuredVehicleImage = '/images/inventory/fronx-cutout.png';
 const cutoutVehicleIds = new Set(['fronx', 'invicto']);
-const productAuthorityStartPath = '/api/product-authority/start';
 const catalogFilters = ['all', 'NEXA', 'Arena', 'automatic', 'family'] as const;
 
 type CatalogFilter = (typeof catalogFilters)[number];
@@ -45,29 +45,17 @@ export function CatalogScreen({ onNavigate: _onNavigate }: { onNavigate: (s: Scr
     };
   }, []);
 
-  async function startProductAuthorityPractice() {
+  function startProductAuthorityPractice() {
     if (isStartingPractice) return;
 
     setIsStartingPractice(true);
     setPracticeError(null);
 
     try {
-      const response = await fetch(productAuthorityStartPath, {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-        },
-      });
-
-      const payload = (await response.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
-      if (!response.ok || !payload?.redirectUrl) {
-        throw new Error(payload?.error || 'Unable to open Product Authority right now.');
-      }
-
-      window.location.assign(payload.redirectUrl);
+      window.location.assign(buildProductAuthorityHomeUrl());
     } catch (error) {
-      console.error('Failed to start Product Authority practice', error);
-      setPracticeError('Product Authority is unavailable right now. Please try again in a moment.');
+      console.error('Failed to open Product Authority', error);
+      setPracticeError('Product Authority is not configured right now. Please try again in a moment.');
       setIsStartingPractice(false);
     }
   }

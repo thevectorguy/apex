@@ -107,7 +107,14 @@ export function registerMyCoachRoutes(app) {
     const existing = await getCustomer(req.params.customerId);
     if (!existing) return res.status(404).json({ ok: false, error: 'Customer not found' });
 
-    const payload = normalizeCustomerPayload({ ...existing, ...req.body });
+    const payload = normalizeCustomerPayload({
+      ...existing,
+      ...req.body,
+      metadata: {
+        ...(existing.metadata && typeof existing.metadata === 'object' ? existing.metadata : {}),
+        ...(req.body?.metadata && typeof req.body.metadata === 'object' ? req.body.metadata : {}),
+      },
+    });
     const customer = await updateCustomer(req.params.customerId, payload);
     res.json({ ok: true, customer });
   });
@@ -224,7 +231,9 @@ export function registerMyCoachRoutes(app) {
 
     const customer = await getCustomer(session.customerId);
     const audioAssets = await listSessionAudioAssets(session.id);
-    if (!audioAssets.length) {
+    const hasManualTranscript = Boolean(String(session.transcriptText || '').trim()) && Array.isArray(session.transcript) && session.transcript.length > 0;
+
+    if (!audioAssets.length && !hasManualTranscript) {
       return res.status(400).json({ ok: false, error: 'At least one audio asset is required before analysis' });
     }
 
