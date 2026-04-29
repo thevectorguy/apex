@@ -28,9 +28,9 @@ const baseQuickActions: Array<{
     hint: 'Browse lineup',
     icon: 'directions_car',
     route: 'catalog',
-    cardClass: 'from-[#1d1a15] via-[#302716] to-[#14141c]',
-    iconClass: 'bg-[#c8a96e]/18 text-[#f4d59b] border-[#c8a96e]/30',
-    pillClass: 'bg-[#c8a96e]/16 text-[#f4d59b]',
+    cardClass: 'from-orange-100 via-amber-50 to-white dark:from-[#1d1a15] dark:via-[#302716] dark:to-[#14141c]',
+    iconClass: 'bg-orange-500/10 text-orange-600 border-orange-500/20 dark:bg-[#c8a96e]/18 dark:text-[#f4d59b] dark:border-[#c8a96e]/30',
+    pillClass: 'bg-orange-500/10 text-orange-600 dark:bg-[#c8a96e]/16 dark:text-[#f4d59b]',
   },
   {
     key: 'practice',
@@ -41,9 +41,9 @@ const baseQuickActions: Array<{
     hint: 'Launch simulator',
     icon: 'exercise',
     route: 'pitch_practice',
-    cardClass: 'from-[#101b2a] via-[#182c47] to-[#13151d]',
-    iconClass: 'bg-[#4a9eff]/18 text-[#9bc8ff] border-[#4a9eff]/30',
-    pillClass: 'bg-[#4a9eff]/16 text-[#9bc8ff]',
+    cardClass: 'from-blue-100 via-sky-50 to-white dark:from-[#101b2a] dark:via-[#182c47] dark:to-[#13151d]',
+    iconClass: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-[#4a9eff]/18 dark:text-[#9bc8ff] dark:border-[#4a9eff]/30',
+    pillClass: 'bg-blue-500/10 text-blue-600 dark:bg-[#4a9eff]/16 dark:text-[#9bc8ff]',
   },
   {
     key: 'brochures',
@@ -54,9 +54,9 @@ const baseQuickActions: Array<{
     hint: 'Open library',
     icon: 'folder_special',
     route: 'brochures',
-    cardClass: 'from-[#221815] via-[#3a2417] to-[#15141b]',
-    iconClass: 'bg-[#d28b63]/18 text-[#ffc09d] border-[#d28b63]/30',
-    pillClass: 'bg-[#d28b63]/16 text-[#ffc09d]',
+    cardClass: 'from-pink-100 via-rose-50 to-white dark:from-[#221815] dark:via-[#3a2417] dark:to-[#15141b]',
+    iconClass: 'bg-pink-500/10 text-pink-600 border-pink-500/20 dark:bg-[#d28b63]/18 dark:text-[#ffc09d] dark:border-[#d28b63]/30',
+    pillClass: 'bg-pink-500/10 text-pink-600 dark:bg-[#d28b63]/16 dark:text-[#ffc09d]',
   },
   {
     key: 'communications',
@@ -68,9 +68,9 @@ const baseQuickActions: Array<{
     hint: 'Open feed',
     icon: 'hub',
     route: 'communications',
-    cardClass: 'from-[#14161b] via-[#232632] to-[#121319]',
-    iconClass: 'bg-white/10 text-white/85 border-white/10',
-    pillClass: 'bg-white/10 text-white/80',
+    cardClass: 'from-purple-100 via-fuchsia-50 to-white dark:from-[#14161b] dark:via-[#232632] dark:to-[#121319]',
+    iconClass: 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:bg-white/10 dark:text-white/85 dark:border-white/10',
+    pillClass: 'bg-purple-500/10 text-purple-600 dark:bg-white/10 dark:text-white/80',
   },
 ];
 
@@ -91,9 +91,9 @@ const workspaceCards: Array<{
     meta: 'Training master copy',
     route: 'my_coach',
     icon: 'support_agent',
-    cardClass: 'from-[#0f1522] via-[#19263a] to-[#1c2230]',
-    iconClass: 'bg-[#4a9eff]/18 text-[#9bc8ff] border-[#4a9eff]/30',
-    pillClass: 'bg-[#4a9eff]/16 text-[#9bc8ff]',
+    cardClass: 'from-indigo-100 via-violet-50 to-white dark:from-[#0f1522] dark:via-[#19263a] dark:to-[#1c2230]',
+    iconClass: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:bg-[#4a9eff]/18 dark:text-[#9bc8ff] dark:border-[#4a9eff]/30',
+    pillClass: 'bg-indigo-500/10 text-indigo-600 dark:bg-[#4a9eff]/16 dark:text-[#9bc8ff]',
   },
   {
     title: 'My Tips',
@@ -101,9 +101,9 @@ const workspaceCards: Array<{
     meta: 'Actionable Review',
     route: 'my_coach_recommendations',
     icon: 'lightbulb',
-    cardClass: 'from-[#17151f] via-[#272132] to-[#1a1c27]',
-    iconClass: 'bg-white/10 text-white/85 border-white/10',
-    pillClass: 'bg-white/10 text-white/80',
+    cardClass: 'from-teal-100 via-emerald-50 to-white dark:from-[#17151f] dark:via-[#272132] dark:to-[#1a1c27]',
+    iconClass: 'bg-teal-500/10 text-teal-600 border-teal-500/20 dark:bg-white/10 dark:text-white/85 dark:border-white/10',
+    pillClass: 'bg-teal-500/10 text-teal-600 dark:bg-white/10 dark:text-white/80',
     compactTitle: true,
   },
 ];
@@ -157,15 +157,15 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
         <div className="flex items-end justify-between gap-4">
           <div>
             <h1 className="font-headline text-4xl font-bold tracking-tight text-on-surface">Good morning, {me?.firstName || 'there'}.</h1>
-            <p className="mt-2 text-base leading-6 text-[#f1e4c8]">{readiness?.affirmation || 'Loading readiness context...'}</p>
+            <p className="mt-2 text-base leading-6 text-on-surface-variant dark:text-[#f1e4c8]">{readiness?.affirmation || 'Loading readiness context...'}</p>
           </div>
         </div>
       </section>
 
       <section
-        className="relative flex items-center justify-between gap-4 overflow-hidden rounded-[20pt] border border-white/5 bg-gradient-to-br from-secondary via-secondary-container to-surface-container p-5 shadow-2xl max-[380px]:flex-col max-[380px]:items-start"
+        className="relative flex items-center justify-between gap-4 overflow-hidden rounded-[20pt] border border-black/5 dark:border-white/5 bg-gradient-to-br from-[#FFF8E7] via-[#FFF3D6] to-[#FFEAB3] dark:from-secondary dark:via-secondary-container dark:to-surface-container p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-2xl max-[380px]:flex-col max-[380px]:items-start"
       >
-        <div className="absolute inset-0 carbon-texture opacity-10"></div>
+        <div className="absolute inset-0 carbon-texture opacity-[0.03] dark:opacity-10"></div>
         <div className="relative z-10 min-w-0 flex-1 pr-2">
           <span className="font-label text-xs font-bold uppercase tracking-[0.2em] text-on-secondary-fixed">Sales Performance</span>
           <div className="mt-3">
@@ -175,9 +175,9 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               </p>
             </div>
             <div>
-              <p className="mt-2 text-sm leading-5 text-on-secondary-fixed/78">
-                Reach <span className="font-semibold text-on-secondary-fixed">{readiness?.nextTierName || '—'}</span> by gaining{' '}
-                <span className="font-semibold text-on-secondary-fixed">+{readiness?.pointsToNext ?? '--'} points</span>.
+              <p className="mt-2 text-sm leading-5 text-[#8C6D23] dark:text-on-secondary-fixed/78">
+                Reach <span className="font-semibold text-[#5C4614] dark:text-on-secondary-fixed">{readiness?.nextTierName || '—'}</span> by gaining{' '}
+                <span className="font-semibold text-[#5C4614] dark:text-on-secondary-fixed">+{readiness?.pointsToNext ?? '--'} points</span>.
               </p>
             </div>
           </div>
@@ -209,17 +209,17 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             key={card.title}
             type="button"
             onClick={() => onNavigate(card.route)}
-            className={`group relative min-h-[10.25rem] overflow-hidden rounded-[22pt] border border-white/6 bg-gradient-to-br ${card.cardClass} p-4 text-left shadow-[0_18px_40px_rgba(0,0,0,0.28)]`}
+            className={`group relative min-h-[10.25rem] overflow-hidden rounded-[22pt] border border-black/5 dark:border-white/6 bg-gradient-to-br ${card.cardClass} p-4 text-left shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.28)]`}
             whileTap={{ scale: 0.985 }}
           >
-            <div className="absolute inset-0 carbon-texture opacity-[0.07]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_38%)] opacity-80"></div>
+            <div className="absolute inset-0 carbon-texture opacity-[0.03] dark:opacity-[0.07]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.4),transparent_38%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_38%)] opacity-80"></div>
             <div className="relative z-10 flex h-full flex-col justify-between">
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 pt-2">
                     <h3
-                      className={`font-headline font-bold tracking-tight text-white ${
+                      className={`font-headline font-bold tracking-tight text-on-surface dark:text-white ${
                         card.compactTitle
                           ? 'max-w-[8ch] text-[1.2rem] leading-[1.02] text-balance'
                           : 'text-[1.2rem] leading-[1.08]'
@@ -232,11 +232,11 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                     <span className="material-symbols-outlined text-[20px]">{card.icon}</span>
                   </span>
                 </div>
-                <p className="mt-3 font-label text-[10px] uppercase tracking-[0.14em] text-white/46">{card.meta}</p>
-                <p className="mt-2 text-sm leading-6 text-white/70">{card.detail}</p>
+                <p className="mt-3 font-label text-[10px] uppercase tracking-[0.14em] text-on-surface-variant/80 dark:text-white/46">{card.meta}</p>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant dark:text-white/70">{card.detail}</p>
               </div>
               <div className="mt-4 flex items-end justify-between gap-3">
-                <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] text-white/82">Open section</p>
+                <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant dark:text-white/82">Open section</p>
                 <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${card.pillClass}`}>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </span>
@@ -252,15 +252,15 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             key={action.eyebrow}
             type="button"
             onClick={() => onNavigate(action.route)}
-            className={`group relative min-h-[10rem] overflow-hidden rounded-[22pt] border border-white/6 bg-gradient-to-br ${action.cardClass} p-4 text-left shadow-[0_18px_40px_rgba(0,0,0,0.28)]`}
+            className={`group relative min-h-[10rem] overflow-hidden rounded-[22pt] border border-black/5 dark:border-white/6 bg-gradient-to-br ${action.cardClass} p-4 text-left shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.28)]`}
             whileTap={{ scale: 0.985 }}
           >
-            <div className="absolute inset-0 carbon-texture opacity-[0.07]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_36%)] opacity-80"></div>
+            <div className="absolute inset-0 carbon-texture opacity-[0.03] dark:opacity-[0.07]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.4),transparent_36%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_36%)] opacity-80"></div>
             <div className="relative z-10 flex h-full flex-col justify-between">
               <div>
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="pt-2 font-headline text-[1.2rem] font-bold leading-[1.08] tracking-tight text-white">
+                  <h3 className="pt-2 font-headline text-[1.2rem] font-bold leading-[1.08] tracking-tight text-on-surface dark:text-white">
                     {action.shortEyebrow ? (
                       <>
                         <span className="max-[375px]:hidden">{action.eyebrow}</span>
@@ -275,13 +275,13 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                   </span>
                 </div>
                 <div className="mt-4 flex items-end gap-2">
-                  <p className="font-headline text-[1.7rem] font-semibold leading-none tracking-tight text-white">{action.value}</p>
-                  <p className="pb-1 font-label text-[10px] uppercase tracking-[0.16em] text-white/68">{action.unit}</p>
+                  <p className="font-headline text-[1.7rem] font-semibold leading-none tracking-tight text-on-surface dark:text-white">{action.value}</p>
+                  <p className="pb-1 font-label text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/90 dark:text-white/68">{action.unit}</p>
                 </div>
-                <p className="mt-2 font-label text-[10px] uppercase tracking-[0.14em] text-white/48">{action.detail}</p>
+                <p className="mt-2 font-label text-[10px] uppercase tracking-[0.14em] text-on-surface-variant/80 dark:text-white/48">{action.detail}</p>
               </div>
               <div className="mt-4 flex items-end justify-between gap-2">
-                <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] text-white/82">{action.hint}</p>
+                <p className="font-label text-[10px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant dark:text-white/82">{action.hint}</p>
                 <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${action.pillClass}`}>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </span>
@@ -292,7 +292,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
       </section>
 
       {contentNotice ? (
-        <section className="rounded-[18pt] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
+        <section className="rounded-[18pt] border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
           {contentNotice}
         </section>
       ) : null}
@@ -320,7 +320,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                 className="relative h-44 w-72 flex-none overflow-hidden rounded-[20pt] text-left"
               >
                 <img src={announcement.image} alt={announcement.title} className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
                 {announcement.badgeLabel && announcement.badgeClassName ? (
                   <span className={`absolute left-4 top-4 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${announcement.badgeClassName}`}>
                     {announcement.badgeLabel}
@@ -348,7 +348,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               <button
                 key={vehicle.id}
                 type="button"
-                className="w-64 flex-none space-y-3 rounded-[20pt] bg-surface-container p-4 text-left transition-colors hover:bg-surface-container-high"
+                className="w-64 flex-none space-y-3 rounded-[20pt] border border-black/5 dark:border-white/5 bg-gradient-to-br from-indigo-50/60 to-blue-50/40 dark:from-surface-container dark:to-surface-container p-4 text-left transition-colors shadow-sm dark:hover:bg-surface-container-high"
                 onClick={() => onNavigate('catalog')}
               >
                 <div className="h-32 overflow-hidden rounded-xl">
@@ -379,7 +379,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             dashboardHome.priorityLeads.map((lead) => (
               <div
                 key={lead.id}
-                className="flex items-center justify-between rounded-[20pt] border border-outline-variant/5 bg-surface-container-low p-4"
+                className="flex items-center justify-between rounded-[20pt] border border-black/5 dark:border-outline-variant/5 bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-surface-container-low dark:to-surface-container-low p-4 shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${getLeadAvatarClassName(lead)}`}>

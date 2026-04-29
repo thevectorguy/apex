@@ -3,6 +3,7 @@ import './networkTls.js';
 import { MASTER_COPY_HASH, MASTER_COPY_PROMPT, MASTER_COPY_VERSION, trainingMasterCopy } from './masterCopy.js';
 
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+const DEFAULT_GROQ_TIMEOUT_MS = 5 * 60 * 1000;
 const SPEED_STAGE_DEFINITIONS = trainingMasterCopy.speedFramework.map((stage) => {
   const basicAliases = [
     stage.id,
@@ -33,29 +34,136 @@ function getAnalysisModel() {
   return process.env.GROQ_MODEL || process.env.GROQ_ANALYSIS_MODEL || 'llama-3.3-70b-versatile';
 }
 
-async function groqFetch(path, init = {}) {
+function readGroqTimeoutMs(name, fallbackMs = DEFAULT_GROQ_TIMEOUT_MS) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallbackMs;
+}
+
+function createTimeoutSignal(timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new Error(`Groq request timed out after ${timeoutMs}ms`));
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    dispose() {
+      clearTimeout(timer);
+    },
+  };
+}
+
+function buildGroqSignal(existingSignal, timeoutMs) {
+  const timeout = createTimeoutSignal(timeoutMs);
+
+  if (!existingSignal) {
+    return timeout;
+  }
+
+  if (existingSignal.aborted) {
+    timeout.dispose();
+    return {
+      signal: existingSignal,
+      dispose() {},
+    };
+  }
+
+  const controller = new AbortController();
+  const abortFromExisting = () => {
+    controller.abort(existingSignal.reason);
+  };
+  const abortFromTimeout = () => {
+    controller.abort(timeout.signal.reason);
+  };
+
+  existingSignal.addEventListener('abort', abortFromExisting, { once: true });
+  timeout.signal.addEventListener('abort', abortFromTimeout, { once: true });
+
+  return {
+    signal: controller.signal,
+    dispose() {
+      existingSignal.removeEventListener('abort', abortFromExisting);
+      timeout.signal.removeEventListener('abort', abortFromTimeout);
+      timeout.dispose();
+    },
+  };
+}
+
+async function groqFetch(path, init = {}, options = {}) {
   if (!hasGroqKey()) {
     throw new Error('GROQ_API_KEY is not set');
   }
 
-  const response = await fetch(`${GROQ_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      ...(init.headers || {}),
-    },
+  const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : DEFAULT_GROQ_TIMEOUT_MS;
+  const label = options.label || path;
+  const startedAt = Date.now();
+  const timeout = buildGroqSignal(init.signal, timeoutMs);
+
+  console.log(`[groq] start ${label}`, {
+    path,
+    timeoutMs,
+    at: new Date(startedAt).toISOString(),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Groq request failed (${response.status}): ${text}`);
-  }
+  try {
+    const response = await fetch(`${GROQ_BASE_URL}${path}`, {
+      ...init,
+      signal: timeout.signal,
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        ...(init.headers || {}),
+      },
+    });
 
-  return response;
+    const durationMs = Date.now() - startedAt;
+    console.log(`[groq] response ${label}`, {
+      path,
+      status: response.status,
+      ok: response.ok,
+      durationMs,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Groq request failed (${response.status}): ${text}`);
+    }
+
+    return response;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    console.error(`[groq] error ${label}`, {
+      path,
+      durationMs,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  } finally {
+    timeout.dispose();
+  }
 }
 
 export async function transcribeAudioFile({ fileBuffer, fileName = 'audio.webm', mimeType, language = null }) {
+  return transcribeAudioInput({
+    fileName,
+    language,
+    appendSource(form) {
+      form.append('file', new Blob([fileBuffer], { type: mimeType }), fileName);
+    },
+  });
+}
+
+export async function transcribeAudioUrl({ fileUrl, fileName = 'audio.webm', language = null }) {
+  return transcribeAudioInput({
+    fileName,
+    language,
+    appendSource(form) {
+      form.append('url', fileUrl);
+    },
+  });
+}
+
+async function transcribeAudioInput({ fileName = 'audio.webm', language = null, appendSource }) {
   const transcribeModel = getTranscribeModel();
+  const timeoutMs = readGroqTimeoutMs('GROQ_TRANSCRIPTION_TIMEOUT_MS');
   const form = new FormData();
   form.append('model', transcribeModel);
 
@@ -89,11 +197,14 @@ export async function transcribeAudioFile({ fileBuffer, fileName = 'audio.webm',
   form.append('prompt', promptStr);
   form.append('response_format', 'verbose_json');
   form.append('timestamp_granularities[]', 'segment');
-  form.append('file', new Blob([fileBuffer], { type: mimeType }), fileName);
+  appendSource(form);
 
   const response = await groqFetch('/audio/transcriptions', {
     method: 'POST',
     body: form,
+  }, {
+    label: `transcription:${fileName}`,
+    timeoutMs,
   });
 
   const payload = await response.json();
@@ -348,6 +459,7 @@ If there is no clear product recommendation in the transcript, mark verdict as N
   `.trim();
 
   const analysisModel = getAnalysisModel();
+  const timeoutMs = readGroqTimeoutMs('GROQ_ANALYSIS_TIMEOUT_MS', 7 * 60 * 1000);
   const response = await groqFetch('/responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -369,6 +481,9 @@ If there is no clear product recommendation in the transcript, mark verdict as N
         },
       },
     }),
+  }, {
+    label: `analysis:${customerName || 'unknown-customer'}:${visitNumber ?? 1}`,
+    timeoutMs,
   });
 
   const payload = await response.json();

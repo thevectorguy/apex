@@ -105,29 +105,29 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
         <button
           type="button"
           onClick={() => onNavigate('my_coach')}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/74"
+          className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/74 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
           Back to My Coach
         </button>
 
-        <section className="rounded-[30pt] border border-white/8 bg-[linear-gradient(135deg,#0f1522_0%,#182132_48%,#1a1d28_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-primary/90">Show Transcript</p>
+        <section className="rounded-[30pt] border border-primary/20 dark:border-white/8 bg-gradient-to-br from-[#0055ff] via-[#007aff] to-[#00aaff] dark:from-[#0f1522] dark:via-[#182132] dark:to-[#1a1d28] px-6 py-7 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/80 dark:text-primary/90">Show Transcript</p>
           <h1 className="mt-3 font-headline text-4xl font-bold tracking-tight text-white">Conversation Transcript</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/66">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/90 dark:text-white/66">
             This page keeps only the customer, visit selector, and transcript so you can focus on what was
             actually said without scrolling through the full dashboard.
           </p>
         </section>
 
-        <section className="rounded-[28pt] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
+        <section className="rounded-[28pt] border border-black/5 dark:border-white/8 bg-surface-bright dark:bg-surface-container-low/92 p-5 shadow-apple-soft dark:shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Customer</p>
-              <h2 className="mt-2 font-headline text-2xl font-bold text-on-surface">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-primary">Customer</p>
+              <h2 className="mt-2 font-headline text-2xl font-bold text-on-surface dark:text-white">
                 {detailLoading ? 'Loading transcript context...' : detail?.customerName ?? 'Select a customer thread'}
               </h2>
-              <p className="mt-3 text-sm leading-6 text-white/58">
+              <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/58">
                 {detailLoading
                   ? 'Fetching customer and session history so the transcript opens on the right conversation.'
                   : detail?.summary ?? 'Pick the customer thread you want to inspect. The most recent session opens first.'}
@@ -137,7 +137,7 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
               <button
                 type="button"
                 onClick={() => openReport(activeSession)}
-                className="inline-flex items-center gap-2 self-start rounded-full bg-secondary px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-secondary-fixed"
+                className="inline-flex items-center gap-2 self-start rounded-full bg-[#ffaa33] dark:bg-secondary px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-black dark:text-on-secondary-fixed shadow-sm dark:shadow-none transition hover:opacity-90"
               >
                 Open report
                 <span className="material-symbols-outlined text-[16px]">description</span>
@@ -147,16 +147,16 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
 
           <div className="mt-5 flex flex-wrap gap-2">
             {detailLoading
-              ? Array.from({ length: 4 }, (_, index) => <SkeletonLine key={`thread-pill-${index}`} className="h-9 w-24 rounded-full bg-white/[0.05]" />)
+              ? Array.from({ length: 4 }, (_, index) => <SkeletonLine key={`thread-pill-${index}`} className="h-9 w-24 rounded-full bg-black/5 dark:bg-white/[0.05]" />)
               : threads.map((thread) => (
                   <button
                     key={thread.id}
                     type="button"
                     onClick={() => setSelectedThreadId(thread.id)}
-                    className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                    className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition ${
                       selectedThreadId === thread.id
-                        ? 'border border-primary/24 bg-primary/12 text-primary'
-                        : 'border border-white/10 bg-white/5 text-white/68'
+                        ? 'border border-primary/30 bg-primary/10 dark:border-primary/24 dark:bg-primary/12 text-primary'
+                        : 'border border-black/5 bg-black/5 dark:border-white/10 dark:bg-white/5 text-on-surface-variant/80 dark:text-white/68 hover:bg-black/10 dark:hover:bg-white/[0.08]'
                     }`}
                   >
                     {thread.customerName}
@@ -166,55 +166,55 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
 
           <div className="mt-5 flex flex-wrap gap-2">
             {detailLoading ? (
-              Array.from({ length: 3 }, (_, index) => <SkeletonLine key={`session-pill-${index}`} className="h-14 w-40 rounded-[18pt] bg-white/[0.05]" />)
+              Array.from({ length: 3 }, (_, index) => <SkeletonLine key={`session-pill-${index}`} className="h-14 w-40 rounded-[18pt] bg-black/5 dark:bg-white/[0.05]" />)
             ) : detail?.sessions.length ? (
               detail.sessions.map((session) => (
                 <button
                   key={session.id}
                   type="button"
                   onClick={() => setSelectedSessionId(session.id)}
-                  className={`rounded-[18pt] px-4 py-3 text-left ${
+                  className={`rounded-[18pt] px-4 py-3 text-left transition ${
                     activeSession?.id === session.id
-                      ? 'border border-secondary/24 bg-secondary/12 text-on-surface'
-                      : 'border border-white/8 bg-black/12 text-white/72'
+                      ? 'border border-secondary/30 bg-[#ffaa33]/10 dark:border-secondary/24 dark:bg-secondary/12 text-on-surface dark:text-white shadow-sm dark:shadow-none'
+                      : 'border border-black/5 bg-white dark:border-white/8 dark:bg-black/12 text-on-surface-variant dark:text-white/72 hover:shadow-apple-soft dark:hover:shadow-none'
                   }`}
                 >
                   <p className="font-headline text-sm font-bold">{session.title}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/46">
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/70 dark:text-white/46">
                     {session.status} | {session.clipCount} clip{session.clipCount === 1 ? '' : 's'}
                   </p>
                 </button>
               ))
             ) : (
-              <div className="rounded-[20pt] border border-dashed border-white/10 px-4 py-8 text-sm text-white/48">
+              <div className="rounded-[20pt] border border-dashed border-black/10 dark:border-white/10 px-4 py-8 text-sm text-on-surface-variant/60 dark:text-white/48">
                 No sessions yet for this customer.
               </div>
             )}
           </div>
         </section>
 
-        <section className="rounded-[28pt] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
+        <section className="rounded-[28pt] border border-black/5 dark:border-white/8 bg-surface-bright dark:bg-surface-container-low/92 p-5 shadow-apple-soft dark:shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Transcript Timeline</p>
-              <p className="mt-2 text-sm leading-6 text-white/58">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-primary">Transcript Timeline</p>
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant dark:text-white/58">
                 {activeSession
                   ? `Showing ${activeSession.title}.`
                   : 'Choose a session to review the transcript line by line.'}
               </p>
             </div>
             {activeSession?.report ? (
-              <div className="rounded-full border border-secondary/24 bg-secondary/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-secondary">
+              <div className="rounded-full border border-[#ffaa33]/30 bg-[#ffaa33]/10 dark:border-secondary/24 dark:bg-secondary/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#e08810] dark:text-secondary">
                 Score {activeSession.report.overallScore}
               </div>
             ) : null}
           </div>
 
           {transcriptUnavailable ? (
-            <div className="mt-5 rounded-[22pt] border border-secondary/20 bg-secondary/10 px-4 py-4 text-sm leading-6 text-white/74">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-secondary">Transcript unavailable</p>
-              <p className="mt-2">{getTranscriptUnavailableMessage()}</p>
-              <p className="mt-2 text-white/54">
+            <div className="mt-5 rounded-[22pt] border border-secondary/30 bg-[#ffaa33]/10 dark:border-secondary/20 dark:bg-secondary/10 px-4 py-4 text-sm leading-6 text-on-surface-variant dark:text-white/74">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#e08810] dark:text-secondary">Transcript unavailable</p>
+              <p className="mt-2 text-on-surface dark:text-white">{getTranscriptUnavailableMessage()}</p>
+              <p className="mt-2 text-on-surface-variant/80 dark:text-white/54">
                 Try recording closer to the speaker, reducing background noise, or uploading a clearer clip next time.
               </p>
             </div>
@@ -229,29 +229,29 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
                   key={turn.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`max-w-[92%] rounded-[20pt] border px-4 py-3 ${
+                  className={`max-w-[92%] rounded-[20pt] px-4 py-3 shadow-sm dark:shadow-none border ${
                     turn.speaker === 'salesperson'
-                      ? 'ml-auto border-primary/16 bg-primary/10'
+                      ? 'ml-auto bg-gradient-to-r from-[#007aff] to-[#00aaff] text-white border-transparent dark:border-primary/16 dark:bg-primary/10 dark:bg-none dark:text-white'
                       : turn.speaker === 'coach'
-                        ? 'border-secondary/18 bg-secondary/10'
-                        : 'border-white/8 bg-surface-container-high/60'
+                        ? 'bg-[#ffaa33]/10 text-on-surface border-transparent dark:border-secondary/18 dark:bg-secondary/10 dark:text-white'
+                        : 'bg-black/5 text-on-surface border-transparent dark:border-white/8 dark:bg-surface-container-high/60 dark:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    <span className={`text-[10px] uppercase tracking-[0.16em] ${turn.speaker === 'salesperson' ? 'text-white/80 dark:text-white/42' : 'text-on-surface-variant/60 dark:text-white/42'}`}>
                       {turn.speaker === 'unknown' ? 'speaker' : turn.speaker}
                     </span>
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/34">{turn.timestamp}</span>
+                    <span className={`text-[10px] uppercase tracking-[0.16em] ${turn.speaker === 'salesperson' ? 'text-white/60 dark:text-white/34' : 'text-on-surface-variant/50 dark:text-white/34'}`}>{turn.timestamp}</span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-white/74">{turn.text}</p>
+                  <p className={`mt-2 text-sm leading-6 ${turn.speaker === 'salesperson' ? 'text-white dark:text-white/90' : 'text-on-surface dark:text-white/90'}`}>{turn.text}</p>
                 </motion.div>
               ))
             ) : transcriptUnavailable ? (
-              <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
+              <div className="rounded-[22pt] border border-dashed border-black/10 dark:border-white/10 px-4 py-10 text-center text-sm text-on-surface-variant/60 dark:text-white/48">
                 No transcript turns were returned for this completed session.
               </div>
             ) : (
-              <div className="rounded-[22pt] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/48">
+              <div className="rounded-[22pt] border border-dashed border-black/10 dark:border-white/10 px-4 py-10 text-center text-sm text-on-surface-variant/60 dark:text-white/48">
                 Transcript turns will appear here after analysis.
               </div>
             )}
@@ -271,13 +271,13 @@ export function MyCoachTranscriptScreen({ onNavigate }: { onNavigate: (screen: S
 function TranscriptLineSkeleton({ alignRight }: { alignRight: boolean }) {
   return (
     <div
-      className={`max-w-[92%] rounded-[20pt] border border-white/8 bg-surface-container-high/40 px-4 py-3 ${
+      className={`max-w-[92%] rounded-[20pt] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-surface-container-high/40 px-4 py-3 shadow-sm dark:shadow-none ${
         alignRight ? 'ml-auto' : ''
       }`}
     >
-      <SkeletonLine className="h-3 w-24 bg-white/[0.05]" />
-      <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
-      <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+      <SkeletonLine className="h-3 w-24 bg-black/10 dark:bg-white/[0.05]" />
+      <SkeletonLine className="mt-3 h-4 w-full bg-black/10 dark:bg-white/[0.05]" />
+      <SkeletonLine className="mt-2 h-4 w-4/5 bg-black/10 dark:bg-white/[0.04]" />
     </div>
   );
 }

@@ -1,57 +1,119 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-on-secondary-container: #d4b478;
-  --color-secondary: #e3c285;
-  --color-outline-variant: #414752;
-  --color-on-primary: #00315d;
-  --color-on-tertiary-fixed: #191b21;
-  --color-tertiary: #c5c6ce;
-  --color-inverse-surface: #e4e1e9;
-  --color-on-surface-variant: #c0c7d4;
-  --color-inverse-on-surface: #303036;
-  --color-error: #ffb4ab;
-  --color-on-error: #690005;
-  --color-on-primary-fixed: #001c39;
-  --color-surface: #131318;
-  --color-surface-variant: #35343a;
-  --color-secondary-container: #5c4614;
-  --color-tertiary-fixed: #e2e2ea;
-  --color-on-error-container: #ffdad6;
-  --color-on-tertiary: #2e3036;
-  --color-primary: #a4c9ff;
-  --color-secondary-fixed-dim: #e3c285;
-  --color-secondary-fixed: #ffdea3;
-  --color-on-secondary-fixed: #261900;
-  --color-primary-fixed: #d4e3ff;
-  --color-tertiary-container: #9a9ba3;
-  --color-on-background: #e4e1e9;
-  --color-outline: #8a919e;
-  --color-on-primary-fixed-variant: #004884;
-  --color-on-tertiary-fixed-variant: #45474d;
+  /* Premium Light Mode Palette */
+  --color-surface: #f5f5f7;
+  --color-surface-dim: #e5e5ea;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #ffffff;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #f5f5f7;
+  --color-surface-container-highest: #e5e5ea;
+  
+  --color-on-surface: #1d1d1f;
+  --color-on-surface-variant: #86868b;
+  --color-surface-variant: #e5e5ea;
+  --color-inverse-surface: #1d1d1f;
+  --color-inverse-on-surface: #f5f5f7;
+  
+  --color-primary: #007aff;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #e5f0ff;
   --color-on-primary-container: #003463;
-  --color-surface-container-highest: #35343a;
-  --color-surface-dim: #131318;
-  --color-inverse-primary: #005fad;
-  --color-surface-container-low: #1b1b20;
-  --color-tertiary-fixed-dim: #c5c6ce;
-  --color-on-surface: #e4e1e9;
-  --color-surface-tint: #a4c9ff;
-  --color-background: #131318;
-  --color-on-secondary-fixed-variant: #594312;
-  --color-error-container: #93000a;
-  --color-surface-container-high: #2a292f;
-  --color-surface-container: #1f1f25;
+  --color-primary-fixed: #d4e3ff;
   --color-primary-fixed-dim: #a4c9ff;
-  --color-surface-container-lowest: #0e0e13;
-  --color-primary-container: #4a9eff;
-  --color-on-tertiary-container: #313339;
-  --color-on-secondary: #402d00;
-  --color-surface-bright: #39383e;
+  --color-on-primary-fixed: #001c39;
+  --color-on-primary-fixed-variant: #004884;
+  --color-inverse-primary: #a4c9ff;
+  
+  --color-secondary: #ff9500;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #ffeadd;
+  --color-on-secondary-container: #5c3300;
+  --color-secondary-fixed: #ffdea3;
+  --color-secondary-fixed-dim: #e3c285;
+  --color-on-secondary-fixed: #261900;
+  --color-on-secondary-fixed-variant: #594312;
+  
+  --color-tertiary: #ff2d55;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #ffe5ea;
+  --color-on-tertiary-container: #68001d;
+  --color-tertiary-fixed: #e2e2ea;
+  --color-tertiary-fixed-dim: #c5c6ce;
+  --color-on-tertiary-fixed: #191b21;
+  --color-on-tertiary-fixed-variant: #45474d;
+  
+  --color-error: #ff3b30;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffe5e5;
+  --color-on-error-container: #690005;
+  
+  --color-outline: #c6c6c8;
+  --color-outline-variant: #e5e5ea;
+  
+  --color-background: #f5f5f7;
+  --color-on-background: #1d1d1f;
+  --color-surface-tint: #007aff;
+
+  --shadow-apple: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-apple-soft: 0 4px 24px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02);
 
   --font-headline: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-label: "Inter", sans-serif;
+}
+
+:root.dark {
+    --color-on-secondary-container: #d4b478;
+    --color-secondary: #e3c285;
+    --color-outline-variant: #414752;
+    --color-on-primary: #00315d;
+    --color-on-tertiary-fixed: #191b21;
+    --color-tertiary: #c5c6ce;
+    --color-inverse-surface: #e4e1e9;
+    --color-on-surface-variant: #c0c7d4;
+    --color-inverse-on-surface: #303036;
+    --color-error: #ffb4ab;
+    --color-on-error: #690005;
+    --color-on-primary-fixed: #001c39;
+    --color-surface: #131318;
+    --color-surface-variant: #35343a;
+    --color-secondary-container: #5c4614;
+    --color-tertiary-fixed: #e2e2ea;
+    --color-on-error-container: #ffdad6;
+    --color-on-tertiary: #2e3036;
+    --color-primary: #a4c9ff;
+    --color-secondary-fixed-dim: #e3c285;
+    --color-secondary-fixed: #ffdea3;
+    --color-on-secondary-fixed: #261900;
+    --color-primary-fixed: #d4e3ff;
+    --color-tertiary-container: #9a9ba3;
+    --color-on-background: #e4e1e9;
+    --color-outline: #8a919e;
+    --color-on-primary-fixed-variant: #004884;
+    --color-on-tertiary-fixed-variant: #45474d;
+    --color-on-primary-container: #003463;
+    --color-surface-container-highest: #35343a;
+    --color-surface-dim: #131318;
+    --color-inverse-primary: #005fad;
+    --color-surface-container-low: #1b1b20;
+    --color-tertiary-fixed-dim: #c5c6ce;
+    --color-on-surface: #e4e1e9;
+    --color-surface-tint: #a4c9ff;
+    --color-background: #131318;
+    --color-on-secondary-fixed-variant: #594312;
+    --color-error-container: #93000a;
+    --color-surface-container-high: #2a292f;
+    --color-surface-container: #1f1f25;
+    --color-primary-fixed-dim: #a4c9ff;
+    --color-surface-container-lowest: #0e0e13;
+    --color-primary-container: #4a9eff;
+    --color-on-tertiary-container: #313339;
+    --color-on-secondary: #402d00;
+    --color-surface-bright: #39383e;
 }
 
 body {
@@ -62,23 +124,75 @@ body {
   min-height: 100dvh;
 }
 
+.premium-app-shell {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(0, 122, 255, 0.13), transparent 28rem),
+    radial-gradient(circle at 88% 12%, rgba(255, 149, 0, 0.12), transparent 24rem),
+    radial-gradient(circle at 50% 100%, rgba(10, 36, 70, 0.08), transparent 28rem),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fa 48%, #f6f7f9 100%);
+}
+
+.dark .premium-app-shell {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(164, 201, 255, 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 8%, rgba(227, 194, 133, 0.09), transparent 24rem),
+    linear-gradient(180deg, #131318 0%, #0e1017 100%);
+}
+
+.premium-app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(8, 24, 44, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 24, 44, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent 62%);
+  z-index: 0;
+}
+
+.dark .premium-app-shell::before {
+  opacity: 0.28;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.premium-app-shell > :not(.fixed) {
+  position: relative;
+}
+
 /* Custom Utilities */
 .carbon-texture {
-  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0);
   background-size: 8px 8px;
+}
+.dark .carbon-texture {
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0);
 }
 
 .glass-panel {
-  background: rgba(53, 52, 58, 0.4);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(65, 71, 82, 0.15); /* Ghost border */
+  border: 1px solid rgba(0, 0, 0, 0.05); /* Ghost border */
+  box-shadow: 0 4px 14px 0 rgba(0,0,0,0.03);
+}
+.dark .glass-panel {
+  background: rgba(53, 52, 58, 0.4);
+  border: 1px solid rgba(65, 71, 82, 0.15);
+  box-shadow: none;
 }
 
 .glass-pill {
-  background: rgba(31, 31, 37, 0.4);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.dark .glass-pill {
+  background: rgba(31, 31, 37, 0.4);
   border: 1px solid rgba(65, 71, 82, 0.15);
 }
 

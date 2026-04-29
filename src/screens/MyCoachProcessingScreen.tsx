@@ -46,6 +46,7 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
   const [preparedSessionId, setPreparedSessionId] = useState<string | null>(null);
   const [pendingSubmission] = useState<PendingLiveSessionSubmission | null>(() => readPendingLiveSessionSubmission());
   const cancelledRef = useRef(false);
+  const cancelTimerRef = useRef<number | null>(null);
   const processingStartedRef = useRef(false);
 
   useEffect(() => {
@@ -63,12 +64,25 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
   }, []);
 
   useEffect(() => {
-    if (processingStartedRef.current) return;
-    processingStartedRef.current = true;
-    void runPreparation();
-    return () => {
-      cancelledRef.current = true;
+    const scheduleCancel = () => {
+      cancelTimerRef.current = window.setTimeout(() => {
+        cancelledRef.current = true;
+        cancelTimerRef.current = null;
+      }, 0);
     };
+
+    if (cancelTimerRef.current !== null) {
+      window.clearTimeout(cancelTimerRef.current);
+      cancelTimerRef.current = null;
+      cancelledRef.current = false;
+    }
+
+    if (!processingStartedRef.current) {
+      processingStartedRef.current = true;
+      void runPreparation();
+    }
+
+    return scheduleCancel;
   }, []);
 
   async function runPreparation() {
@@ -200,24 +214,24 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
         : 'The live session is being stitched into one coaching view now. Stay here for a moment while the report gets ready.';
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#080b11] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_15%_0%,rgba(0,122,255,0.18),transparent_34%),radial-gradient(circle_at_88%_16%,rgba(255,149,0,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#eef4fa_56%,#f6f7f9_100%)] dark:bg-[#080b11] text-on-surface dark:text-white">
       <div className="absolute inset-0">
         <motion.div
           animate={{ opacity: [0.18, 0.4, 0.18], x: [0, 28, 0], y: [0, -20, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute left-[-8%] top-[-14%] h-[36rem] w-[36rem] rounded-full bg-primary/18 blur-[130px]"
+          className="absolute left-[-8%] top-[-14%] h-[36rem] w-[36rem] rounded-full bg-primary/25 dark:bg-primary/18 blur-[130px]"
         />
         <motion.div
           animate={{ opacity: [0.14, 0.32, 0.14], x: [0, -22, 0], y: [0, 22, 0] }}
           transition={{ duration: 7.8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute bottom-[-16%] right-[-8%] h-[30rem] w-[30rem] rounded-full bg-secondary/18 blur-[120px]"
+          className="absolute bottom-[-16%] right-[-8%] h-[30rem] w-[30rem] rounded-full bg-secondary/25 dark:bg-secondary/18 blur-[120px]"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,11,17,0.32),rgba(8,11,17,0.94))]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/18 to-white/55 dark:from-[#080b11]/30 dark:to-[#080b11]/94" />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-8 text-center">
-        <div className="w-full max-w-3xl rounded-[36px] border border-white/10 bg-white/[0.04] px-6 py-8 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl sm:px-10 sm:py-10">
-          <span className="rounded-full border border-white/10 bg-white/6 px-4 py-1 text-[10px] uppercase tracking-[0.2em] text-white/58">
+        <div className="w-full max-w-3xl rounded-[36px] border border-white/80 dark:border-white/10 bg-white/78 dark:bg-white/[0.04] px-6 py-8 shadow-[0_28px_80px_rgba(15,23,42,0.14)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl ring-1 ring-slate-900/5 dark:ring-0 sm:px-10 sm:py-10">
+          <span className="rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/6 px-4 py-1 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant dark:text-white/58">
             My Coach is working
           </span>
 
@@ -238,16 +252,16 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -18 }}
-              className="mt-8 font-headline text-4xl font-bold tracking-tight text-white sm:text-5xl"
+              className="mt-8 font-headline text-4xl font-bold tracking-tight text-on-surface dark:text-white sm:text-5xl"
             >
               {heading}
             </motion.h1>
           </AnimatePresence>
 
-          <p className="mt-4 text-sm leading-7 text-white/62">{description}</p>
+          <p className="mt-4 text-sm leading-7 text-on-surface-variant/80 dark:text-white/62">{description}</p>
 
-          <div className="mt-8 rounded-[28px] border border-white/10 bg-black/18 px-5 py-5 text-left">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-secondary">
+          <div className="mt-8 rounded-[28px] border border-black/5 dark:border-white/10 bg-white/60 dark:bg-black/18 px-5 py-5 text-left shadow-sm dark:shadow-none">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#e08810] dark:text-secondary">
               {phase === 'confirm' ? 'Before the LLM call' : 'While you wait'}
             </p>
             <AnimatePresence mode="wait">
@@ -256,7 +270,7 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="mt-3 text-sm leading-7 text-white/68"
+                className="mt-3 text-sm leading-7 text-on-surface-variant dark:text-white/68"
               >
                 {phase === 'confirm'
                   ? 'This checkpoint happens before the LLM analysis so corrected name, context, language, and notes feed into the final coaching report.'
@@ -282,7 +296,7 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
                       : handleRetryCapture
                     : () => void runPreparation()
                 }
-                className="rounded-full bg-secondary px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed"
+                className="rounded-full bg-[#ffaa33] dark:bg-secondary px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-black dark:text-on-secondary-fixed shadow-sm dark:shadow-none transition hover:opacity-90"
               >
                 {uploadNeedsReplacement
                   ? 'Try another upload'
@@ -294,7 +308,7 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
             <button
               type="button"
               onClick={handleBack}
-              className="rounded-full border border-white/10 bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/72"
+              className="rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant dark:text-white/72 hover:bg-black/10 dark:hover:bg-white/10 transition"
             >
               {isBusy ? 'Back to My Coach' : 'Return to My Coach'}
             </button>
@@ -308,30 +322,30 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] flex items-end bg-black/58 px-3 pb-3 pt-16 backdrop-blur-sm"
+            className="fixed inset-0 z-[90] flex items-end bg-black/20 dark:bg-black/58 px-3 pb-3 pt-16 backdrop-blur-sm"
           >
             <motion.div
               initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 28 }}
-              className="mx-auto w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#12161f]/96 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
+              className="mx-auto w-full max-w-2xl rounded-[28px] border border-black/5 dark:border-white/10 bg-surface-bright dark:bg-[#12161f]/96 p-5 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-primary">Confirm Before Analysis</p>
-                  <h2 className="mt-2 font-headline text-2xl font-bold text-white">Review the customer thread</h2>
+                  <h2 className="mt-2 font-headline text-2xl font-bold text-on-surface dark:text-white">Review the customer thread</h2>
                 </div>
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="rounded-full border border-white/10 bg-white/6 p-2 text-white/70"
+                  className="rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/6 p-2 text-on-surface-variant dark:text-white/70 hover:bg-black/10 dark:hover:bg-white/10 transition"
                   aria-label="Close modal"
                 >
                   <span className="material-symbols-outlined text-[18px]">close</span>
                 </button>
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-white/58">
+              <p className="mt-3 text-sm leading-6 text-on-surface-variant/80 dark:text-white/58">
                 If the customer’s name was not spoken clearly, or the transcript missed it, fix the thread here before My Coach generates the final report.
               </p>
 
@@ -347,32 +361,32 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
                     value={confirmForm.customerName}
                     onChange={(event) => setConfirmForm((current) => ({ ...current, customerName: event.target.value }))}
                     placeholder="Customer name"
-                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                    className="w-full rounded-2xl border border-black/10 dark:border-white/8 bg-white dark:bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 dark:placeholder:text-white/32 focus:border-primary/60 dark:focus:border-primary/40 focus:outline-none"
                   />
                   <input
                     value={confirmForm.phone}
                     onChange={(event) => setConfirmForm((current) => ({ ...current, phone: event.target.value }))}
                     placeholder="Phone number (optional)"
-                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                    className="w-full rounded-2xl border border-black/10 dark:border-white/8 bg-white dark:bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 dark:placeholder:text-white/32 focus:border-primary/60 dark:focus:border-primary/40 focus:outline-none"
                   />
                   <input
                     value={confirmForm.customerContext}
                     onChange={(event) => setConfirmForm((current) => ({ ...current, customerContext: event.target.value }))}
                     placeholder="Need summary or customer context"
-                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                    className="w-full rounded-2xl border border-black/10 dark:border-white/8 bg-white dark:bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 dark:placeholder:text-white/32 focus:border-primary/60 dark:focus:border-primary/40 focus:outline-none"
                   />
                   <input
                     value={confirmForm.preferredLanguage}
                     onChange={(event) => setConfirmForm((current) => ({ ...current, preferredLanguage: event.target.value }))}
                     placeholder="Language (optional)"
-                    className="w-full rounded-2xl border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none"
+                    className="w-full rounded-2xl border border-black/10 dark:border-white/8 bg-white dark:bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 dark:placeholder:text-white/32 focus:border-primary/60 dark:focus:border-primary/40 focus:outline-none"
                   />
                   <textarea
                     value={confirmForm.notes}
                     onChange={(event) => setConfirmForm((current) => ({ ...current, notes: event.target.value }))}
                     placeholder="Optional visit notes"
                     rows={3}
-                    className="w-full rounded-[22px] border border-white/8 bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-white/32 focus:border-primary/40 focus:outline-none lg:col-span-2"
+                    className="w-full rounded-[22px] border border-black/10 dark:border-white/8 bg-white dark:bg-surface-container-high/65 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 dark:placeholder:text-white/32 focus:border-primary/60 dark:focus:border-primary/40 focus:outline-none lg:col-span-2"
                   />
                 </div>
 
@@ -380,7 +394,7 @@ export function MyCoachProcessingScreen({ onNavigate }: { onNavigate: (screen: S
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="rounded-full border border-white/10 bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white/74"
+                    className="rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/6 px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/74 hover:bg-black/10 dark:hover:bg-white/10 transition"
                   >
                     Back to My Coach
                   </button>

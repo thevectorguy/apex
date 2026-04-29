@@ -152,22 +152,22 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
           </div>
 
           {lastBrochureLead && (
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-secondary" />
-              <span className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-white/68">
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.05] px-4 py-2">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-[#e08810] dark:text-secondary" />
+              <span className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-on-surface-variant/80 dark:text-white/68">
                 Handoff queued for {lastBrochureLead.name} - {lastBrochureLead.brochure}
               </span>
             </div>
           )}
 
           {notices.map((notice) => (
-            <div key={notice} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant">
+            <div key={notice} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/60 dark:bg-white/[0.04] px-4 py-3 text-sm text-on-surface-variant shadow-sm dark:shadow-none">
               {notice}
             </div>
           ))}
 
           {loadError && (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            <div className="rounded-2xl border border-rose-400/25 bg-rose-50/90 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-100">
               {loadError}
             </div>
           )}
@@ -175,14 +175,14 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
 
         <section className="space-y-4">
           {isLoadingBrochures ? (
-            <div className="rounded-[24pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+            <div className="rounded-[24pt] border border-black/5 dark:border-white/10 bg-white dark:bg-surface-container p-6 text-sm text-on-surface-variant shadow-sm dark:shadow-none">
               Loading brochure library...
             </div>
           ) : brochures.length > 0 ? (
             brochures.map((brochure) => (
               <article
                 key={brochure.id}
-                className="group overflow-hidden rounded-[24pt] border border-outline-variant/10 bg-[linear-gradient(145deg,rgba(31,31,37,0.96),rgba(22,22,28,0.96))] p-4 shadow-[0_22px_44px_rgba(0,0,0,0.24)]"
+                className="group overflow-hidden rounded-[24pt] border border-black/5 dark:border-outline-variant/10 bg-white dark:bg-[linear-gradient(145deg,rgba(31,31,37,0.96),rgba(22,22,28,0.96))] p-4 shadow-apple dark:shadow-[0_22px_44px_rgba(0,0,0,0.24)]"
               >
                 <div className="grid gap-4 md:grid-cols-[14rem_1fr_auto] md:items-center">
                   <div className="h-36 overflow-hidden rounded-[18pt] bg-surface-container-highest">
@@ -209,7 +209,7 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                     <button
                       type="button"
                       onClick={() => openBrochureModal(brochure)}
-                      className="rounded-xl bg-secondary/12 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-secondary hover:bg-secondary/20 transition-colors"
+                      className="rounded-xl bg-[#ffaa33]/20 dark:bg-secondary/12 px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-[0.14em] text-[#b36b00] dark:text-secondary hover:bg-[#ffaa33]/30 dark:hover:bg-secondary/20 transition-colors"
                     >
                       Email
                     </button>
@@ -218,11 +218,11 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               </article>
             ))
           ) : loadError ? (
-            <div className="rounded-[24pt] border border-rose-400/20 bg-rose-400/10 p-6 text-sm text-rose-100">
+            <div className="rounded-[24pt] border border-rose-400/25 bg-rose-50/90 p-6 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-100">
               Brochure data could not be loaded. Please try again in a moment.
             </div>
           ) : (
-            <div className="rounded-[24pt] border border-white/10 bg-surface-container p-6 text-sm text-on-surface-variant">
+            <div className="rounded-[24pt] border border-black/5 dark:border-white/10 bg-white dark:bg-surface-container p-6 text-sm text-on-surface-variant shadow-sm dark:shadow-none">
               No brochures are available yet.
             </div>
           )}
@@ -247,20 +247,20 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                   isClosing ? 'translate-y-full' : 'translate-y-0 animate-slide-up-bottom'
                 }`}
               >
-                <div className="mx-4 mb-3 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(28,28,34,0.94),rgba(12,12,16,0.96))] backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.14),transparent_70%)]" />
+                <div className="mx-4 mb-3 overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-surface-bright dark:bg-[linear-gradient(180deg,rgba(28,28,34,0.94),rgba(12,12,16,0.96))] backdrop-blur-2xl shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(0,122,255,0.08),transparent_70%)] dark:bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.14),transparent_70%)]" />
                   <div className="relative px-5 pb-5 pt-5 sm:px-6 sm:pb-6 sm:pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="font-label text-[10px] uppercase tracking-[0.24em] text-white/42">Brochure Email</p>
-                        <h2 className="mt-2 max-w-[16rem] font-headline text-xl font-bold leading-tight text-white sm:max-w-none sm:text-2xl">
+                        <p className="font-label text-[10px] uppercase tracking-[0.24em] text-on-surface-variant/60 dark:text-white/42">Brochure Email</p>
+                        <h2 className="mt-2 max-w-[16rem] font-headline text-xl font-bold leading-tight text-on-surface dark:text-white sm:max-w-none sm:text-2xl">
                           Send {selectedBrochure?.name}
                         </h2>
                       </div>
 
                       <button
                         onClick={closeBrochureModal}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/72 transition-colors hover:bg-white/[0.1]"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.06] text-on-surface-variant dark:text-white/72 transition-colors hover:bg-black/10 dark:hover:bg-white/[0.1]"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -279,7 +279,7 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-on-secondary-fixed sm:h-12 sm:w-12">
                           <Check className="h-5 w-5" />
                         </div>
-                        <h3 className="mt-4 font-headline text-lg font-semibold text-white sm:text-xl">
+                        <h3 className="mt-4 font-headline text-lg font-semibold text-on-surface dark:text-white sm:text-xl">
                           Handoff queued for {brochureForm.name}
                         </h3>
                       </motion.div>
@@ -299,69 +299,69 @@ export function BrochuresScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                         )}
 
                         <label className="block">
-                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Customer Name</span>
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-on-surface-variant/60 dark:text-white/42">Customer Name</span>
                           <div className="relative">
-                            <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/50 dark:text-white/35" />
                             <input
                               type="text"
                               required
                               value={brochureForm.name}
                               onChange={(event) => updateBrochureForm('name', event.target.value)}
                               placeholder="Aarav Mehta"
-                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                              className="w-full rounded-[1.2rem] border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-on-surface dark:text-white outline-none transition focus:border-primary/60 dark:focus:border-primary/45 focus:bg-white dark:focus:bg-white/[0.08] placeholder:text-on-surface-variant/40 dark:placeholder:text-white/22 shadow-sm dark:shadow-none"
                             />
                           </div>
                         </label>
 
                         <label className="block">
-                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Email</span>
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-on-surface-variant/60 dark:text-white/42">Email</span>
                           <div className="relative">
-                            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/50 dark:text-white/35" />
                             <input
                               type="email"
                               required
                               value={brochureForm.email}
                               onChange={(event) => updateBrochureForm('email', event.target.value)}
                               placeholder="customer@example.com"
-                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                              className="w-full rounded-[1.2rem] border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-on-surface dark:text-white outline-none transition focus:border-primary/60 dark:focus:border-primary/45 focus:bg-white dark:focus:bg-white/[0.08] placeholder:text-on-surface-variant/40 dark:placeholder:text-white/22 shadow-sm dark:shadow-none"
                             />
                           </div>
                         </label>
 
                         <label className="block">
-                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Phone</span>
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-on-surface-variant/60 dark:text-white/42">Phone</span>
                           <div className="relative">
-                            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/50 dark:text-white/35" />
                             <input
                               type="tel"
                               value={brochureForm.phone}
                               onChange={(event) => updateBrochureForm('phone', event.target.value)}
                               placeholder="+91 98XXXXXX42"
-                              className="w-full rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                              className="w-full rounded-[1.2rem] border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-on-surface dark:text-white outline-none transition focus:border-primary/60 dark:focus:border-primary/45 focus:bg-white dark:focus:bg-white/[0.08] placeholder:text-on-surface-variant/40 dark:placeholder:text-white/22 shadow-sm dark:shadow-none"
                             />
                           </div>
                         </label>
 
                         <label className="block">
-                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-white/42">Sales Note</span>
+                          <span className="mb-2 block font-label text-[10px] uppercase tracking-[0.18em] text-on-surface-variant/60 dark:text-white/42">Sales Note</span>
                           <div className="relative">
-                            <MessageSquareText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-white/35" />
+                            <MessageSquareText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-on-surface-variant/50 dark:text-white/35" />
                             <textarea
                               rows={3}
                               value={brochureForm.note}
                               onChange={(event) => updateBrochureForm('note', event.target.value)}
                               placeholder="Interested in top variant and finance details."
-                              className="w-full resize-none rounded-[1.2rem] border border-white/10 bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/45 focus:bg-white/[0.08] placeholder:text-white/22"
+                              className="w-full resize-none rounded-[1.2rem] border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.05] py-3.5 pl-11 pr-4 text-sm text-on-surface dark:text-white outline-none transition focus:border-primary/60 dark:focus:border-primary/45 focus:bg-white dark:focus:bg-white/[0.08] placeholder:text-on-surface-variant/40 dark:placeholder:text-white/22 shadow-sm dark:shadow-none"
                             />
                           </div>
                         </label>
 
-                        <div className="mt-3 border-t border-white/8 pt-4">
+                        <div className="mt-3 border-t border-black/10 dark:border-white/8 pt-4">
                           <motion.button
                             whileTap={{ scale: 0.985 }}
                             type="submit"
                             disabled={brochureStatus === 'sending'}
-                            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] border border-primary/22 bg-[linear-gradient(135deg,rgba(164,201,255,0.24),rgba(255,255,255,0.08))] px-4 py-3.5 font-headline text-sm font-semibold text-white shadow-[0_16px_40px_rgba(0,0,0,0.28)] disabled:cursor-default disabled:opacity-75"
+                            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] border border-primary/40 dark:border-primary/22 bg-primary/10 dark:bg-[linear-gradient(135deg,rgba(164,201,255,0.24),rgba(255,255,255,0.08))] px-4 py-3.5 font-headline text-sm font-semibold text-primary dark:text-white shadow-sm dark:shadow-[0_16px_40px_rgba(0,0,0,0.28)] disabled:cursor-default disabled:opacity-75 transition-colors hover:bg-primary/20 dark:hover:bg-[linear-gradient(135deg,rgba(164,201,255,0.34),rgba(255,255,255,0.12))]"
                           >
                             <span className="absolute inset-0 animate-sheen bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.18)_48%,transparent_74%)] opacity-70" />
                             <span className="relative flex items-center gap-2">

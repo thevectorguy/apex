@@ -182,7 +182,8 @@ export type ManualConversationInput = {
 export type AudioClipPayload = {
   fileName: string;
   mimeType: string;
-  base64: string;
+  file: Blob;
+  sizeBytes: number;
   source: 'recorded' | 'uploaded';
   durationMs?: number;
 };
@@ -218,17 +219,89 @@ let pendingLiveSessionSubmission: PendingLiveSessionSubmission | null = null;
 let activeMasterCopyInfo: MasterCopyInfo | null = null;
 const TRANSCRIPT_UNAVAILABLE_MESSAGE =
   'Audio was captured, but My Coach could not build a reliable transcript for this session.';
+const LONG_UPLOAD_TIMEOUT_MS = 7 * 60 * 1000;
+const LONG_ANALYSIS_TIMEOUT_MS = 8 * 60 * 1000;
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const accessToken = await getValidAccessToken();
-  const response = await fetch(buildApiUrl(`${API_BASE}${path}`), {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...(init?.headers ?? {}),
+type MyCoachRequestInit = RequestInit & {
+  timeoutMs?: number;
+  timeoutMessage?: string;
+};
+
+function createRequestTimeoutSignal(timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => {
+    controller.abort(new DOMException('Request timed out', 'TimeoutError'));
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    dispose() {
+      window.clearTimeout(timer);
     },
-  });
+  };
+}
+
+function buildRequestSignal(signal: AbortSignal | null | undefined, timeoutMs?: number) {
+  if (!timeoutMs || timeoutMs <= 0) {
+    return {
+      signal,
+      dispose() {},
+    };
+  }
+
+  const timeout = createRequestTimeoutSignal(timeoutMs);
+  if (!signal) {
+    return timeout;
+  }
+
+  if (signal.aborted) {
+    timeout.dispose();
+    return {
+      signal,
+      dispose() {},
+    };
+  }
+
+  const controller = new AbortController();
+  const abortFromSignal = () => controller.abort(signal.reason);
+  const abortFromTimeout = () => controller.abort(timeout.signal.reason);
+  signal.addEventListener('abort', abortFromSignal, { once: true });
+  timeout.signal.addEventListener('abort', abortFromTimeout, { once: true });
+
+  return {
+    signal: controller.signal,
+    dispose() {
+      signal.removeEventListener('abort', abortFromSignal);
+      timeout.signal.removeEventListener('abort', abortFromTimeout);
+      timeout.dispose();
+    },
+  };
+}
+
+async function requestJson<T>(path: string, init?: MyCoachRequestInit): Promise<T> {
+  const accessToken = await getValidAccessToken();
+  const { timeoutMs, timeoutMessage, ...requestInit } = init ?? {};
+  const requestSignal = buildRequestSignal(requestInit.signal, timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(buildApiUrl(`${API_BASE}${path}`), {
+      ...requestInit,
+      signal: requestSignal.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(requestInit.headers ?? {}),
+      },
+    });
+  } catch (error) {
+    requestSignal.dispose();
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error(timeoutMessage || 'The request took too long and was stopped. Please try again.');
+    }
+    throw error;
+  }
+
+  requestSignal.dispose();
 
   if (!response.ok) {
     let message = `Request failed with status ${response.status}`;
@@ -360,15 +433,22 @@ export async function uploadCoachAudioToSession(
     transcriptLines?: TranscriptTurn[];
   },
 ) {
-  await requestJson(`/sessions/${sessionId}/audio`, {
-    method: 'POST',
-    body: JSON.stringify({
-      clips: params.clips,
-      ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
-      ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
-      transcriptSource: params.transcriptText || params.transcriptLines?.length ? 'browser_stt' : 'backend_stt',
-    }),
-  });
+  try {
+    await uploadCoachAudioDirectToStorage(sessionId, params);
+  } catch (directUploadError) {
+    console.warn('[my-coach][upload] direct S3 upload failed; retrying through backend audio API', directUploadError);
+    try {
+      await uploadCoachAudioThroughBackend(sessionId, params);
+    } catch (backendUploadError) {
+      const directMessage = directUploadError instanceof Error ? directUploadError.message : String(directUploadError);
+      const backendMessage = backendUploadError instanceof Error ? backendUploadError.message : String(backendUploadError);
+      console.error('[my-coach][upload] all upload paths failed', {
+        directMessage,
+        backendMessage,
+      });
+      throw new Error('Could not prepare this audio session. Please try again with the same file or choose another clip.');
+    }
+  }
 }
 
 export async function getCoachSessionDetail(sessionId: string) {
@@ -388,6 +468,111 @@ export async function getCoachSessionDetail(sessionId: string) {
   };
 }
 
+async function uploadCoachAudioDirectToStorage(
+  sessionId: string,
+  params: {
+    clips: AudioClipPayload[];
+    transcriptText?: string;
+    transcriptLines?: TranscriptTurn[];
+  },
+) {
+  const uploadInit = await requestJson<{ uploads: DirectUploadTarget[] }>(`/sessions/${sessionId}/audio/uploads/init`, {
+    method: 'POST',
+    body: JSON.stringify({
+      clips: params.clips.map((clip) => ({
+        fileName: clip.fileName,
+        mimeType: clip.mimeType,
+        sizeBytes: clip.sizeBytes,
+        source: clip.source,
+        durationMs: clip.durationMs,
+      })),
+    }),
+    timeoutMs: LONG_UPLOAD_TIMEOUT_MS,
+    timeoutMessage:
+      'Preparing the session took too long. Please retry the session.',
+  });
+
+  if (!Array.isArray(uploadInit.uploads) || uploadInit.uploads.length !== params.clips.length) {
+    throw new Error('The upload session could not be prepared correctly.');
+  }
+
+  const uploadedClips = await Promise.all(
+    uploadInit.uploads.map(async (target, index) => ({
+      ...target,
+      source: params.clips[index]?.source || 'uploaded',
+      durationMs: params.clips[index]?.durationMs,
+      sizeBytes: params.clips[index]?.sizeBytes || target.sizeBytes,
+      mimeType: params.clips[index]?.mimeType || target.mimeType,
+      fileName: params.clips[index]?.fileName || target.fileName,
+      upload: await uploadClipToStorage(target, params.clips[index]?.file),
+    })),
+  );
+
+  await requestJson(`/sessions/${sessionId}/audio/uploads/complete`, {
+    method: 'POST',
+    body: JSON.stringify({
+      clips: uploadedClips,
+      ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
+      ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
+      transcriptSource: params.transcriptText || params.transcriptLines?.length ? 'browser_stt' : 'backend_stt',
+    }),
+    timeoutMs: LONG_UPLOAD_TIMEOUT_MS,
+    timeoutMessage:
+      'Preparing the session took too long. Please retry the session.',
+  });
+}
+
+async function uploadCoachAudioThroughBackend(
+  sessionId: string,
+  params: {
+    clips: AudioClipPayload[];
+    transcriptText?: string;
+    transcriptLines?: TranscriptTurn[];
+  },
+) {
+  const maxBackendUploadBytes = 35 * 1024 * 1024;
+  const totalBytes = params.clips.reduce((sum, clip) => sum + Number(clip.sizeBytes || 0), 0);
+  if (totalBytes > maxBackendUploadBytes) {
+    throw new Error('The selected audio is too large to retry automatically.');
+  }
+
+  const clips = await Promise.all(
+    params.clips.map(async (clip) => ({
+      fileName: clip.fileName,
+      filename: clip.fileName,
+      mimeType: clip.mimeType,
+      source: clip.source,
+      durationMs: clip.durationMs,
+      audioBase64: await blobToBase64(clip.file),
+    })),
+  );
+
+  await requestJson(`/sessions/${sessionId}/audio`, {
+    method: 'POST',
+    body: JSON.stringify({
+      clips,
+      ...(params.transcriptText ? { transcriptText: params.transcriptText } : {}),
+      ...(params.transcriptLines?.length ? { transcriptLines: params.transcriptLines } : {}),
+      transcriptSource: params.transcriptText || params.transcriptLines?.length ? 'browser_stt' : 'backend_stt',
+    }),
+    timeoutMs: LONG_UPLOAD_TIMEOUT_MS,
+    timeoutMessage:
+      'Preparing the session took too long. Please retry the session.',
+  });
+}
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected audio file.'));
+    reader.onload = () => {
+      const value = typeof reader.result === 'string' ? reader.result : '';
+      resolve(value.replace(/^data:.*;base64,/, ''));
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function analyzeCoachSession(sessionId: string) {
   const analysis = await requestJson<{
     session: BackendSession;
@@ -395,6 +580,9 @@ export async function analyzeCoachSession(sessionId: string) {
     reportData: BackendReport;
   }>(`/sessions/${sessionId}/analyze`, {
     method: 'POST',
+    timeoutMs: LONG_ANALYSIS_TIMEOUT_MS,
+    timeoutMessage:
+      'Final analysis timed out before My Coach received a report. Please retry the analysis.',
   });
 
   return {
@@ -442,6 +630,9 @@ export async function submitManualConversation(input: ManualConversationInput) {
     reportData: BackendReport;
   }>(`/sessions/${sessionPayload.session.id}/analyze`, {
     method: 'POST',
+    timeoutMs: LONG_ANALYSIS_TIMEOUT_MS,
+    timeoutMessage:
+      'Manual conversation analysis timed out before My Coach received a report. Please retry.',
   });
 
   return {
@@ -496,6 +687,9 @@ export async function regenerateCoachReport(sessionId: string) {
     reportData: BackendReport;
   }>(`/sessions/${sessionId}/analyze`, {
     method: 'POST',
+    timeoutMs: LONG_ANALYSIS_TIMEOUT_MS,
+    timeoutMessage:
+      'Report regeneration timed out before My Coach received a refreshed report. Please retry.',
   });
 
   const refreshed = await listCoachReports();
@@ -674,24 +868,13 @@ export function clearRememberedStepsFocus() {
 export function stagePendingLiveSessionSubmission(submission: PendingLiveSessionSubmission) {
   pendingLiveSessionSubmission = submission;
   if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem(PENDING_LIVE_SESSION_KEY, JSON.stringify(submission));
+    window.sessionStorage.removeItem(PENDING_LIVE_SESSION_KEY);
   }
 }
 
 export function readPendingLiveSessionSubmission() {
   if (pendingLiveSessionSubmission) return pendingLiveSessionSubmission;
-  if (typeof window === 'undefined') return null;
-
-  const stored = window.sessionStorage.getItem(PENDING_LIVE_SESSION_KEY);
-  if (!stored) return null;
-
-  try {
-    pendingLiveSessionSubmission = JSON.parse(stored) as PendingLiveSessionSubmission;
-    return pendingLiveSessionSubmission;
-  } catch {
-    window.sessionStorage.removeItem(PENDING_LIVE_SESSION_KEY);
-    return null;
-  }
+  return null;
 }
 
 export function clearPendingLiveSessionSubmission() {
@@ -699,6 +882,125 @@ export function clearPendingLiveSessionSubmission() {
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(PENDING_LIVE_SESSION_KEY);
   }
+}
+
+type DirectUploadTarget = {
+  audioId: string;
+  bucket: string;
+  storageKey: string;
+  filePath: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  upload:
+    | {
+        mode: 'single';
+        uploadUrl: string;
+        expiresInSeconds: number;
+        headers?: Record<string, string>;
+      }
+    | {
+        mode: 'multipart';
+        uploadId: string;
+        partSizeBytes: number;
+        expiresInSeconds: number;
+        parts: Array<{
+          partNumber: number;
+          uploadUrl: string;
+        }>;
+      };
+};
+
+type CompletedUpload =
+  | {
+      mode: 'single';
+    }
+  | {
+      mode: 'multipart';
+      uploadId: string;
+      parts: Array<{
+        partNumber: number;
+        etag: string;
+      }>;
+    };
+
+async function uploadClipToStorage(target: DirectUploadTarget, file?: Blob) {
+  if (!file) {
+    throw new Error(`Audio file "${target.fileName}" is missing from the upload queue.`);
+  }
+
+  if (target.upload.mode === 'single') {
+    const response = await fetch(target.upload.uploadUrl, {
+      method: 'PUT',
+      headers: target.upload.headers ?? { 'Content-Type': target.mimeType },
+      body: file,
+    });
+    if (!response.ok) {
+      throw new Error(`Direct upload failed for "${target.fileName}" (${response.status}).`);
+    }
+    return { mode: 'single' } satisfies CompletedUpload;
+  }
+
+  const completedParts = await uploadMultipartClip(target, file);
+  return {
+    mode: 'multipart',
+    uploadId: target.upload.uploadId,
+    parts: completedParts,
+  } satisfies CompletedUpload;
+}
+
+async function uploadMultipartClip(
+  target: Extract<DirectUploadTarget, { upload: { mode: 'multipart' } }> | DirectUploadTarget,
+  file: Blob,
+) {
+  if (target.upload.mode !== 'multipart') {
+    return [];
+  }
+
+  const multipartUpload = target.upload;
+
+  const parts = await mapWithConcurrency(multipartUpload.parts, 4, async (part) => {
+    const start = (part.partNumber - 1) * multipartUpload.partSizeBytes;
+    const end = Math.min(start + multipartUpload.partSizeBytes, file.size);
+    const chunk = file.slice(start, end);
+    const response = await fetch(part.uploadUrl, {
+      method: 'PUT',
+      body: chunk,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Multipart upload failed for "${target.fileName}" part ${part.partNumber}.`);
+    }
+
+    const etag = response.headers.get('etag') || response.headers.get('ETag') || '';
+    if (!etag) {
+      throw new Error(`Multipart upload did not return an ETag for "${target.fileName}" part ${part.partNumber}.`);
+    }
+
+    return {
+      partNumber: part.partNumber,
+      etag,
+    };
+  });
+
+  return parts.sort((left, right) => left.partNumber - right.partNumber);
+}
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, work: (item: T, index: number) => Promise<R>) {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (cursor < items.length) {
+        const currentIndex = cursor;
+        cursor += 1;
+        results[currentIndex] = await work(items[currentIndex], currentIndex);
+      }
+    }),
+  );
+
+  return results;
 }
 
 export function hasUsableTranscript(turns: TranscriptTurn[] | null | undefined) {

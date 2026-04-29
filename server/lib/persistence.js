@@ -213,6 +213,39 @@ export async function createAudioAssets(session, clips) {
   return rows;
 }
 
+export async function createAudioAssetsFromUploads(session, clips) {
+  const collection = await getCollection(COLLECTIONS.audioAssets);
+  const createdAt = nowIso();
+  const rows = [];
+
+  for (const [index, clip] of clips.entries()) {
+    const filename = `${safeFileName(clip.filename || `session-${session.id}-${Date.now()}-${index + 1}`, 'audio')}${mimeExtension(
+      clip.mimeType,
+    )}`;
+
+    const row = {
+      id: clip.audioId,
+      sessionId: session.id,
+      customerId: session.customerId,
+      filename,
+      mimeType: clip.mimeType,
+      filePath: clip.filePath,
+      bucket: clip.bucket,
+      storageKey: clip.storageKey,
+      sizeBytes: clip.sizeBytes ?? null,
+      source: clip.source,
+      transcriptText: String(clip.transcriptText || ''),
+      durationMs: Number.isFinite(Number(clip.durationMs)) ? Number(clip.durationMs) : null,
+      createdAt,
+    };
+
+    await collection.insertOne(row);
+    rows.push(mapAudioRecord(row));
+  }
+
+  return rows;
+}
+
 export async function listCustomerReports(customerId) {
   const collection = await getCollection(COLLECTIONS.reports);
   const rows = await collection.find({ customerId }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray();

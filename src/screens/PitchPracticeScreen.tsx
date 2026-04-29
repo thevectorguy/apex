@@ -30,7 +30,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
       <section className="mb-10">
         <h2 className="font-headline text-xl font-semibold text-on-surface mb-4">Customer Persona</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'skeptic' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer shadow-[0_14px_34px_rgba(15,23,42,0.08)] ${selectedPersona === 'skeptic' ? 'bg-white/88 border-2 border-primary ring-4 ring-primary/10' : 'bg-white/76 border border-white/80 hover:bg-white/92 transition-colors ring-1 ring-slate-900/5'}`}>
             <input type="radio" name="persona" checked={selectedPersona === 'skeptic'} onChange={() => setSelectedPersona('skeptic')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Skeptic</h3>
@@ -40,7 +40,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             </div>
           </label>
 
-          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'tech_enthusiast' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer shadow-[0_14px_34px_rgba(15,23,42,0.08)] ${selectedPersona === 'tech_enthusiast' ? 'bg-white/88 border-2 border-primary ring-4 ring-primary/10' : 'bg-white/76 border border-white/80 hover:bg-white/92 transition-colors ring-1 ring-slate-900/5'}`}>
             <input type="radio" name="persona" checked={selectedPersona === 'tech_enthusiast'} onChange={() => setSelectedPersona('tech_enthusiast')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Tech Enthusiast</h3>
@@ -50,7 +50,7 @@ export function PitchPracticeScreen({ onNavigate }: { onNavigate: (s: Screen) =>
             </div>
           </label>
 
-          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer ${selectedPersona === 'budget_buyer' ? 'bg-surface-container-high border-2 border-primary' : 'bg-surface-container border border-outline-variant/10 hover:bg-surface-container-high transition-colors'}`}>
+          <label className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer shadow-[0_14px_34px_rgba(15,23,42,0.08)] ${selectedPersona === 'budget_buyer' ? 'bg-white/88 border-2 border-primary ring-4 ring-primary/10' : 'bg-white/76 border border-white/80 hover:bg-white/92 transition-colors ring-1 ring-slate-900/5'}`}>
             <input type="radio" name="persona" checked={selectedPersona === 'budget_buyer'} onChange={() => setSelectedPersona('budget_buyer')} className="mt-1 w-5 h-5 text-primary bg-surface-container-highest border-outline-variant focus:ring-primary focus:ring-offset-surface" />
             <div>
               <h3 className="font-headline font-bold text-on-surface text-lg">The Budget Buyer</h3>

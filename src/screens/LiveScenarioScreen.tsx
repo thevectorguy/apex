@@ -45,13 +45,13 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
   };
 
   return (
-    <main className="h-[100dvh] w-full bg-[#0a0a0a] flex flex-col relative overflow-hidden">
+    <main className="h-[100dvh] w-full bg-[radial-gradient(circle_at_20%_0%,rgba(0,122,255,0.22),transparent_32%),radial-gradient(circle_at_92%_22%,rgba(255,149,0,0.18),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#edf4fb_54%,#f5efe6_100%)] dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden">
       {/* Dynamic Background Aura */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40 mix-blend-screen">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-60 dark:opacity-40 mix-blend-multiply dark:mix-blend-screen">
         <motion.div 
           animate={{
             scale: session === 'speaking' ? [1, 1.2, 1] : 1,
-            opacity: session === 'listening' ? 0.3 : 0.1
+            opacity: session === 'listening' ? 0.4 : 0.15
           }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-primary rounded-full blur-[120px]"
@@ -59,7 +59,7 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
         <motion.div 
           animate={{
             scale: session === 'processing' ? [1, 1.5, 1] : 1,
-            opacity: session === 'processing' ? 0.2 : 0.1
+            opacity: session === 'processing' ? 0.3 : 0.15
           }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-secondary rounded-full blur-[100px]"
@@ -71,23 +71,23 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
         <div className="flex flex-col gap-4">
           <button 
             onClick={() => onNavigate('pitch_practice')}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            className="w-10 h-10 rounded-full border border-slate-900/10 dark:border-transparent bg-white/70 dark:bg-white/10 backdrop-blur-md flex items-center justify-center text-slate-700 dark:text-white shadow-[0_12px_28px_rgba(15,23,42,0.12)] hover:bg-white/90 dark:hover:bg-white/20 transition-colors"
           >
             <span className="material-symbols-outlined text-[24px]">close</span>
           </button>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-error/20 border border-error/30 text-error font-label text-[10px] font-bold tracking-[0.2em] uppercase">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error font-label text-[10px] font-bold tracking-[0.2em] uppercase bg-white dark:bg-transparent shadow-sm dark:shadow-none">
             <motion.div 
               animate={{ opacity: [1, 0.3, 1] }} 
               transition={{ duration: 2, repeat: Infinity }} 
-              className="w-2 h-2 rounded-full bg-error drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]"
+              className="w-2 h-2 rounded-full bg-error drop-shadow-[0_0_8px_rgba(255,0,0,0.4)] dark:drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]"
             />
             Live Session
           </div>
           <div className="text-right">
-            <h1 className="font-headline font-bold text-lg text-white drop-shadow-md">{personaLabel}</h1>
-            <p className="font-label text-xs text-secondary tracking-widest uppercase mt-0.5">{vehicleLabel}</p>
+            <h1 className="font-headline font-bold text-lg text-on-surface dark:text-white drop-shadow-sm dark:drop-shadow-md">{personaLabel}</h1>
+            <p className="font-label text-xs text-[#e08810] dark:text-secondary tracking-widest uppercase mt-0.5">{vehicleLabel}</p>
           </div>
         </div>
       </header>
@@ -130,16 +130,16 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
             animate={{ 
               scale: session === 'speaking' ? [1, 1.05, 1] : 1,
               boxShadow: session === 'speaking' 
-                ? '0 0 40px rgba(164,201,255,0.4), inset 0 0 20px rgba(164,201,255,0.4)' 
-                : '0 10px 30px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.1)'
+                ? '0 0 40px rgba(0,122,255,0.2), inset 0 0 20px rgba(0,122,255,0.1)' 
+                : '0 10px 30px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.5)'
             }}
             transition={{ duration: session === 'speaking' ? 0.3 : 0.8, repeat: Infinity, repeatType: "reverse" }}
-            className="absolute inset-3 md:inset-4 rounded-full bg-gradient-to-br from-surface-container to-black border border-white/10 overflow-hidden flex items-center justify-center z-10"
+            className="absolute inset-3 md:inset-4 rounded-full bg-gradient-to-br from-white to-[#e2e8f0] dark:from-surface-container dark:to-black border border-black/10 dark:border-white/10 overflow-hidden flex items-center justify-center z-10"
           >
              <img 
                src="https://i.pravatar.cc/300?img=68" 
                alt="AI Profile" 
-               className="w-full h-full object-cover opacity-80 mix-blend-luminosity brightness-110 saturate-50" 
+               className="w-full h-full object-cover opacity-90 dark:opacity-80 mix-blend-luminosity brightness-110 saturate-50" 
              />
              <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent mix-blend-overlay"></div>
           </motion.div>
@@ -152,7 +152,7 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
               <motion.p 
                 key="idle"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="font-headline text-xl md:text-2xl font-semibold text-white/40"
+                className="font-headline text-xl md:text-2xl font-semibold text-slate-600 dark:text-white/40"
               >
                 Tap the mic to start the simulation.
               </motion.p>
@@ -164,12 +164,12 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
                     <motion.div key={i} animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} className="w-1.5 h-1.5 rounded-full bg-primary" />
                   ))}
                 </div>
-                <p className="font-headline text-base md:text-lg font-medium text-white/50">{transcript || "Listening..."}</p>
+                <p className="font-headline text-base md:text-lg font-medium text-slate-700 dark:text-white/50">{transcript || "Listening..."}</p>
               </motion.div>
             )}
             {session === 'speaking' && (
               <motion.div key="speaking" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
-                <h2 className="font-headline text-xl md:text-2xl font-bold text-white leading-snug drop-shadow-md">"{transcript}"</h2>
+                <h2 className="font-headline text-xl md:text-2xl font-bold text-on-surface dark:text-white leading-snug drop-shadow-sm dark:drop-shadow-md">"{transcript}"</h2>
               </motion.div>
             )}
           </AnimatePresence>
@@ -177,7 +177,7 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
       </section>
 
       {/* Controls Area */}
-      <section className="relative z-20 px-6 py-6 pb-safe-offset-4 md:p-8 md:pb-12 bg-gradient-to-t from-black via-black/80 to-transparent shrink-0">
+      <section className="relative z-20 px-6 py-6 pb-safe-offset-4 md:p-8 md:pb-12 bg-gradient-to-t from-[#f5efe6] via-[#f5efe6]/82 dark:from-black dark:via-black/80 to-transparent shrink-0">
         <div className="max-w-xl mx-auto flex flex-col items-center gap-4 md:gap-8">
           
           {/* Smart Coach Feedback */}
@@ -186,12 +186,12 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
               {session === 'speaking' && (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                  className="px-4 py-2 md:px-6 md:py-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 flex items-center gap-2 md:gap-3 shadow-2xl"
+                  className="px-4 py-2 md:px-6 md:py-3 rounded-2xl bg-white/70 dark:bg-white/10 backdrop-blur-xl border border-black/5 dark:border-white/10 flex items-center gap-2 md:gap-3 shadow-apple dark:shadow-2xl"
                 >
-                  <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-[14px] md:text-[16px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                  <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#ffaa33]/20 dark:bg-secondary/20 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[14px] md:text-[16px] text-[#b36b00] dark:text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
                   </div>
-                  <span className="font-body text-xs md:text-sm font-medium text-white shadow-sm line-clamp-2 leading-tight">Anchor the pitch on mileage confidence, trim value, and ease of ownership.</span>
+                  <span className="font-body text-xs md:text-sm font-medium text-on-surface dark:text-white shadow-sm dark:shadow-sm line-clamp-2 leading-tight">Anchor the pitch on mileage confidence, trim value, and ease of ownership.</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -201,12 +201,12 @@ export function LiveScenarioScreen({ onNavigate }: { onNavigate: (s: Screen) => 
           <motion.button 
             whileTap={{ scale: 0.9 }}
             onClick={handleMicClick}
-            className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl border border-white/10 shrink-0
+            className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 shadow-apple dark:shadow-2xl border border-black/10 dark:border-white/10 shrink-0
               ${session === 'listening' 
                 ? 'bg-error text-white shadow-[0_0_30px_rgba(255,50,50,0.5)]' 
                 : session === 'speaking'
-                  ? 'bg-surface-container-high text-white/50 opacity-50'
-                  : 'bg-primary text-on-primary-fixed hover:bg-primary/90'
+                  ? 'bg-white dark:bg-surface-container-high text-on-surface-variant/50 dark:text-white/50 opacity-50'
+                  : 'bg-primary text-white dark:text-on-primary-fixed hover:bg-primary/90'
               }
             `}
           >

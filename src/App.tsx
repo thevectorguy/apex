@@ -101,9 +101,13 @@ export default function App() {
     currentScreen === 'my_coach_steps' ||
     currentScreen === 'my_coach_transcript';
   const showSidebarTrigger = !isImmersive && currentScreen !== 'dashboard';
+  const showBottomNav = !isImmersive && currentScreen !== 'profile';
+  const showFloatingActionButton = !isImmersive && currentScreen !== 'profile';
+
+  const shellClass = currentScreen === 'dashboard' ? 'bg-surface' : 'premium-app-shell';
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface font-body selection:bg-primary/30 overflow-x-hidden relative">
+    <div className={`min-h-screen ${shellClass} text-on-surface font-body selection:bg-primary/30 overflow-x-hidden relative`}>
       {!isImmersive && (
         <TopAppBar
           onNavigate={handleNavigate}
@@ -134,8 +138,8 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isImmersive && <FloatingActionButton onClick={() => setIsAssistantOpen(true)} />}
-      {!isImmersive && <BottomNavBar currentScreen={currentScreen} onNavigate={handleNavigate} />}
+      {showFloatingActionButton ? <FloatingActionButton onClick={() => setIsAssistantOpen(true)} /> : null}
+      {showBottomNav ? <BottomNavBar currentScreen={currentScreen} onNavigate={handleNavigate} /> : null}
 
       <AIAssistantSheet
         isOpen={isAssistantOpen}

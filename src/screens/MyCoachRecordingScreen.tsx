@@ -413,7 +413,8 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
           id: makeId('segment'),
           fileName: `${detail.customerName.toLowerCase().replace(/\s+/g, '-')}-segment-${segmentIndex}.webm`,
           mimeType: blob.type || 'audio/webm',
-          base64: await fileLikeToBase64(blob),
+          file: blob,
+          sizeBytes: blob.size,
           source: 'recorded',
           durationMs: Date.now() - startedAt,
         });
@@ -497,10 +498,11 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
         customerId: detail.id,
         title: `${detail.customerName} live session`,
         source: 'recorded',
-        clips: nextSegments.map(({ fileName, mimeType, base64, source, durationMs }) => ({
+        clips: nextSegments.map(({ fileName, mimeType, file, sizeBytes, source, durationMs }) => ({
           fileName,
           mimeType,
-          base64,
+          file,
+          sizeBytes,
           source,
           durationMs,
         })),
@@ -555,19 +557,19 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
   }
 
   return (
-    <main className="relative h-[100dvh] overflow-hidden bg-[#080b11] text-white">
+    <main className="relative h-[100dvh] overflow-hidden bg-[#f0f4f8] dark:bg-[#080b11] text-on-surface dark:text-white">
       <div className="absolute inset-0">
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.16, 1] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute left-[-10%] top-[-16%] h-[42rem] w-[42rem] rounded-full bg-primary/20 blur-[120px]"
+          className="absolute left-[-10%] top-[-16%] h-[42rem] w-[42rem] rounded-full bg-primary/30 dark:bg-primary/20 blur-[120px]"
         />
         <motion.div
           animate={{ opacity: [0.18, 0.34, 0.18], scale: [1, 1.12, 1] }}
           transition={{ duration: 6.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
-          className="absolute bottom-[-20%] right-[-8%] h-[32rem] w-[32rem] rounded-full bg-secondary/18 blur-[110px]"
+          className="absolute bottom-[-20%] right-[-8%] h-[32rem] w-[32rem] rounded-full bg-secondary/30 dark:bg-secondary/18 blur-[110px]"
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,rgba(8,11,17,0.4),rgba(8,11,17,0.92))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.4),transparent_34%),linear-gradient(180deg,rgba(240,244,248,0.4),rgba(240,244,248,0.92))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,rgba(8,11,17,0.4),rgba(8,11,17,0.92))]" />
       </div>
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-[430px] flex-col px-4 pb-4 pt-5">
@@ -575,7 +577,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
           <button
             type="button"
             onClick={() => void handleBackToCoach()}
-            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/76 backdrop-blur-xl"
+            className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/12 bg-black/5 dark:bg-white/6 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-on-surface-variant dark:text-white/76 backdrop-blur-xl"
           >
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             My Coach
@@ -590,10 +592,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
           <RecordingScreenSkeleton />
         ) : detail ? (
           <>
-            <section className="relative mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+            <section className="relative mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-black/5 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] p-5 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
               <div className="shrink-0">
-                <h1 className="font-headline text-[2.1rem] font-bold tracking-tight text-white">{detail.customerName}</h1>
-                <p className="mt-2 text-sm leading-6 text-white/64">{detail.summary}</p>
+                <h1 className="font-headline text-[2.1rem] font-bold tracking-tight text-on-surface dark:text-white">{detail.customerName}</h1>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant/80 dark:text-white/64">{detail.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <MetaPill label={statusPill} tone={captureState === 'recording' ? 'primary' : 'default'} />
                   <MetaPill label={`${segments.length} segments`} tone="default" />
@@ -623,10 +625,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                         : '0 24px 64px rgba(0,0,0,0.38)',
                   }}
                   transition={{ duration: 0.22, ease: 'easeOut' }}
-                  className={`relative flex h-[11.5rem] w-[11.5rem] items-center justify-center rounded-full border border-white/12 ${
+                  className={`relative flex h-[11.5rem] w-[11.5rem] items-center justify-center rounded-full border border-black/10 dark:border-white/12 ${
                     captureState === 'recording'
-                      ? 'bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.36),rgba(25,35,58,0.92))]'
-                      : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),rgba(18,24,34,0.92))]'
+                      ? 'bg-[radial-gradient(circle_at_top,rgba(0,122,255,0.15),rgba(255,255,255,0.92))] dark:bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.36),rgba(25,35,58,0.92))] shadow-apple-soft dark:shadow-none'
+                      : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.8),rgba(240,244,248,0.92))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),rgba(18,24,34,0.92))] shadow-apple dark:shadow-none'
                   }`}
                 >
                   <motion.div
@@ -651,7 +653,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                       opacity: captureState === 'recording' ? 0.88 + reactiveLevel * 0.12 : 0.82,
                     }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className="absolute inset-3 rounded-full border border-white/10 bg-black/24"
+                    className="absolute inset-3 rounded-full border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black/24"
                   />
 	                  <div className="relative z-10 text-center">
 	                    <motion.span
@@ -660,11 +662,11 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 	                        scale: captureState === 'recording' ? 1 + reactiveLevel * 0.08 : 1,
                       }}
 	                      transition={{ duration: 0.18, ease: 'easeOut' }}
-	                      className="material-symbols-outlined text-[44px] text-white"
+	                      className="material-symbols-outlined text-[44px] text-on-surface dark:text-white"
 	                    >
 	                      {captureState === 'recording' ? 'pause' : 'mic'}
 	                    </motion.span>
-	                    <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/58">{primaryActionLabel}</p>
+	                    <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-on-surface-variant/70 dark:text-white/58">{primaryActionLabel}</p>
 	                  </div>
 	                </motion.button>
 
@@ -679,7 +681,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                   ))}
                 </div>
 
-                <p className="mt-4 max-w-[16rem] text-center text-[11px] leading-5 text-white/56">
+                <p className="mt-4 max-w-[16rem] text-center text-[11px] leading-5 text-on-surface-variant/80 dark:text-white/56">
                   {captureState === 'recording'
                     ? 'Keep the phone steady and let the customer finish each thought before you pause.'
                     : segments.length
@@ -694,7 +696,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                 <button
                   type="button"
                   onClick={() => setActiveSheet('preview')}
-                  className="rounded-[20px] border border-white/10 bg-white/6 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white/74"
+                  className="rounded-[20px] border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/6 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/74 shadow-sm dark:shadow-none"
                 >
                   Live Preview
                 </button>
@@ -702,7 +704,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                   <button
                     type="button"
                     onClick={() => setActiveSheet('segments')}
-                    className="rounded-[20px] border border-white/10 bg-white/6 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white/74"
+                    className="rounded-[20px] border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/6 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/74 shadow-sm dark:shadow-none"
                   >
                     Captured So Far
                   </button>
@@ -713,7 +715,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                 type="button"
                 onClick={() => void handleEndConversation()}
                 disabled={captureState === 'submitting'}
-                className="rounded-[22px] bg-secondary px-5 py-3.5 text-xs font-bold uppercase tracking-[0.18em] text-on-secondary-fixed disabled:opacity-50"
+                className="rounded-[22px] bg-[#ffaa33] dark:bg-secondary px-5 py-3.5 text-xs font-bold uppercase tracking-[0.18em] text-black dark:text-on-secondary-fixed shadow-apple-soft dark:shadow-none transition disabled:opacity-50"
               >
                 {captureState === 'submitting' ? 'Preparing session...' : 'End conversation'}
               </button>
@@ -721,10 +723,10 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
           </>
         ) : (
           <section className="flex min-h-0 flex-1 items-center justify-center">
-            <div className="rounded-[28px] border border-white/8 bg-white/4 px-6 py-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-secondary">My Coach Live Session</p>
-              <h1 className="mt-3 font-headline text-3xl font-bold text-white">{error ? 'Customer thread unavailable' : 'No customer selected'}</h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/60">
+            <div className="rounded-[28px] border border-black/5 dark:border-white/8 bg-white/70 dark:bg-white/4 px-6 py-10 text-center shadow-apple dark:shadow-[0_20px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#e08810] dark:text-secondary">My Coach Live Session</p>
+              <h1 className="mt-3 font-headline text-3xl font-bold text-on-surface dark:text-white">{error ? 'Customer thread unavailable' : 'No customer selected'}</h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-on-surface-variant/80 dark:text-white/60">
                 {error ?? 'Create or select a customer from My Coach before starting the immersive recording flow.'}
               </p>
               <button
@@ -744,25 +746,25 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40 flex items-end bg-black/58 px-3 pb-3 pt-16 backdrop-blur-sm"
+              className="absolute inset-0 z-40 flex items-end bg-black/20 dark:bg-black/58 px-3 pb-3 pt-16 backdrop-blur-sm"
             >
               <motion.div
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 28 }}
-                className="w-full rounded-[28px] border border-white/10 bg-[#12161f]/96 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
+                className="w-full rounded-[28px] border border-black/5 dark:border-white/10 bg-surface-bright dark:bg-[#12161f]/96 p-5 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.18em] text-primary">{activeSheet === 'preview' ? 'Live Preview' : 'Captured So Far'}</p>
-                    <h2 className="mt-2 font-headline text-2xl font-bold text-white">
+                    <h2 className="mt-2 font-headline text-2xl font-bold text-on-surface dark:text-white">
                       {activeSheet === 'preview' ? 'Transcript preview' : 'Saved conversation segments'}
                     </h2>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveSheet(null)}
-                    className="rounded-full border border-white/10 bg-white/6 p-2 text-white/70"
+                    className="rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/6 p-2 text-on-surface-variant dark:text-white/70 hover:bg-black/10 dark:hover:bg-white/10 transition"
                     aria-label="Close modal"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
@@ -771,16 +773,16 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 
                 {activeSheet === 'preview' ? (
                   <>
-                    <p className="mt-3 text-sm leading-6 text-white/58">{renderPreviewSummary(previewStatus, captureState)}</p>
+                    <p className="mt-3 text-sm leading-6 text-on-surface-variant/80 dark:text-white/58">{renderPreviewSummary(previewStatus, captureState)}</p>
                     <div ref={previewScrollerRef} className="mt-4 max-h-[44dvh] space-y-3 overflow-y-auto pr-1 hide-scrollbar">
                       {previewLines.length ? (
                         previewLines.map((line) => (
-                          <div key={line.id} className="rounded-[22px] border border-white/8 bg-white/4 px-4 py-3 text-sm leading-6 text-white/74">
+                          <div key={line.id} className="rounded-[22px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/4 px-4 py-3 text-sm leading-6 text-on-surface-variant dark:text-white/74">
                             {line.text}
                           </div>
                         ))
                       ) : (
-                        <div className="rounded-[22px] border border-dashed border-white/10 px-4 py-8 text-sm leading-6 text-white/48">
+                        <div className="rounded-[22px] border border-dashed border-black/10 dark:border-white/10 px-4 py-8 text-sm leading-6 text-on-surface-variant/60 dark:text-white/48">
                           {previewStatus === 'unsupported'
                             ? 'Mic is recording, but live preview is not available on this device.'
                             : previewStatus === 'blocked'
@@ -793,7 +795,7 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="rounded-[22px] border border-primary/14 bg-primary/10 px-4 py-3 text-sm leading-6 text-white/88"
+                          className="rounded-[22px] border border-primary/20 dark:border-primary/14 bg-primary/10 px-4 py-3 text-sm leading-6 text-primary dark:text-white/88 font-medium"
                         >
                           {interimPreview}
                         </motion.div>
@@ -803,14 +805,14 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
                 ) : (
                   <div className="mt-4 max-h-[44dvh] space-y-3 overflow-y-auto pr-1 hide-scrollbar">
                     {segments.map((segment, index) => (
-                      <div key={segment.id} className="rounded-[22px] border border-white/8 bg-white/4 px-4 py-3">
+                      <div key={segment.id} className="rounded-[22px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/4 px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="font-headline text-sm font-bold text-white">Segment {index + 1}</p>
-                          <span className="rounded-full border border-secondary/18 bg-secondary/10 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-secondary">
+                          <p className="font-headline text-sm font-bold text-on-surface dark:text-white">Segment {index + 1}</p>
+                          <span className="rounded-full border border-[#ffaa33]/30 dark:border-secondary/18 bg-[#ffaa33]/20 dark:bg-secondary/10 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-[#b36b00] dark:text-secondary">
                             {formatDuration(segment.durationMs ?? 0)}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/40">{segment.fileName}</p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant/60 dark:text-white/40">{segment.fileName}</p>
                       </div>
                     ))}
                   </div>
@@ -833,19 +835,19 @@ export function MyCoachRecordingScreen({ onNavigate }: { onNavigate: (screen: Sc
 function MetaPill({ label, tone }: { label: string; tone: 'default' | 'primary' | 'secondary' }) {
   const toneClasses =
     tone === 'primary'
-      ? 'border-primary/20 bg-primary/12 text-primary'
+      ? 'border-primary/20 bg-primary/10 text-primary dark:bg-primary/12'
       : tone === 'secondary'
-        ? 'border-secondary/20 bg-secondary/10 text-secondary'
-        : 'border-white/10 bg-white/6 text-white/70';
+        ? 'border-[#ffaa33]/30 bg-[#ffaa33]/20 text-[#b36b00] dark:border-secondary/20 dark:bg-secondary/10 dark:text-secondary'
+        : 'border-black/10 bg-black/5 text-on-surface-variant dark:border-white/10 dark:bg-white/6 dark:text-white/70';
 
   return <span className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${toneClasses}`}>{label}</span>;
 }
 
 function DetailPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-full border border-white/8 bg-black/18 px-3 py-2.5">
-      <p className="text-[9px] uppercase tracking-[0.16em] text-white/38">{label}</p>
-      <p className="mt-1 max-w-[11rem] truncate text-sm text-white/74">{value}</p>
+    <div className="rounded-full border border-black/5 dark:border-white/8 bg-black/5 dark:bg-black/18 px-3 py-2.5">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/38">{label}</p>
+      <p className="mt-1 max-w-[11rem] truncate text-sm text-on-surface dark:text-white/74">{value}</p>
     </div>
   );
 }
@@ -875,41 +877,32 @@ function formatDuration(milliseconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function fileLikeToBase64(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] ?? '' : '');
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 function RecordingScreenSkeleton() {
   return (
-    <section className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+    <section className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-black/5 dark:border-white/10 bg-white/70 dark:bg-white/[0.04] p-5 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
       <div className="shrink-0">
-        <SkeletonLine className="h-10 w-44 bg-white/[0.08]" />
-        <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
-        <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+        <SkeletonLine className="h-10 w-44 bg-black/10 dark:bg-white/[0.08]" />
+        <SkeletonLine className="mt-3 h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-4/5 bg-black/5 dark:bg-white/[0.04]" />
         <div className="mt-4 flex flex-wrap gap-2">
-          <SkeletonLine className="h-7 w-24 rounded-full bg-white/[0.05]" />
-          <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
-          <SkeletonLine className="h-7 w-20 rounded-full bg-white/[0.05]" />
+          <SkeletonLine className="h-7 w-24 rounded-full bg-black/5 dark:bg-white/[0.05]" />
+          <SkeletonLine className="h-7 w-28 rounded-full bg-black/5 dark:bg-white/[0.05]" />
+          <SkeletonLine className="h-7 w-20 rounded-full bg-black/5 dark:bg-white/[0.05]" />
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-3">
-        <SkeletonCircle className="h-[11.5rem] w-[11.5rem] border-white/10 bg-white/[0.05]" />
+        <SkeletonCircle className="h-[11.5rem] w-[11.5rem] border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.05]" />
         <div className="mt-5 flex w-full max-w-[220px] items-end justify-center gap-1">
           {Array.from({ length: 18 }, (_, index) => (
             <SkeletonLine
               key={`recording-meter-${index}`}
-              className={`w-1 rounded-full bg-white/[0.05] ${index % 3 === 0 ? 'h-8' : index % 2 === 0 ? 'h-5' : 'h-10'}`}
+              className={`w-1 rounded-full bg-black/10 dark:bg-white/[0.05] ${index % 3 === 0 ? 'h-8' : index % 2 === 0 ? 'h-5' : 'h-10'}`}
             />
           ))}
         </div>
-        <SkeletonLine className="mt-5 h-4 w-56 bg-white/[0.05]" />
-        <SkeletonLine className="mt-2 h-4 w-52 bg-white/[0.04]" />
+        <SkeletonLine className="mt-5 h-4 w-56 bg-black/5 dark:bg-white/[0.05]" />
+        <SkeletonLine className="mt-2 h-4 w-52 bg-black/5 dark:bg-white/[0.04]" />
       </div>
     </section>
   );

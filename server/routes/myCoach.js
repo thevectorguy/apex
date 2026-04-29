@@ -1,7 +1,9 @@
+import crypto from 'node:crypto';
 import { buildPreviousVisitSummary } from '../lib/analysis.js';
-import { generateCoachingReport, transcribeAudioFile } from '../lib/groq.js';
+import { generateCoachingReport, transcribeAudioFile, transcribeAudioUrl } from '../lib/groq.js';
 import {
   createAudioAssets,
+  createAudioAssetsFromUploads,
   createCustomer,
   createReport,
   createSession,
@@ -24,6 +26,7 @@ import {
   updateReport,
   updateSession,
 } from '../lib/persistence.js';
+import { completeDirectAudioUpload, createDirectAudioUploadTarget, createPresignedReadUrl } from '../lib/s3.js';
 import { MASTER_COPY_HASH, MASTER_COPY_VERSION, trainingMasterCopy } from '../lib/masterCopy.js';
 
 const TRANSCRIPT_UNAVAILABLE_ERROR =
@@ -165,10 +168,158 @@ export function registerMyCoachRoutes(app) {
     res.json({ ok: true });
   });
 
+  app.post('/api/my-coach/sessions/:sessionId/audio/uploads/init', async (req, res) => {
+    const session = await getSession(req.params.sessionId);
+    if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
+
+    const payload = req.body || {};
+    const clipPayloads = Array.isArray(payload.clips) ? payload.clips : [];
+    const validClips = clipPayloads
+      .map((clip) => ({
+        fileName: String(clip.fileName || clip.filename || '').trim(),
+        mimeType: String(clip.mimeType || 'audio/webm').trim() || 'audio/webm',
+        source: String(clip.source || 'upload').trim() || 'upload',
+        durationMs: clip.durationMs,
+        sizeBytes: Number(clip.sizeBytes),
+      }))
+      .filter((clip) => clip.fileName && Number.isFinite(clip.sizeBytes) && clip.sizeBytes > 0);
+
+    if (!validClips.length) {
+      return res.status(400).json({ ok: false, error: 'At least one clip with file metadata is required' });
+    }
+
+    console.log('[my-coach][audio-upload] init request received', {
+      sessionId: session.id,
+      customerId: session.customerId,
+      clipCount: validClips.length,
+      clipSizes: validClips.map((clip) => clip.sizeBytes),
+    });
+
+    const uploads = await Promise.all(
+      validClips.map(async (clip) => {
+        const target = await createDirectAudioUploadTarget({
+          audioId: crypto.randomUUID(),
+          customerId: session.customerId,
+          sessionId: session.id,
+          filename: clip.fileName,
+          mimeType: clip.mimeType,
+          sizeBytes: clip.sizeBytes,
+        });
+
+        return {
+          ...target,
+          source: clip.source,
+          durationMs: Number.isFinite(Number(clip.durationMs)) ? Number(clip.durationMs) : null,
+        };
+      }),
+    );
+
+    res.status(201).json({ ok: true, uploads });
+  });
+
+  app.post('/api/my-coach/sessions/:sessionId/audio/uploads/complete', async (req, res) => {
+    const session = await getSession(req.params.sessionId);
+    if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
+    const customer = await getCustomer(session.customerId);
+    const startedAt = Date.now();
+
+    const payload = req.body || {};
+    const clipPayloads = Array.isArray(payload.clips) ? payload.clips : [];
+    const validClips = clipPayloads
+      .map((clip) => ({
+        audioId: String(clip.audioId || '').trim(),
+        fileName: String(clip.fileName || clip.filename || '').trim(),
+        mimeType: String(clip.mimeType || 'audio/webm').trim() || 'audio/webm',
+        source: String(clip.source || 'upload').trim() || 'upload',
+        durationMs: clip.durationMs,
+        sizeBytes: Number(clip.sizeBytes),
+        bucket: String(clip.bucket || '').trim(),
+        storageKey: String(clip.storageKey || '').trim(),
+        filePath: String(clip.filePath || '').trim(),
+        upload: clip.upload && typeof clip.upload === 'object' ? clip.upload : { mode: 'single' },
+      }))
+      .filter((clip) => clip.audioId && clip.fileName && clip.storageKey && clip.filePath);
+
+    if (!validClips.length) {
+      return res.status(400).json({ ok: false, error: 'At least one uploaded clip is required' });
+    }
+
+    console.log('[my-coach][audio-upload] complete request received', {
+      sessionId: session.id,
+      customerId: session.customerId,
+      clipCount: validClips.length,
+      clipSizes: validClips.map((clip) => clip.sizeBytes),
+    });
+
+    const transcriptLines = Array.isArray(payload.transcriptLines)
+      ? payload.transcriptLines.map((line, index) => ({
+          id: String(line.id || `line_${index + 1}`),
+          speaker: String(line.speaker || inferSpeaker(line.text || '', index)),
+          text: String(line.text || '').trim(),
+          start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,
+          end: Number.isFinite(Number(line.end)) ? Number(line.end) : null,
+        }))
+      : [];
+    const transcriptText =
+      String(payload.transcriptText || '').trim() || transcriptLines.map((line) => line.text).filter(Boolean).join(' ');
+
+    await Promise.all(validClips.map((clip) => completeDirectAudioUpload({ storageKey: clip.storageKey, upload: clip.upload })));
+
+    let audioAssets = [];
+    let transcription = null;
+
+    try {
+      [audioAssets, transcription] = await Promise.all([
+        createAudioAssetsFromUploads(session, validClips),
+        transcribeStoredSessionClips({
+          clips: validClips,
+          sessionId: session.id,
+          language: resolvePreferredTranscriptionLanguage(customer),
+        }).catch((err) => {
+          console.error('[my-coach][audio-upload] transcription failed', {
+            sessionId: session.id,
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return null;
+        }),
+      ]);
+    } catch (error) {
+      console.error('[my-coach][audio-upload] finalization failed', {
+        sessionId: session.id,
+        durationMs: Date.now() - startedAt,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    const sessionPatch = { errorMessage: null };
+    if (transcription && transcription.text) {
+      sessionPatch.transcriptText = transcription.text;
+      sessionPatch.transcript = transcription.turns;
+    } else if (transcriptText || transcriptLines.length) {
+      sessionPatch.transcriptText = transcriptText || session.transcriptText || '';
+      sessionPatch.transcript = transcriptLines.length ? transcriptLines : buildTranscriptTurns(transcriptText, [], session.id);
+    }
+
+    await updateSession(session.id, sessionPatch);
+
+    console.log('[my-coach][audio-upload] request completed', {
+      sessionId: session.id,
+      durationMs: Date.now() - startedAt,
+      storedAudioAssets: audioAssets.length,
+      transcriptTurnCount: Array.isArray(sessionPatch.transcript) ? sessionPatch.transcript.length : 0,
+      transcriptTextLength: String(sessionPatch.transcriptText || '').length,
+      transcriptReady: Boolean(sessionPatch.transcriptText && sessionPatch.transcript?.length),
+    });
+
+    res.status(201).json({ ok: true, audioAssets });
+  });
+
   app.post('/api/my-coach/sessions/:sessionId/audio', async (req, res) => {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
     const customer = await getCustomer(session.customerId);
+    const startedAt = Date.now();
 
     const payload = req.body || {};
     const clipPayloads = Array.isArray(payload.clips) ? payload.clips : [payload];
@@ -187,6 +338,16 @@ export function registerMyCoachRoutes(app) {
       return res.status(400).json({ ok: false, error: 'At least one clip with base64 audio is required' });
     }
 
+    console.log('[my-coach][audio] request received', {
+      sessionId: session.id,
+      customerId: session.customerId,
+      clipCount: validClips.length,
+      transcriptSource: payload.transcriptSource || 'unknown',
+      transcriptTextLength: String(payload.transcriptText || '').trim().length,
+      transcriptLineCount: Array.isArray(payload.transcriptLines) ? payload.transcriptLines.length : 0,
+      clipSizes: validClips.map((clip) => Buffer.byteLength(clip.audioBase64 || '', 'base64')),
+    });
+
     const transcriptLines = Array.isArray(payload.transcriptLines)
       ? payload.transcriptLines.map((line, index) => ({
           id: String(line.id || `line_${index + 1}`),
@@ -199,17 +360,32 @@ export function registerMyCoachRoutes(app) {
     const transcriptText =
       String(payload.transcriptText || '').trim() || transcriptLines.map((line) => line.text).filter(Boolean).join(' ');
 
-    const [audioAssets, transcription] = await Promise.all([
-      createAudioAssets(session, validClips),
-      transcribeSessionClips({
-        clips: validClips,
+    let audioAssets = [];
+    let transcription = null;
+
+    try {
+      [audioAssets, transcription] = await Promise.all([
+        createAudioAssets(session, validClips),
+        transcribeSessionClips({
+          clips: validClips,
+          sessionId: session.id,
+          language: resolvePreferredTranscriptionLanguage(customer),
+        }).catch((err) => {
+          console.error('[my-coach][audio] transcription failed', {
+            sessionId: session.id,
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return null;
+        }),
+      ]);
+    } catch (error) {
+      console.error('[my-coach][audio] asset preparation failed', {
         sessionId: session.id,
-        language: resolvePreferredTranscriptionLanguage(customer),
-      }).catch((err) => {
-        console.error('Concurrent transcription failed:', err);
-        return null;
-      }),
-    ]);
+        durationMs: Date.now() - startedAt,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
 
     const sessionPatch = { errorMessage: null };
     if (transcription && transcription.text) {
@@ -222,16 +398,35 @@ export function registerMyCoachRoutes(app) {
     
     await updateSession(session.id, sessionPatch);
 
+    console.log('[my-coach][audio] request completed', {
+      sessionId: session.id,
+      durationMs: Date.now() - startedAt,
+      storedAudioAssets: audioAssets.length,
+      transcriptTurnCount: Array.isArray(sessionPatch.transcript) ? sessionPatch.transcript.length : 0,
+      transcriptTextLength: String(sessionPatch.transcriptText || '').length,
+      transcriptReady: Boolean(sessionPatch.transcriptText && sessionPatch.transcript?.length),
+    });
+
     res.status(201).json({ ok: true, audioAssets });
   });
 
   app.post('/api/my-coach/sessions/:sessionId/analyze', async (req, res) => {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' });
+    const startedAt = Date.now();
 
     const customer = await getCustomer(session.customerId);
     const audioAssets = await listSessionAudioAssets(session.id);
     const hasManualTranscript = Boolean(String(session.transcriptText || '').trim()) && Array.isArray(session.transcript) && session.transcript.length > 0;
+
+    console.log('[my-coach][analyze] request received', {
+      sessionId: session.id,
+      customerId: session.customerId,
+      audioAssetCount: audioAssets.length,
+      transcriptTurnCount: Array.isArray(session.transcript) ? session.transcript.length : 0,
+      transcriptTextLength: String(session.transcriptText || '').trim().length,
+      hasManualTranscript,
+    });
 
     if (!audioAssets.length && !hasManualTranscript) {
       return res.status(400).json({ ok: false, error: 'At least one audio asset is required before analysis' });
@@ -300,12 +495,22 @@ export function registerMyCoachRoutes(app) {
         report: createdReport,
         reportData: hydratedReport,
       });
+      console.log('[my-coach][analyze] request completed', {
+        sessionId: session.id,
+        reportId: createdReport.id,
+        durationMs: Date.now() - startedAt,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await updateSession(session.id, {
         status: 'error',
         errorMessage: message,
         processingCompletedAt: new Date().toISOString(),
+      });
+      console.error('[my-coach][analyze] request failed', {
+        sessionId: session.id,
+        durationMs: Date.now() - startedAt,
+        message,
       });
       res.status(500).json({ ok: false, status: 'error', error: message });
     }
@@ -411,19 +616,87 @@ function splitIntoTurns(text) {
 }
 
 async function transcribeSessionClips({ clips, sessionId, language }) {
+  const clipResults = await Promise.all(
+    clips.map(async (clip, index) => {
+      const startedAt = Date.now();
+      const fileBuffer = Buffer.from(clip.audioBase64, 'base64');
+      console.log('[my-coach][transcription] clip start', {
+        sessionId,
+        clipIndex: index + 1,
+        fileName: clip.filename || `audioclip-${index}.webm`,
+        mimeType: clip.mimeType,
+        sizeBytes: fileBuffer.length,
+        language: language || 'auto',
+      });
+      const result = await transcribeAudioFile({
+        fileBuffer,
+        fileName: clip.filename || `audioclip-${index}.webm`,
+        mimeType: clip.mimeType,
+        language,
+      });
+      console.log('[my-coach][transcription] clip complete', {
+        sessionId,
+        clipIndex: index + 1,
+        durationMs: Date.now() - startedAt,
+        transcriptTextLength: String(result.text || '').trim().length,
+        segmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+        provider: result.provider,
+        model: result.model,
+      });
+      return { clip, index, result };
+    }),
+  );
+
+  return mergeTranscriptionResults({ clipResults, sessionId });
+}
+
+async function transcribeStoredSessionClips({ clips, sessionId, language }) {
+  const clipResults = await Promise.all(
+    clips.map(async (clip, index) => {
+      const startedAt = Date.now();
+      const fileUrl = await createPresignedReadUrl(clip.storageKey);
+      console.log('[my-coach][transcription:url] clip start', {
+        sessionId,
+        clipIndex: index + 1,
+        fileName: clip.fileName || `audioclip-${index}.webm`,
+        mimeType: clip.mimeType,
+        sizeBytes: clip.sizeBytes,
+        language: language || 'auto',
+      });
+      const result = await transcribeAudioUrl({
+        fileUrl,
+        fileName: clip.fileName || `audioclip-${index}.webm`,
+        language,
+      });
+      console.log('[my-coach][transcription:url] clip complete', {
+        sessionId,
+        clipIndex: index + 1,
+        durationMs: Date.now() - startedAt,
+        transcriptTextLength: String(result.text || '').trim().length,
+        segmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+        provider: result.provider,
+        model: result.model,
+      });
+      return {
+        clip: {
+          ...clip,
+          filename: clip.fileName || clip.filename,
+        },
+        index,
+        result,
+      };
+    }),
+  );
+
+  return mergeTranscriptionResults({ clipResults, sessionId });
+}
+
+function mergeTranscriptionResults({ clipResults, sessionId }) {
   const transcriptParts = [];
   const transcriptTurns = [];
   let offsetSeconds = 0;
 
-  for (const [index, clip] of clips.entries()) {
-    const fileBuffer = Buffer.from(clip.audioBase64, 'base64');
-    const result = await transcribeAudioFile({
-      fileBuffer,
-      fileName: clip.filename || `audioclip-${index}.webm`,
-      mimeType: clip.mimeType,
-      language,
-    });
-
+  for (const { clip, index, result } of clipResults.sort((left, right) => left.index - right.index)) {
     const clipText = String(result.text || '').trim();
     if (clipText) {
       transcriptParts.push(clipText);

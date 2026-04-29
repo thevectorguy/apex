@@ -172,7 +172,7 @@ export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: 
         )}
 
         {loadError && (
-          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="rounded-2xl border border-rose-400/25 bg-rose-50/90 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-100">
             {loadError}
           </div>
         )}
@@ -328,8 +328,8 @@ export function CommunicationsScreen({ onNavigate: _onNavigate }: { onNavigate: 
         </section>
       ) : loadError ? (
         <section className="rounded-[24pt] border border-rose-400/20 bg-rose-400/10 px-6 py-10 text-center">
-          <p className="announcements-headline text-2xl font-semibold text-rose-100">Announcements could not be loaded</p>
-          <p className="mt-2 announcements-copy text-rose-100/80">Please try again in a moment.</p>
+          <p className="announcements-headline text-2xl font-semibold text-rose-700 dark:text-rose-100">Announcements could not be loaded</p>
+          <p className="mt-2 announcements-copy text-rose-700/80 dark:text-rose-100/80">Please try again in a moment.</p>
         </section>
       ) : (
         <section className="rounded-[24pt] border border-outline-variant/10 bg-surface-container px-6 py-10 text-center">

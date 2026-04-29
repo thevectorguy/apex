@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { type Screen } from '../types';
 import { readSearchParam, writeSearchParam } from '../lib/appRouter';
+import { getReportSectionTone } from '../lib/myCoachReportTones';
 import {
   listCoachReports,
   readRememberedReportId,
@@ -48,6 +49,7 @@ export function MyCoachReportSectionScreen({ onNavigate }: { onNavigate: (screen
     [reports, selectedReportId],
   );
   const meta = SECTION_META[section];
+  const tone = getReportSectionTone(section, selectedReport?.grade ?? 'B');
 
   async function loadReports() {
     setLoading(true);
@@ -74,12 +76,12 @@ export function MyCoachReportSectionScreen({ onNavigate }: { onNavigate: (screen
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#13253a_0%,#081018_34%,#04070c_68%,#020305_100%)] px-4 py-6 sm:px-6">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_16%_0%,rgba(0,122,255,0.16),transparent_32%),radial-gradient(circle_at_92%_16%,rgba(255,149,0,0.12),transparent_26%),linear-gradient(180deg,#f8fbff_0%,#eef4fa_58%,#f6f7f9_100%)] dark:bg-[radial-gradient(circle_at_top,#13253a_0%,#081018_34%,#04070c_68%,#020305_100%)] px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-[880px] space-y-5">
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/74 backdrop-blur"
+          className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/[0.06] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/74 backdrop-blur transition hover:bg-black/10 dark:hover:bg-white/[0.1]"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
           Back to Report
@@ -91,28 +93,23 @@ export function MyCoachReportSectionScreen({ onNavigate }: { onNavigate: (screen
           </section>
         ) : selectedReport ? (
           <>
-            <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(140deg,rgba(17,28,42,0.96)_0%,rgba(9,14,21,0.94)_48%,rgba(6,9,14,0.98)_100%)] px-5 py-6 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:px-6">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[#8fb9ff]">{meta.eyebrow}</p>
+            <section className={`rounded-[30px] border px-5 py-6 sm:px-6 ${tone.heroClass}`}>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/80 dark:text-[#8fb9ff]">{meta.eyebrow}</p>
               <h1 className="mt-2 font-headline text-[30px] font-bold leading-tight text-white sm:text-[38px]">{meta.title}</h1>
               <p className="mt-3 max-w-[42rem] text-sm leading-6 text-white/62">{meta.detail}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <MetaChip label={selectedReport.customerName} />
-                <MetaChip label={selectedReport.sessionTitle} />
-                <MetaChip label={formatReportDate(selectedReport.generatedAt)} subtle />
-              </div>
             </section>
 
             <section className="space-y-4">
               {section === 'overview' ? (
-                <OverviewSection report={selectedReport} onOpenSpeedBreakdown={openSpeedBreakdown} />
+                <OverviewSection report={selectedReport} onOpenSpeedBreakdown={openSpeedBreakdown} tone={tone} />
               ) : null}
-              {section === 'coaching' ? <CoachingSection report={selectedReport} /> : null}
-              {section === 'verdict' ? <VerdictSection report={selectedReport} /> : null}
-              {section === 'next_visit' ? <NextVisitSection report={selectedReport} /> : null}
+              {section === 'coaching' ? <CoachingSection report={selectedReport} tone={tone} /> : null}
+              {section === 'verdict' ? <VerdictSection report={selectedReport} tone={tone} /> : null}
+              {section === 'next_visit' ? <NextVisitSection report={selectedReport} tone={tone} /> : null}
             </section>
           </>
         ) : (
-          <section className="rounded-[30px] border border-dashed border-white/10 bg-white/[0.03] px-5 py-12 text-center text-sm leading-6 text-white/48">
+          <section className="rounded-[30px] border border-dashed border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] px-5 py-12 text-center text-sm leading-6 text-on-surface-variant/60 dark:text-white/48">
             Open a report from the report library first.
           </section>
         )}
@@ -126,19 +123,22 @@ export function MyCoachReportSectionScreen({ onNavigate }: { onNavigate: (screen
 function OverviewSection({
   report,
   onOpenSpeedBreakdown,
+  tone,
 }: {
   report: CoachReportListItem;
   onOpenSpeedBreakdown: () => void;
+  tone: ReturnType<typeof getReportSectionTone>;
 }) {
   const topSpeedStage = report.report.speedStages[0];
 
   return (
     <>
-      <DetailBlock label="Product Fit" title={report.report.productFitSummary} detail={report.report.productFit.why} />
+      <DetailBlock label="Product Fit" title={report.report.productFitSummary} detail={report.report.productFit.why} tone={tone} />
       <DetailBlock
         label="Driving Index"
         title={report.report.drivingIndex.primaryDriver || 'Not captured'}
         detail={report.report.drivingIndex.insight || 'Driving motivation is not clear yet.'}
+        tone={tone}
       />
       <JumpCard
         label="Speed Breakdown"
@@ -150,44 +150,47 @@ function OverviewSection({
         }
         actionLabel="Open speed breakdown"
         onClick={onOpenSpeedBreakdown}
+        tone={tone}
       />
     </>
   );
 }
 
-function CoachingSection({ report }: { report: CoachReportListItem }) {
+function CoachingSection({ report, tone }: { report: CoachReportListItem; tone: ReturnType<typeof getReportSectionTone> }) {
   return (
     <>
-      <ListBlock label="What went well" items={report.report.strengths} emptyText="No strengths were returned for this report." />
-      <ListBlock label="What did not work" items={report.report.improvements} emptyText="No improvement areas were returned for this report." />
+      <ListBlock label="What went well" items={report.report.strengths} emptyText="No strengths were returned for this report." tone={tone} />
+      <ListBlock label="What did not work" items={report.report.improvements} emptyText="No improvement areas were returned for this report." tone={tone} />
       <ListBlock
         label="Coach advice"
         items={report.report.coachAdvice.map((item) => [item.title, item.detail].filter(Boolean).join(' - '))}
         emptyText="No coach advice yet."
+        tone={tone}
       />
     </>
   );
 }
 
-function VerdictSection({ report }: { report: CoachReportListItem }) {
+function VerdictSection({ report, tone }: { report: CoachReportListItem; tone: ReturnType<typeof getReportSectionTone> }) {
   return (
     <>
-      <DetailBlock label="Verdict" title={deriveVerdictLabel(report)} detail={report.report.productFit.why} />
+      <DetailBlock label="Verdict" title={deriveVerdictLabel(report)} detail={report.report.productFit.why} tone={tone} />
       <ListBlock
         label="Observed objections"
         items={report.report.objections.map((item) => `${item.label} - ${item.advice || item.how || item.strategy || item.handled}`)}
         emptyText="No objection review was returned."
+        tone={tone}
       />
     </>
   );
 }
 
-function NextVisitSection({ report }: { report: CoachReportListItem }) {
+function NextVisitSection({ report, tone }: { report: CoachReportListItem; tone: ReturnType<typeof getReportSectionTone> }) {
   return (
     <>
-      <ListBlock label="Next visit opener" items={[report.report.nextVisitOpener].filter(Boolean)} emptyText="No next visit opener was suggested." />
-      <ListBlock label="Preparation" items={report.report.nextVisitPrep} emptyText="No next-visit preparation items were returned." />
-      <ListBlock label="Research tasks" items={report.report.researchTasks} emptyText="No research tasks were returned." />
+      <ListBlock label="Next visit opener" items={[report.report.nextVisitOpener].filter(Boolean)} emptyText="No next visit opener was suggested." tone={tone} />
+      <ListBlock label="Preparation" items={report.report.nextVisitPrep} emptyText="No next-visit preparation items were returned." tone={tone} />
+      <ListBlock label="Research tasks" items={report.report.researchTasks} emptyText="No research tasks were returned." tone={tone} />
     </>
   );
 }
@@ -198,70 +201,84 @@ function JumpCard({
   detail,
   actionLabel,
   onClick,
+  tone,
 }: {
   label: string;
   title: string;
   detail: string;
   actionLabel: string;
   onClick: () => void;
+  tone: ReturnType<typeof getReportSectionTone>;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(20,26,38,0.95)_0%,rgba(9,13,19,0.98)_100%)] p-5 text-left shadow-[0_24px_70px_rgba(0,0,0,0.32)] transition hover:border-white/14 hover:bg-white/[0.05]"
+      className="w-full rounded-[24px] border border-black/5 dark:border-white/8 bg-white dark:bg-[linear-gradient(180deg,rgba(20,26,38,0.95)_0%,rgba(9,13,19,0.98)_100%)] p-5 text-left shadow-apple-soft dark:shadow-[0_24px_70px_rgba(0,0,0,0.32)] transition hover:shadow-apple dark:hover:border-white/14 dark:hover:bg-white/[0.05]"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#8fb9ff]">{label}</p>
-          <p className="mt-3 font-headline text-2xl font-bold text-white">{title}</p>
-          <p className="mt-3 text-sm leading-6 text-white/66">{detail}</p>
+          <p className={`text-[10px] uppercase tracking-[0.18em] ${tone.accentTextClass}`}>{label}</p>
+          <p className="mt-3 font-headline text-2xl font-bold text-on-surface dark:text-white">{title}</p>
+          <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/66">{detail}</p>
         </div>
-        <span className="material-symbols-outlined text-[22px] text-white/64">arrow_forward</span>
+        <span className="material-symbols-outlined text-[22px] text-on-surface-variant/70 dark:text-white/64">arrow_forward</span>
       </div>
-      <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/78">
+      <div className={`mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors ${tone.actionPillClass}`}>
         {actionLabel}
       </div>
     </button>
   );
 }
 
-function DetailBlock({ label, title, detail }: { label: string; title: string; detail: string }) {
+function DetailBlock({
+  label,
+  title,
+  detail,
+  tone,
+}: {
+  label: string;
+  title: string;
+  detail: string;
+  tone: ReturnType<typeof getReportSectionTone>;
+}) {
   return (
-    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-white/42">{label}</p>
-      <p className="mt-2 font-headline text-2xl font-bold text-white">{title}</p>
-      <p className="mt-3 text-sm leading-6 text-white/62">{detail}</p>
+    <div className="rounded-[24px] border border-black/5 dark:border-white/8 bg-white dark:bg-white/[0.03] p-5 shadow-sm dark:shadow-none">
+      <p className={`text-[10px] uppercase tracking-[0.18em] ${tone.accentTextMutedClass}`}>{label}</p>
+      <p className="mt-2 font-headline text-2xl font-bold text-on-surface dark:text-white">{title}</p>
+      <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/62">{detail}</p>
     </div>
   );
 }
 
-function ListBlock({ label, items, emptyText }: { label: string; items: string[]; emptyText: string }) {
+function ListBlock({
+  label,
+  items,
+  emptyText,
+  tone,
+}: {
+  label: string;
+  items: string[];
+  emptyText: string;
+  tone: ReturnType<typeof getReportSectionTone>;
+}) {
   const cleanItems = items.map((item) => item.trim()).filter(Boolean);
 
   return (
-    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-white/42">{label}</p>
+    <div className="rounded-[24px] border border-black/5 dark:border-white/8 bg-white dark:bg-white/[0.03] p-5 shadow-sm dark:shadow-none">
+      <p className={`text-[10px] uppercase tracking-[0.18em] ${tone.accentTextMutedClass}`}>{label}</p>
       <div className="mt-4 space-y-3">
         {cleanItems.length ? (
           cleanItems.map((item) => (
-            <div key={item} className="rounded-[18px] border border-white/8 bg-black/14 px-4 py-3 text-sm leading-6 text-white/72">
+            <div key={item} className={`rounded-[18px] border px-4 py-3 text-sm leading-6 text-on-surface dark:text-white/72 ${tone.accentBorderClass} ${tone.accentSurfaceClass}`}>
               {item}
             </div>
           ))
         ) : (
-          <p className="text-sm leading-6 text-white/48">{emptyText}</p>
+          <p className="text-sm leading-6 text-on-surface-variant/70 dark:text-white/48">{emptyText}</p>
         )}
       </div>
     </div>
-  );
-}
-
-function MetaChip({ label, subtle = false }: { label: string; subtle?: boolean }) {
-  return (
-    <span className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.16em] ${subtle ? 'border-white/8 bg-white/[0.04] text-white/50' : 'border-white/10 bg-white/[0.06] text-white/62'}`}>
-      {label}
-    </span>
   );
 }
 
@@ -276,15 +293,6 @@ function deriveVerdictLabel(report: CoachReportListItem) {
   if (report.grade === 'B') return 'Progressed well';
   if (report.grade === 'C') return 'Needs coaching follow-through';
   return 'Went cold';
-}
-
-function formatReportDate(dateString: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 function ErrorBanner({ text }: { text: string }) {

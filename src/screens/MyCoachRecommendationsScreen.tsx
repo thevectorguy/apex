@@ -94,7 +94,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
       <button
         type="button"
         onClick={() => onNavigate('dashboard')}
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-white/72"
+        className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-on-surface-variant dark:text-white/72 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
         Dashboard
@@ -106,7 +106,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
         <>
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <motion.section
-              className="relative overflow-hidden rounded-[30px] border border-white/8 bg-[linear-gradient(135deg,#111a28_0%,#182131_42%,#1f2028_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)]"
+              className="relative overflow-hidden rounded-[30px] border border-primary/20 dark:border-white/8 bg-gradient-to-br from-[#0055ff] via-[#007aff] to-[#00aaff] dark:from-[#111a28] dark:via-[#182131] dark:to-[#1f2028] px-6 py-7 shadow-apple dark:shadow-[0_24px_80px_rgba(0,0,0,0.38)]"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.36, ease: 'easeOut' }}
@@ -114,7 +114,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(164,201,255,0.22),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(227,194,133,0.14),transparent_34%)]"></div>
               <div className="relative z-10">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-primary/90">My Recommendations</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 dark:text-primary/90">My Recommendations</span>
                   <span className="inline-flex items-center rounded-full border border-secondary/24 bg-secondary/12 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
                     {masterCopyLabel}
                   </span>
@@ -123,7 +123,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
                 <h1 className="mt-4 max-w-3xl font-headline text-4xl font-bold tracking-tight text-white md:text-5xl">
                   Directive next moves from the latest My Coach interaction.
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/66 md:text-base">
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/90 dark:text-white/66 md:text-base">
                   A calm summary of what landed, what still needs work, and which learning directions should shape the next visit.
                 </p>
 
@@ -143,7 +143,7 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
                   <button
                     type="button"
                     onClick={openReportDetail}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-[0.16em] text-on-primary-fixed shadow-[0_16px_32px_rgba(74,158,255,0.25)]"
+                    className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-[0.16em] text-primary dark:text-on-primary-fixed shadow-apple-soft dark:shadow-[0_16px_32px_rgba(74,158,255,0.25)] transition hover:opacity-90"
                   >
                     View Full Report
                     <span className="material-symbols-outlined text-[16px]">description</span>
@@ -153,23 +153,23 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
             </motion.section>
 
             <motion.section
-              className="rounded-[30px] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+              className="rounded-[30px] border border-black/5 dark:border-white/8 bg-surface-bright dark:bg-surface-container-low/92 p-5 shadow-apple-soft dark:shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.36, delay: 0.06, ease: 'easeOut' }}
             >
               <p className="text-[10px] uppercase tracking-[0.16em] text-primary/90">Primary Directive</p>
-              <h2 className="mt-3 font-headline text-2xl font-bold text-on-surface">
+              <h2 className="mt-3 font-headline text-2xl font-bold text-on-surface dark:text-white">
                 {directives[0] || 'Lead with one clear recommendation and one clear next step.'}
               </h2>
-              <p className="mt-3 text-sm leading-6 text-white/62">{selectedReport.report.summary}</p>
+              <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/62">{selectedReport.report.summary}</p>
 
               {visitSignal ? (
                 <div className={`mt-5 rounded-[24px] border px-4 py-4 ${signalToneClass(visitSignal.tone)}`}>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">Next Visit Signal</p>
-                  <h3 className="mt-2 font-headline text-xl font-bold text-white">{visitSignal.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/68">{visitSignal.summary}</p>
-                  <p className="mt-3 text-sm leading-6 text-white/84">{visitSignal.direction}</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/42">Next Visit Signal</p>
+                  <h3 className="mt-2 font-headline text-xl font-bold text-on-surface dark:text-white">{visitSignal.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant dark:text-white/68">{visitSignal.summary}</p>
+                  <p className="mt-3 text-sm leading-6 text-on-surface dark:text-white/84">{visitSignal.direction}</p>
                 </div>
               ) : null}
             </motion.section>
@@ -189,8 +189,8 @@ export function MyCoachRecommendationsScreen({ onNavigate }: { onNavigate: (scre
                   onClick={() => setActiveSection(section.id)}
                   className={`rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition ${
                     activeSection === section.id
-                      ? 'border-white/18 bg-white text-black'
-                      : 'border-white/10 bg-white/[0.05] text-white/68'
+                      ? 'border-black/10 bg-black/5 dark:border-white/18 dark:bg-white text-primary dark:text-black'
+                      : 'border-transparent bg-transparent text-on-surface-variant/60 dark:border-white/10 dark:bg-white/[0.05] dark:text-white/68 hover:bg-black/5 dark:hover:bg-white/[0.08]'
                   }`}
                 >
                   {section.label}
@@ -433,14 +433,14 @@ function formatReportDate(dateString: string) {
 }
 
 function signalToneClass(tone: VisitSignal['tone']) {
-  if (tone === 'positive') return 'border-[#39FF14]/18 bg-[#39FF14]/7';
-  if (tone === 'warning') return 'border-[#FFB800]/18 bg-[#FFB800]/8';
-  return 'border-white/10 bg-white/[0.04]';
+  if (tone === 'positive') return 'border-[#39FF14]/30 bg-[#39FF14]/10 dark:border-[#39FF14]/18 dark:bg-[#39FF14]/7';
+  if (tone === 'warning') return 'border-[#FFB800]/30 bg-[#FFB800]/10 dark:border-[#FFB800]/18 dark:bg-[#FFB800]/8';
+  return 'border-black/5 bg-black/5 dark:border-white/10 dark:bg-white/[0.04]';
 }
 
 function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-[30px] border border-white/8 bg-surface-container-low/92 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] ${className}`}>
+    <section className={`rounded-[30px] border border-black/5 dark:border-white/8 bg-surface-bright dark:bg-surface-container-low/92 p-5 shadow-apple-soft dark:shadow-[0_20px_60px_rgba(0,0,0,0.28)] ${className}`}>
       {children}
     </section>
   );
@@ -458,8 +458,8 @@ function SectionHeader({
   return (
     <div>
       <p className="text-[10px] uppercase tracking-[0.18em] text-primary/90">{eyebrow}</p>
-      <h2 className="mt-2 font-headline text-3xl font-bold tracking-tight text-white">{title}</h2>
-      {detail ? <p className="mt-3 max-w-3xl text-sm leading-6 text-white/58">{detail}</p> : null}
+      <h2 className="mt-2 font-headline text-3xl font-bold tracking-tight text-on-surface dark:text-white">{title}</h2>
+      {detail ? <p className="mt-3 max-w-3xl text-sm leading-6 text-on-surface-variant dark:text-white/58">{detail}</p> : null}
     </div>
   );
 }
@@ -482,17 +482,17 @@ function RecommendationsOverviewSection({
           detail="This section keeps the page short by pulling the summary, next-visit signal, and priority actions into one focused read."
         />
         <div className="mt-5 space-y-4">
-          <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Report Summary</p>
-            <p className="mt-3 text-sm leading-6 text-white/68">{summary}</p>
+          <div className="rounded-[24px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/[0.03] px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/40">Report Summary</p>
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/68">{summary}</p>
           </div>
 
           {visitSignal ? (
             <div className={`rounded-[24px] border px-4 py-4 ${signalToneClass(visitSignal.tone)}`}>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">Next Visit Signal</p>
-              <h3 className="mt-2 font-headline text-xl font-bold text-white">{visitSignal.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-white/68">{visitSignal.summary}</p>
-              <p className="mt-3 text-sm leading-6 text-white/84">{visitSignal.direction}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/42">Next Visit Signal</p>
+              <h3 className="mt-2 font-headline text-xl font-bold text-on-surface dark:text-white">{visitSignal.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant dark:text-white/68">{visitSignal.summary}</p>
+              <p className="mt-3 text-sm leading-6 text-on-surface dark:text-white/84">{visitSignal.direction}</p>
             </div>
           ) : null}
         </div>
@@ -609,26 +609,26 @@ function RecommendationsLearningSection({
             key={`${video.title}-${index}`}
             type="button"
             onClick={() => onNavigate('communications')}
-            className="group overflow-hidden rounded-[26px] border border-white/8 bg-[linear-gradient(160deg,rgba(21,25,35,0.98)_0%,rgba(12,15,21,0.96)_100%)] text-left shadow-[0_20px_50px_rgba(0,0,0,0.28)] transition hover:border-white/12"
+            className="group overflow-hidden rounded-[26px] border border-black/5 dark:border-white/8 bg-white dark:bg-[linear-gradient(160deg,rgba(21,25,35,0.98)_0%,rgba(12,15,21,0.96)_100%)] text-left shadow-apple-soft dark:shadow-[0_20px_50px_rgba(0,0,0,0.28)] transition hover:border-black/10 dark:hover:border-white/12 hover:shadow-apple dark:hover:shadow-[0_24px_60px_rgba(0,0,0,0.38)]"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, delay: 0.06 * index, ease: 'easeOut' }}
           >
             <div className="relative overflow-hidden px-5 py-5">
-              <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.18),transparent_62%)]"></div>
+              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#007aff]/10 dark:bg-[radial-gradient(circle_at_top,rgba(164,201,255,0.18),transparent_62%)]"></div>
               <div className="relative z-10 flex items-start justify-between gap-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-white/78">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/6 text-primary dark:text-white/78 shadow-sm dark:shadow-none">
                   <span className="material-symbols-outlined text-[22px]">play_circle</span>
                 </div>
-                <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-white/56">
+                <span className="rounded-full border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/6 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/56">
                   {video.duration}
                 </span>
               </div>
               <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-primary/90">Learning Directive</p>
-              <h3 className="mt-2 font-headline text-2xl font-bold tracking-tight text-white">{video.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/60">{video.summary}</p>
-              <div className="mt-4 rounded-[20px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-6 text-white/74">{video.directive}</div>
-              <div className="mt-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-white/44">
+              <h3 className="mt-2 font-headline text-2xl font-bold tracking-tight text-on-surface dark:text-white">{video.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/60">{video.summary}</p>
+              <div className="mt-4 rounded-[20px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-black/18 px-3 py-3 text-sm leading-6 text-on-surface-variant dark:text-white/74">{video.directive}</div>
+              <div className="mt-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-primary/80 dark:text-white/44">
                 <span>Open training feed</span>
                 <span className="material-symbols-outlined text-[16px]">north_east</span>
               </div>
@@ -643,16 +643,16 @@ function RecommendationsLearningSection({
 function NuggetCard({ nugget }: { nugget: Nugget }) {
   const toneClass =
     nugget.tone === 'positive'
-      ? 'border-[#39FF14]/16 bg-[#39FF14]/7'
+      ? 'border-[#39FF14]/30 bg-[#39FF14]/10 dark:border-[#39FF14]/16 dark:bg-[#39FF14]/7'
       : nugget.tone === 'warning'
-        ? 'border-[#FFB800]/16 bg-[#FFB800]/8'
-        : 'border-white/8 bg-white/[0.04]';
+        ? 'border-[#FFB800]/30 bg-[#FFB800]/10 dark:border-[#FFB800]/16 dark:bg-[#FFB800]/8'
+        : 'border-black/5 bg-black/5 dark:border-white/8 dark:bg-white/[0.04]';
 
   return (
-    <div className={`h-full rounded-[24px] border px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] ${toneClass}`}>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">{nugget.eyebrow}</p>
-      <h3 className="mt-3 font-headline text-xl font-bold text-white">{nugget.title}</h3>
-      <p className="mt-3 text-sm leading-6 text-white/68">{nugget.detail}</p>
+    <div className={`h-full rounded-[24px] border px-4 py-4 shadow-sm dark:shadow-[0_18px_40px_rgba(0,0,0,0.22)] ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/40">{nugget.eyebrow}</p>
+      <h3 className="mt-3 font-headline text-xl font-bold text-on-surface dark:text-white">{nugget.title}</h3>
+      <p className="mt-3 text-sm leading-6 text-on-surface-variant dark:text-white/68">{nugget.detail}</p>
     </div>
   );
 }
@@ -671,9 +671,9 @@ function ListBlock({
   tone: 'positive' | 'warning';
 }) {
   return (
-    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">{eyebrow}</p>
-      <h3 className="mt-2 font-headline text-xl font-bold text-white">{title}</h3>
+    <div className="rounded-[24px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/[0.03] px-4 py-4">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 dark:text-white/40">{eyebrow}</p>
+      <h3 className="mt-2 font-headline text-xl font-bold text-on-surface dark:text-white">{title}</h3>
       <div className="mt-4 space-y-3">
         {items.length ? items.map((item, index) => <LineItem key={`${item}-${index}`} text={item} tone={tone} />) : <MutedText text={emptyText} />}
       </div>
@@ -683,29 +683,29 @@ function ListBlock({
 
 function LineItem({ text, tone }: { text: string; tone: 'positive' | 'warning' }) {
   return (
-    <div className="flex items-start gap-3 rounded-[20px] border border-white/8 bg-black/14 px-3 py-3">
-      <span className={`mt-2 h-2.5 w-2.5 rounded-full ${tone === 'positive' ? 'bg-[#39FF14]' : 'bg-[#FFB800]'}`} />
-      <p className="text-sm leading-6 text-white/72">{text}</p>
+    <div className="flex items-start gap-3 rounded-[20px] border border-black/5 dark:border-white/8 bg-white dark:bg-black/14 px-3 py-3 shadow-sm dark:shadow-none">
+      <span className={`mt-2 shrink-0 h-2.5 w-2.5 rounded-full ${tone === 'positive' ? 'bg-[#39FF14]' : 'bg-[#FFB800]'}`} />
+      <p className="text-sm leading-6 text-on-surface-variant dark:text-white/72">{text}</p>
     </div>
   );
 }
 
 function DirectiveRow({ index, text }: { index: number; text: string }) {
   return (
-    <div className="flex items-start gap-4 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
-      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-secondary/24 bg-secondary/12 font-headline text-sm font-bold text-secondary">
+    <div className="flex items-start gap-4 rounded-[22px] border border-black/5 dark:border-white/8 bg-white dark:bg-white/[0.03] px-4 py-4 shadow-sm dark:shadow-none">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-secondary/30 bg-secondary/10 dark:border-secondary/24 dark:bg-secondary/12 font-headline text-sm font-bold text-secondary">
         {index}
       </span>
-      <p className="pt-0.5 text-sm leading-6 text-white/74">{text}</p>
+      <p className="pt-0.5 text-sm leading-6 text-on-surface-variant dark:text-white/74">{text}</p>
     </div>
   );
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[20px] border border-white/8 bg-black/18 px-4 py-3">
+    <div className="rounded-[20px] border border-white/20 dark:border-white/8 bg-white/10 dark:bg-black/18 px-4 py-3 backdrop-blur-sm">
       <p className="font-headline text-2xl font-bold text-white">{value}</p>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/42">{label}</p>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/70 dark:text-white/42">{label}</p>
     </div>
   );
 }
@@ -727,36 +727,36 @@ function RecommendationsSkeleton() {
     <div className="space-y-4">
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel className="px-6 py-7">
-          <SkeletonLine className="h-3 w-32 bg-white/[0.08]" />
-          <SkeletonLine className="mt-5 h-10 w-4/5 bg-white/[0.08]" />
-          <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
-          <SkeletonLine className="mt-2 h-4 w-3/4 bg-white/[0.04]" />
+          <SkeletonLine className="h-3 w-32 bg-black/10 dark:bg-white/[0.08]" />
+          <SkeletonLine className="mt-5 h-10 w-4/5 bg-black/10 dark:bg-white/[0.08]" />
+          <SkeletonLine className="mt-3 h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+          <SkeletonLine className="mt-2 h-4 w-3/4 bg-black/5 dark:bg-white/[0.04]" />
           <div className="mt-5 flex flex-wrap gap-2">
-            <SkeletonLine className="h-7 w-24 rounded-full bg-white/[0.05]" />
-            <SkeletonLine className="h-7 w-28 rounded-full bg-white/[0.05]" />
-            <SkeletonLine className="h-7 w-20 rounded-full bg-white/[0.05]" />
+            <SkeletonLine className="h-7 w-24 rounded-full bg-black/5 dark:bg-white/[0.05]" />
+            <SkeletonLine className="h-7 w-28 rounded-full bg-black/5 dark:bg-white/[0.05]" />
+            <SkeletonLine className="h-7 w-20 rounded-full bg-black/5 dark:bg-white/[0.05]" />
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {Array.from({ length: 3 }, (_, index) => (
-              <div key={`recommendations-stat-${index}`} className="rounded-[20px] border border-white/8 bg-black/18 px-4 py-3">
-                <SkeletonLine className="h-7 w-14 bg-white/[0.08]" />
-                <SkeletonLine className="mt-3 h-3 w-16 bg-white/[0.05]" />
+              <div key={`recommendations-stat-${index}`} className="rounded-[20px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-black/18 px-4 py-3">
+                <SkeletonLine className="h-7 w-14 bg-black/10 dark:bg-white/[0.08]" />
+                <SkeletonLine className="mt-3 h-3 w-16 bg-black/5 dark:bg-white/[0.05]" />
               </div>
             ))}
           </div>
-          <SkeletonLine className="mt-6 h-11 w-40 rounded-full bg-white/[0.07]" />
+          <SkeletonLine className="mt-6 h-11 w-40 rounded-full bg-black/5 dark:bg-white/[0.07]" />
         </Panel>
 
         <Panel className="p-5">
-          <SkeletonLine className="h-3 w-28 bg-white/[0.08]" />
-          <SkeletonLine className="mt-5 h-8 w-5/6 bg-white/[0.08]" />
-          <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
-          <SkeletonLine className="mt-2 h-4 w-3/4 bg-white/[0.04]" />
-          <div className="mt-5 rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
-            <SkeletonLine className="h-3 w-24 bg-white/[0.06]" />
-            <SkeletonLine className="mt-3 h-6 w-2/3 bg-white/[0.08]" />
-            <SkeletonLine className="mt-3 h-4 w-full bg-white/[0.05]" />
-            <SkeletonLine className="mt-2 h-4 w-4/5 bg-white/[0.04]" />
+          <SkeletonLine className="h-3 w-28 bg-black/10 dark:bg-white/[0.08]" />
+          <SkeletonLine className="mt-5 h-8 w-5/6 bg-black/10 dark:bg-white/[0.08]" />
+          <SkeletonLine className="mt-3 h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+          <SkeletonLine className="mt-2 h-4 w-3/4 bg-black/5 dark:bg-white/[0.04]" />
+          <div className="mt-5 rounded-[24px] border border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/[0.03] px-4 py-4">
+            <SkeletonLine className="h-3 w-24 bg-black/5 dark:bg-white/[0.06]" />
+            <SkeletonLine className="mt-3 h-6 w-2/3 bg-black/10 dark:bg-white/[0.08]" />
+            <SkeletonLine className="mt-3 h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+            <SkeletonLine className="mt-2 h-4 w-4/5 bg-black/5 dark:bg-white/[0.04]" />
           </div>
         </Panel>
       </section>
@@ -764,7 +764,7 @@ function RecommendationsSkeleton() {
       <section className="overflow-x-auto hide-scrollbar pb-1">
         <div className="flex min-w-max gap-2">
           {Array.from({ length: 4 }, (_, index) => (
-            <SkeletonLine key={`recommendation-pill-${index}`} className="h-10 w-28 rounded-full bg-white/[0.05]" />
+            <SkeletonLine key={`recommendation-pill-${index}`} className="h-10 w-28 rounded-full bg-black/5 dark:bg-white/[0.05]" />
           ))}
         </div>
       </section>
@@ -773,17 +773,17 @@ function RecommendationsSkeleton() {
         <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
           {Array.from({ length: 2 }, (_, panelIndex) => (
             <div key={`recommendation-panel-${panelIndex}`} className="space-y-4">
-              <SkeletonLine className="h-3 w-24 bg-white/[0.08]" />
-              <SkeletonLine className="h-8 w-3/4 bg-white/[0.08]" />
-              <SkeletonLine className="h-4 w-full bg-white/[0.05]" />
-              <SkeletonLine className="h-4 w-4/5 bg-white/[0.04]" />
+              <SkeletonLine className="h-3 w-24 bg-black/10 dark:bg-white/[0.08]" />
+              <SkeletonLine className="h-8 w-3/4 bg-black/10 dark:bg-white/[0.08]" />
+              <SkeletonLine className="h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+              <SkeletonLine className="h-4 w-4/5 bg-black/5 dark:bg-white/[0.04]" />
               <div className="space-y-3">
                 {Array.from({ length: 3 }, (_, rowIndex) => (
-                  <div key={`recommendation-row-${panelIndex}-${rowIndex}`} className="flex items-start gap-4 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                    <SkeletonCircle className="h-8 w-8 border-white/8 bg-white/[0.05]" />
+                  <div key={`recommendation-row-${panelIndex}-${rowIndex}`} className="flex items-start gap-4 rounded-[22px] border border-black/5 dark:border-white/8 bg-white dark:bg-white/[0.03] px-4 py-4">
+                    <SkeletonCircle className="h-8 w-8 border-black/5 dark:border-white/8 bg-black/5 dark:bg-white/[0.05]" />
                     <div className="min-w-0 flex-1 space-y-2">
-                      <SkeletonLine className="h-4 w-full bg-white/[0.05]" />
-                      <SkeletonLine className="h-4 w-3/4 bg-white/[0.04]" />
+                      <SkeletonLine className="h-4 w-full bg-black/5 dark:bg-white/[0.05]" />
+                      <SkeletonLine className="h-4 w-3/4 bg-black/5 dark:bg-white/[0.04]" />
                     </div>
                   </div>
                 ))}

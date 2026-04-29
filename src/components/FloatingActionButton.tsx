@@ -58,7 +58,7 @@ export function FloatingActionButton({ onClick }: { onClick: () => void }) {
           : { y: 0, opacity: 1, scale: 1 }
       }
       transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.9 }}
-      className={`fixed bottom-28 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-surface-container-lowest shadow-[0_0_20px_rgba(227,194,133,0.5)] will-change-transform ${
+      className={`fixed bottom-28 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#caa24d] dark:bg-[#e3c285] text-white dark:text-[#0e0e13] shadow-[0_12px_26px_rgba(202,162,77,0.42)] dark:shadow-[0_0_20px_rgba(227,194,133,0.5)] will-change-transform ${
         isHidden ? 'pointer-events-none' : ''
       }`}
     >
